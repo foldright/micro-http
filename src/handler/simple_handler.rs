@@ -1,4 +1,4 @@
-use crate::Handler;
+use crate::handler::Handler;
 
 pub struct SimpleHandler {
 
