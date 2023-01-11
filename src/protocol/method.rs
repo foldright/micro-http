@@ -1,4 +1,4 @@
-use crate::request::error::ParseError;
+use crate::protocol::error::ParseError;
 
 #[derive(Debug, PartialEq)]
 pub enum Method {

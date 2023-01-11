@@ -3,8 +3,8 @@ use std::io::{Read, Write};
 use std::net::{Shutdown, SocketAddr, TcpListener, TcpStream, ToSocketAddrs};
 use std::sync::Arc;
 use crate::handler::Handler;
+use crate::protocol::Request;
 use crate::server::ServerError;
-
 pub struct SimpleServer<Addr: ToSocketAddrs> {
     addr: Addr,
 }
@@ -47,11 +47,13 @@ impl<Addr: ToSocketAddrs> SimpleServer<Addr> {
             }
         };
 
-        let buf = &mut buf[..read_size];
+        let buf = &buf[..read_size];
 
-        println!("{}", std::str::from_utf8(buf).unwrap());
+        let request = Request::try_from(buf).unwrap();
 
-        tcp_stream.write(buf).unwrap();
+        let response = handler.handle(&request);
+
+        response.send(&mut tcp_stream);
     }
 }
 

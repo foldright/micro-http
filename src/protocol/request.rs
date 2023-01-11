@@ -1,9 +1,9 @@
 use std::fmt::{Debug, Display, Formatter};
 use std::str::Utf8Error;
-use crate::request::error::ParseError;
-use crate::request::http_version::HttpVersion;
-use crate::request::method::Method;
-use crate::request::query::Query;
+use crate::protocol::error::ParseError;
+use crate::protocol::http_version::HttpVersion;
+use crate::protocol::method::Method;
+use crate::protocol::query::Query;
 
 pub struct Request<'a> {
     method: Method,

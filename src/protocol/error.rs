@@ -14,7 +14,7 @@ impl Display for ParseError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::InvalidEncoding => write!(f, "invalid encoding"),
-            Self::InvalidRequest => write!(f, "invalid request"),
+            Self::InvalidRequest => write!(f, "invalid protocol"),
             Self::InvalidVersion => write!(f, "invalid version"),
         }
     }
