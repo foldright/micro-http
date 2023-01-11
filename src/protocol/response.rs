@@ -39,7 +39,7 @@ impl Response {
     }
 
 
-    pub fn send(&self, writer: &mut impl Write) {
+    pub fn write(&self, writer: &mut impl Write) {
         let mut response_str = format!("{} {} {}\r\n\r\n",
                                        self.http_version,
                                        self.status_code,

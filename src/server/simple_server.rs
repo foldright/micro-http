@@ -53,7 +53,7 @@ impl<Addr: ToSocketAddrs> SimpleServer<Addr> {
 
         let response = handler.handle(&request);
 
-        response.send(&mut tcp_stream);
+        response.write(&mut tcp_stream);
     }
 }
 
