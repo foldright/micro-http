@@ -11,6 +11,6 @@ impl SimpleHandler {
 
 impl Handler for SimpleHandler {
     fn handle(&self, request: &Request) -> Response {
-        Response::new(StatusCode::OK, Some("it works".into()))
+        Response::new(StatusCode::OK, Some("<h1>it works</h1>".into()))
     }
 }
