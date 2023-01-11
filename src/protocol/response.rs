@@ -5,7 +5,6 @@ use crate::protocol::http_version::HttpVersion;
 pub struct Response {
     http_version: HttpVersion,
     status_code: StatusCode,
-    // headers: Headers
     body: Option<String>,
 }
 

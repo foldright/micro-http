@@ -5,6 +5,8 @@ use std::sync::Arc;
 use crate::handler::Handler;
 use crate::protocol::Request;
 use crate::server::ServerError;
+
+
 pub struct SimpleServer<Addr: ToSocketAddrs> {
     addr: Addr,
 }
