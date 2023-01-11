@@ -2,16 +2,15 @@ use std::fmt::{Debug, Display, Formatter};
 use std::str::Utf8Error;
 use crate::request::error::ParseError;
 use crate::request::method::Method;
+use crate::request::query::Query;
 
 pub struct Request<'a> {
     method: Method,
     path: &'a str,
-    query: Query,
+    query: Query<'a>,
     http_version: HttpVersion,
     headers: Headers,
 }
-
-pub struct Query {}
 
 pub enum HttpVersion {
     Http1_1
@@ -37,8 +36,6 @@ impl<'a> TryFrom<&'a [u8]> for Request<'a> {
         if let Some(split) = path_query.split_once('?') {
             (path, query) = split;
         }
-
-
 
 
         todo!()
