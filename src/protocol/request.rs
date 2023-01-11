@@ -1,6 +1,7 @@
 use std::fmt::{Debug, Display, Formatter};
 use std::str::Utf8Error;
 use crate::protocol::error::ParseError;
+use crate::protocol::header::Headers;
 use crate::protocol::http_version::HttpVersion;
 use crate::protocol::method::Method;
 use crate::protocol::query::Query;
@@ -10,15 +11,14 @@ pub struct Request<'a> {
     path: &'a str,
     query: Query<'a>,
     http_version: HttpVersion,
-    //headers: Headers,
+    headers: Headers<'a>,
+    body: Option<&'a str>,
 }
-
-//pub struct Headers {}
 
 impl<'a> TryFrom<&'a [u8]> for Request<'a> {
     type Error = ParseError;
 
-    fn try_from(str: &'a[u8]) -> Result<Self, Self::Error> {
+    fn try_from(str: &'a [u8]) -> Result<Self, Self::Error> {
         let str = std::str::from_utf8(str)?;
 
         let (method_str, remaining) = str.split_once(' ')
@@ -40,11 +40,22 @@ impl<'a> TryFrom<&'a [u8]> for Request<'a> {
 
         let http_version = HttpVersion::try_from(version)?;
 
+        let (headers_str, remaining) = remaining.split_once("\r\n\r\n").ok_or(ParseError::InvalidRequest)?;
+
+        let headers = Headers::try_from(headers_str)?;
+
+        let body = match remaining.is_empty() {
+            true => None,
+            false => Some(remaining),
+        };
+
         Ok(Request {
             method,
             path,
             query,
             http_version,
+            headers,
+            body,
         })
     }
 }
