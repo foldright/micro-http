@@ -6,6 +6,7 @@ use std::str::Utf8Error;
 pub enum ParseError {
     InvalidEncoding,
     InvalidRequest,
+    InvalidVersion,
 }
 
 
@@ -14,6 +15,7 @@ impl Display for ParseError {
         match self {
             Self::InvalidEncoding => write!(f, "invalid encoding"),
             Self::InvalidRequest => write!(f, "invalid request"),
+            Self::InvalidVersion => write!(f, "invalid version"),
         }
     }
 }
