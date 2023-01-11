@@ -1,8 +1,17 @@
+use std::fmt::{Display, Formatter};
 use crate::protocol::error::ParseError;
 
 #[derive(Debug, PartialEq)]
 pub enum HttpVersion {
     Http1_1
+}
+
+impl Display for HttpVersion {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Http1_1 => write!(f, "HTTP/1.1"),
+        }
+    }
 }
 
 impl TryFrom<&str> for HttpVersion {

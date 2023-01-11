@@ -1,12 +1,16 @@
 use crate::handler::Handler;
-use crate::protocol::{Request, Response};
+use crate::protocol::{Request, Response, StatusCode};
 
-pub struct SimpleHandler {
-
-}
+pub struct SimpleHandler {}
 
 impl Handler for SimpleHandler {
     fn handle(&self, request: &Request) -> Response {
-        todo!()
+        Response::new(StatusCode::OK, Some("it works".into()))
+    }
+}
+
+impl SimpleHandler {
+    pub fn new() -> Self {
+        SimpleHandler {}
     }
 }
