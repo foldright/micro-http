@@ -1,5 +1,3 @@
-mod simple_server;
-mod error;
+mod server;
 
-pub use simple_server::SimpleServer;
-pub use error::ServerError;
+pub use server::Server;
