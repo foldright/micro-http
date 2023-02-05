@@ -1,86 +1,106 @@
-use std::mem::MaybeUninit;
+use std::error::Error;
 
-use bytes::BytesMut;
-use http::Request;
-use httparse::Status;
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use std::sync::Arc;
+use anyhow::anyhow;
+use bytes::{BufMut, Bytes};
+
+use futures::{SinkExt, StreamExt};
+use http::{Response, StatusCode};
+use http_body::Body;
+use http_body_util::{BodyExt, Empty};
+
+use tokio::net::tcp::{OwnedReadHalf, OwnedWriteHalf};
 use tokio::net::TcpStream;
-use tracing::{error, info};
+use tokio_util::codec::{FramedRead, FramedWrite};
+use tracing::info;
+use crate::codec::{BodyDecoder, HeaderDecoder, HeaderEncoder};
+use crate::handler::Handler;
+use crate::protocol::body::ReqBody;
 
-use crate::protocol::parse_request_header;
-
-const MAX_HEADER_BYTES: usize = 4 * 1024;
-
-pub struct Connection {
-    stream: TcpStream,
-    buffer: BytesMut,
+pub struct HttpConnection {
+    framed_read: FramedRead<OwnedReadHalf, HeaderDecoder>,
+    framed_write: FramedWrite<OwnedWriteHalf, HeaderEncoder>,
 }
 
-impl Connection {
-    pub fn new(tcp_stream: TcpStream) -> Self {
+impl HttpConnection {
+    pub fn new(stream: TcpStream) -> Self {
+        let (reader, writer) = stream.into_split();
         Self {
-            stream: tcp_stream,
-            buffer: BytesMut::with_capacity(1024 * 4),
+            framed_read: FramedRead::with_capacity(reader, HeaderDecoder, 4 * 1024),
+            framed_write: FramedWrite::new(writer, HeaderEncoder),
         }
     }
 
-    async fn shutdown(&mut self) {
-        match self.stream.shutdown().await {
-            Ok(_) => {}
-            Err(e) => {
-                error!(e = %e, "shutdown connection error")
-            }
+    pub async fn process<H>(mut self, handler: Arc<H>) -> crate::Result<()>
+        where H: Handler,
+              H::RespBody: Body + Unpin,
+    {
+        while let Some(Ok(request_header)) = self.framed_read.next().await {
+            info!(path = request_header.uri().to_string(), "received request");
+
+            let body_framed = self.framed_read.map_decoder(|_| {
+                let body_length = ReqBody::parse_body_length(&request_header);
+                BodyDecoder::from(body_length.unwrap())
+            });
+
+            let body = ReqBody::new(body_framed);
+            let mut request = request_header.body(body);
+
+            let response = handler.handle(&mut request).await;
+
+            let mut body = request.into_body();
+            Self::consume_body(&mut body).await?;
+            self.framed_read = body.framed_read.map_decoder(|_| HeaderDecoder);
+
+            self.send_response(response).await?;
         }
+
+        Ok(())
     }
 
-    pub async fn read_header<T>(&mut self) -> crate::Result<Request<Option<T>>> {
+    async fn consume_body(body: &mut ReqBody) -> crate::Result<()> {
         loop {
-            self.stream.readable().await?;
-
-            match self.stream.read_buf(&mut self.buffer).await? {
-                0 => {
-                    if self.buffer.is_empty() {
-                        continue;
-                    } else {
-                        return Err("connection reset by peer".into());
-                    }
-                }
-                n => {
-                    info!(bytes = %n, "receive: ");
-                }
-            }
-
-            match Self::parse_header(&mut self.buffer).await? {
-                None => {
-                    // buffer reach max size
-                    if self.buffer.len() >= MAX_HEADER_BYTES {
-                        error!(bytes = %self.buffer.len(), "header reached max bytes");
-                        self.shutdown().await;
-                        return Err("header reached max bytes".into());
-                    }
-
-                    continue;
-                }
-                Some(request) => {
-                    return Ok(request);
-                }
+            match body.frame().await {
+                None => return Ok(()),
+                Some(Ok(_)) => continue,
+                Some(Err(_e)) => return Err(anyhow!("consume body error"))
             }
         }
     }
 
+    async fn send_response<T, E>(&mut self, response_result: Result<Response<T>, E>) -> crate::Result<()>
+        where T: Body + Unpin,
+              E: Into<Box<dyn Error + Send + 'static>>,
+    {
+        match response_result {
+            Ok(response) => self.do_send_response(response).await,
+            Err(_) => {
+                let error_response = Response::builder()
+                    .status(StatusCode::INTERNAL_SERVER_ERROR)
+                    .body(Empty::<Bytes>::new())
+                    .unwrap();
 
-    async fn parse_header<T>(bytes: &mut BytesMut) -> crate::Result<Option<Request<Option<T>>>> {
-        let mut req = httparse::Request::new(&mut []);
-        let mut headers: [MaybeUninit<httparse::Header>; 64] =
-            unsafe { MaybeUninit::uninit().assume_init() };
-
-        match req.parse_with_uninit_headers(bytes.as_ref(), &mut headers)? {
-            Status::Complete(_body_offset) => {
-                //todo!("body_offset we need to save to parse body")
-                parse_request_header(req).map(|request| Some(request))
+                self.do_send_response(error_response).await
             }
-            Status::Partial => {
-                Ok(None)
+        }
+    }
+
+    async fn do_send_response<T>(&mut self, response: Response<T>) -> crate::Result<()>
+        where T: Body + Unpin,
+    {
+        let (parts, mut body) = response.into_parts();
+        self.framed_write.send(parts).await?;
+
+        loop {
+            match body.frame().await {
+                Some(Ok(frame)) => {
+                    let data = frame.into_data()
+                        .map_err(|_e| anyhow!("get response data error"))?;
+                    self.framed_write.write_buffer_mut().put(data);
+                    self.framed_write.flush().await?
+                }
+                Some(Err(_e)) => return Err(anyhow!("consume body error")),
+                None => return Ok(()),
             }
         }
     }

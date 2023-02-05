@@ -1,7 +1,10 @@
-pub mod server;
+extern crate core;
+
 pub mod connection;
+pub mod handler;
 pub mod protocol;
+pub mod codec;
 
 //todo: need a own error type
-pub type Error = Box<dyn std::error::Error + Send + Sync>;
-pub type Result<T> = std::result::Result<T, Error>;
+pub type Error = anyhow::Error;
+pub type Result<T> = anyhow::Result<T>;

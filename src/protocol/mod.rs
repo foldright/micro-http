@@ -1,3 +1,4 @@
+pub mod body;
 mod request;
 
-pub use request::parse_request_header;
+pub use request::RequestHeader;
