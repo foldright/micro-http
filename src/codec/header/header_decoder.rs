@@ -68,6 +68,7 @@ fn parse_payload(header: &RequestHeader) -> Result<PayloadDecoder, ParseError> {
 
     match (te_header, cl_header) {
         (None, None) => Ok(PayloadDecoder::empty()),
+
         (te_value @ Some(_), None) => {
             if is_chunked(te_value) {
                 Ok(PayloadDecoder::chunked())
@@ -75,12 +76,13 @@ fn parse_payload(header: &RequestHeader) -> Result<PayloadDecoder, ParseError> {
                 Ok(PayloadDecoder::empty())
             }
         }
+
         (None, Some(cl_value)) => {
             let cl_str = cl_value.to_str().map_err(|_| InvalidContentLength { message: "can't to_str".into() })?;
 
             let length = cl_str.trim().parse::<usize>().map_err(|_| InvalidContentLength { message: cl_str.into() })?;
 
-            Ok(PayloadDecoder::length(length))
+            Ok(PayloadDecoder::fix_length(length))
         }
 
         (Some(_), Some(_)) => {
@@ -100,7 +102,7 @@ fn is_chunked(header_value: Option<&HeaderValue>) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use http::HeaderMap;
+    use http::{HeaderMap, Method, Version};
     use indoc::indoc;
 
     #[test]
@@ -159,5 +161,121 @@ mod tests {
         assert_eq!(&bytes[..], &b"123"[..]);
     }
 
+    #[test]
+    fn from_curl() {
+        let str = indoc! {r##"
+        GET /index.html HTTP/1.1
+        Host: 127.0.0.1:8080
+        User-Agent: curl/7.79.1
+        Accept: */*
 
+        "##};
+
+        let mut buf = BytesMut::from(str);
+
+        let (header, payload_decoder) = HeaderDecoder.decode(&mut buf).unwrap().unwrap();
+
+        assert!(payload_decoder.is_empty());
+
+        assert_eq!(header.method(), &Method::GET);
+        assert_eq!(header.version(), Version::HTTP_11);
+        assert_eq!(header.uri().host(), None);
+        assert_eq!(header.uri().path(), "/index.html");
+        assert_eq!(header.uri().scheme(), None);
+        assert_eq!(header.uri().query(), None);
+
+        assert_eq!(header.headers().len(), 3);
+
+        assert_eq!(header.headers().get(http::header::ACCEPT), Some(&HeaderValue::from_str("*/*").unwrap()));
+
+        assert_eq!(header.headers().get(http::header::HOST), Some(&HeaderValue::from_str("127.0.0.1:8080").unwrap()));
+
+        assert_eq!(
+            header.headers().get(http::header::USER_AGENT),
+            Some(&HeaderValue::from_str("curl/7.79.1").unwrap())
+        );
+    }
+
+    #[test]
+    fn from_edge() {
+        let str = indoc! {r##"
+        GET /index/?a=1&b=2&a=3 HTTP/1.1
+        Host: 127.0.0.1:8080
+        Connection: keep-alive
+        Cache-Control: max-age=0
+        sec-ch-ua: "#Not_A Brand";v="99", "Microsoft Edge";v="109", "Chromium";v="109"
+        sec-ch-ua-mobile: ?0
+        sec-ch-ua-platform: "macOS"
+        Upgrade-Insecure-Requests: 1
+        User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36 Edg/109.0.1518.52
+        Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9
+        Sec-Fetch-Site: none
+        Sec-Fetch-Mode: navigate
+        Sec-Fetch-User: ?1
+        Sec-Fetch-Dest: document
+        Accept-Encoding: gzip, deflate, br
+        Accept-Language: zh-CN,zh;q=0.9,en-US;q=0.8,en;q=0.7
+
+        "##};
+
+        let mut buf = BytesMut::from(str);
+
+        let (header, payload_decoder) = HeaderDecoder.decode(&mut buf).unwrap().unwrap();
+
+        assert!(payload_decoder.is_empty());
+
+        assert_eq!(header.method(), &Method::GET);
+        assert_eq!(header.version(), Version::HTTP_11);
+        assert_eq!(header.uri().host(), None);
+        assert_eq!(header.uri().path(), "/index/");
+        assert_eq!(header.uri().scheme(), None);
+        assert_eq!(header.uri().query(), Some("a=1&b=2&a=3"));
+
+        assert_eq!(header.headers().len(), 15);
+
+        assert_eq!(header.headers().get(http::header::CONNECTION), Some(&HeaderValue::from_str("keep-alive").unwrap()));
+
+        assert_eq!(
+            header.headers().get(http::header::CACHE_CONTROL),
+            Some(&HeaderValue::from_str("max-age=0").unwrap())
+        );
+
+        assert_eq!(
+            header.headers().get("sec-ch-ua"),
+            Some(
+                &HeaderValue::from_str(r##""#Not_A Brand";v="99", "Microsoft Edge";v="109", "Chromium";v="109""##)
+                    .unwrap()
+            )
+        );
+
+        assert_eq!(header.headers().get("sec-ch-ua-mobile"), Some(&HeaderValue::from_str("?0").unwrap()));
+
+        assert_eq!(header.headers().get("sec-ch-ua-platform"), Some(&HeaderValue::from_str("\"macOS\"").unwrap()));
+
+        assert_eq!(
+            header.headers().get(http::header::UPGRADE_INSECURE_REQUESTS),
+            Some(&HeaderValue::from_str("1").unwrap())
+        );
+
+        assert_eq!(header.headers().get(http::header::USER_AGENT),
+                   Some(&HeaderValue::from_str("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36 Edg/109.0.1518.52").unwrap()));
+
+        assert_eq!(header.headers().get("Sec-Fetch-Site"), Some(&HeaderValue::from_str("none").unwrap()));
+
+        assert_eq!(header.headers().get("Sec-Fetch-Mode"), Some(&HeaderValue::from_str("navigate").unwrap()));
+
+        assert_eq!(header.headers().get("Sec-Fetch-User"), Some(&HeaderValue::from_str("?1").unwrap()));
+
+        assert_eq!(header.headers().get("Sec-Fetch-Dest"), Some(&HeaderValue::from_str("document").unwrap()));
+
+        assert_eq!(
+            header.headers().get(http::header::ACCEPT_ENCODING),
+            Some(&HeaderValue::from_str("gzip, deflate, br").unwrap())
+        );
+
+        assert_eq!(
+            header.headers().get(http::header::ACCEPT_LANGUAGE),
+            Some(&HeaderValue::from_str("zh-CN,zh;q=0.9,en-US;q=0.8,en;q=0.7").unwrap())
+        );
+    }
 }

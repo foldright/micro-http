@@ -1,22 +1,20 @@
-use std::sync::Arc;
-use anyhow::{Context};
+use anyhow::Context;
 use async_trait::async_trait;
 use http::{Request, Response, StatusCode};
+use std::sync::Arc;
 
 use http_body_util::BodyExt;
-use tokio::net::TcpListener;
-use tiny_http::Result;
-use tracing::{error, info, Level, warn};
-use tracing_subscriber::FmtSubscriber;
 use tiny_http::connection::HttpConnection;
 use tiny_http::handler::Handler;
 use tiny_http::protocol::body::ReqBody;
+use tiny_http::Result;
+use tokio::net::TcpListener;
+use tracing::{error, info, warn, Level};
+use tracing_subscriber::FmtSubscriber;
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    let subscriber = FmtSubscriber::builder()
-        .with_max_level(Level::INFO)
-        .finish();
+    let subscriber = FmtSubscriber::builder().with_max_level(Level::INFO).finish();
 
     tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
 
@@ -44,8 +42,7 @@ async fn main() -> Result<()> {
 
         tokio::spawn(async move {
             let connection = HttpConnection::new(tcp_stream);
-            connection.process(handler).await
-                .with_context(|| format!("connection process error")).unwrap();
+            connection.process(handler).await.with_context(|| format!("connection process error")).unwrap();
         });
     }
 }
@@ -58,7 +55,6 @@ impl Handler for SimpleHandler {
     type Error = tiny_http::Error;
 
     async fn handle(&self, request: Request<ReqBody>) -> std::result::Result<Response<Self::RespBody>, Self::Error> {
-
         let _path = request.uri().path().to_string();
         let (_header, body) = request.into_parts();
 

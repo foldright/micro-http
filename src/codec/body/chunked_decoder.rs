@@ -259,9 +259,9 @@ impl ChunkedState {
 
 #[cfg(test)]
 mod tests {
-    use crate::codec::ChunkedDecoder;
     use bytes::BytesMut;
     use tokio_util::codec::Decoder;
+    use crate::codec::body::chunked_decoder::ChunkedDecoder;
 
     #[test]
     fn test_basic() {

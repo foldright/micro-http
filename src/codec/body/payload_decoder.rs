@@ -18,12 +18,15 @@ enum Kind {
 
     /// transfer-encoding chunked payload
     Chunked(ChunkedDecoder),
+
+    /// have no body with the request
+    NoBody,
 }
 
 impl PayloadDecoder {
     /// create an empty `PayloadDecoder`
     pub fn empty() -> Self {
-        Self { kind: Kind::Length(LengthDecoder::new(0)) }
+        Self { kind: Kind::NoBody }
     }
 
     /// create a chunked `PayloadDecoder`
@@ -32,8 +35,32 @@ impl PayloadDecoder {
     }
 
     /// create a fixed length `PayloadDecoder`
-    pub fn length(size: usize) -> Self {
+    pub fn fix_length(size: usize) -> Self {
         Self { kind: Kind::Length(LengthDecoder::new(size)) }
+    }
+
+    pub fn is_chunked(&self) -> bool {
+        match &self.kind {
+            Kind::Length(_) => false,
+            Kind::Chunked(_) => true,
+            Kind::NoBody => false,
+        }
+    }
+
+    pub fn is_empty(&self) -> bool {
+        match &self.kind {
+            Kind::Length(_) => false,
+            Kind::Chunked(_) => false,
+            Kind::NoBody => true,
+        }
+    }
+
+    pub fn is_fix_length(&self) -> bool {
+        match &self.kind {
+            Kind::Length(_) => true,
+            Kind::Chunked(_) => false,
+            Kind::NoBody => false,
+        }
     }
 }
 
@@ -45,6 +72,7 @@ impl Decoder for PayloadDecoder {
         match &mut self.kind {
             Kind::Length(length_decoder) => length_decoder.decode(src),
             Kind::Chunked(chunked_decoder) => chunked_decoder.decode(src),
+            Kind::NoBody => Ok(Some(PayloadItem::Eof)),
         }
     }
 }
