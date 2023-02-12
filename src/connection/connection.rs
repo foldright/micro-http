@@ -1,15 +1,19 @@
 use std::error::Error;
+use std::future::{Future, Ready};
 
 use bytes::{BufMut, Bytes};
 use std::sync::Arc;
+use std::task::Poll;
 
 use futures::channel::mpsc::Receiver;
 use futures::channel::{mpsc, oneshot};
+use futures::future::poll_fn;
 use futures::{join, SinkExt, StreamExt};
 use http::{Response, StatusCode};
 use http_body::Body;
 use http_body_util::{BodyExt, Empty};
 use tokio::io::{AsyncRead, AsyncWrite};
+use tokio::select;
 
 use crate::codec::{DecodeError, HeaderEncoder, RequestDecoder};
 use crate::handler::Handler;
@@ -36,32 +40,75 @@ where
         }
     }
 
+    pub async fn process<H>(mut self, mut handler: Arc<H>) -> Result<(), DecodeError>
+    where
+        H: Handler,
+        H::RespBody: Body + Unpin,
+    {
+        loop {
+            match self.framed_read.next().await {
+                Some(Ok(Message::Header(header))) => {
+                    self.do_process(header, &mut handler).await?;
+                }
+
+                Some(Ok(Message::Payload(_))) => {
+                    // not exactly, request can read part body
+                    unreachable!("can't reach here because chunked has read in do_process");
+                }
+
+                Some(Err(_e)) => {
+                    todo!("convert parseError to response");
+                    break;
+                }
+
+                None => {
+                    // todo: add remote addr to log
+                    info!("cant read more request, break this connection down");
+                    break;
+                }
+            }
+        }
+
+        Ok(())
+    }
+
     async fn do_process<H>(&mut self, header: RequestHeader, handler: &mut Arc<H>) -> Result<(), DecodeError>
     where
         H: Handler,
         H::RespBody: Body + Unpin,
     {
-        let (tx, rx) = mpsc::channel(1024);
+        let (req_body, mut body_sender) = ReqBody::body_channel(&mut self.framed_read);
 
-        let req_body = ReqBody::new(tx);
         let request = header.body(req_body);
 
-        let processing = handler.handle(request);
-        let body_sender = self.send_body(rx);
+        // concurrent compute the request handler and the body sender
+        let response_result = {
+            // both are lazy, and need to pin in the stack while using select!
+            tokio::pin! {
+                let request_handle_future = handler.handle(request);
+                let body_sender_future = body_sender.send_body();
+            };
 
-        let (response_result, sender_result) = join!(processing, body_sender);
-
-        self.send_response(response_result).await?;
-
-        // try to consume left body if need
-        let eof = sender_result?;
-        if !eof {
-            while let Some(Ok(Message::Payload(payload_item))) = self.framed_read.next().await {
-                if payload_item.is_eof() {
-                    break;
+            let mut result = Option::<Result<_, _>>::None;
+            loop {
+                select! {
+                    biased;
+                    response = &mut request_handle_future => {
+                        result = Some(response);
+                        break;
+                    }
+                    _ = &mut body_sender_future => {
+                        //no op
+                    }
                 }
             }
-        }
+            result.unwrap()
+        };
+
+        // skip body if request handler don't read body
+        body_sender.skip_body().await;
+
+        self.send_response(response_result).await?;
 
         Ok(())
     }
@@ -98,38 +145,6 @@ where
                 }
             }
         }
-    }
-
-    pub async fn process<H>(mut self, mut handler: Arc<H>) -> Result<(), DecodeError>
-    where
-        H: Handler,
-        H::RespBody: Body + Unpin,
-    {
-        loop {
-            match self.framed_read.next().await {
-                Some(Ok(Message::Header(header))) => {
-                    self.do_process(header, &mut handler).await?;
-                }
-
-                Some(Ok(Message::Payload(_))) => {
-                    // not exactly, request can read part body
-                    unreachable!("can't reach here because chunked has read in do_process");
-                }
-
-                Some(Err(_e)) => {
-                    todo!("convert parseError to response");
-                    break;
-                }
-
-                None => {
-                    // todo: add remote addr to log
-                    info!("cant read more request, break this connection down");
-                    break;
-                }
-            }
-        }
-
-        Ok(())
     }
 
     async fn send_response<T, E>(&mut self, response_result: Result<Response<T>, E>) -> Result<(), DecodeError>

@@ -4,12 +4,13 @@ use std::task::{ready, Context, Poll};
 use bytes::Bytes;
 
 use futures::channel::{mpsc, oneshot};
-use futures::{FutureExt, SinkExt};
+use futures::{FutureExt, SinkExt, Stream, StreamExt};
 
 use http_body::{Body, Frame};
+use tracing::{error, info};
 
 use crate::codec::DecodeError;
-use crate::protocol::PayloadItem;
+use crate::protocol::{Message, PayloadItem, RequestHeader};
 
 pub struct ReqBody {
     signal: mpsc::Sender<oneshot::Sender<PayloadItem>>,
@@ -19,6 +20,82 @@ pub struct ReqBody {
 impl ReqBody {
     pub fn new(signal: mpsc::Sender<oneshot::Sender<PayloadItem>>) -> Self {
         Self { signal, receiving: None }
+    }
+
+    pub fn body_channel<S>(payload_stream: &mut S) -> (ReqBody, ReqBodySender<S>)
+    where
+        S: Stream + Unpin,
+    {
+        let (tx, receiver) = mpsc::channel(16);
+
+        let req_body = ReqBody::new(tx);
+
+        let body_sender = ReqBodySender { payload_stream, receiver, eof: false };
+
+        (req_body, body_sender)
+    }
+}
+
+pub struct ReqBodySender<'conn, S>
+where
+    S: Stream + Unpin,
+{
+    payload_stream: &'conn mut S,
+    receiver: mpsc::Receiver<oneshot::Sender<PayloadItem>>,
+    eof: bool,
+}
+
+impl<'conn, S> ReqBodySender<'conn, S>
+where
+    S: Stream<Item = Result<Message<RequestHeader>, DecodeError>> + Unpin,
+{
+    pub async fn send_body(&mut self) -> Result<(), DecodeError> {
+        loop {
+            if self.eof {
+                return Ok(());
+            }
+
+            if let Some(sender) = self.receiver.next().await {
+                match self.payload_stream.next().await {
+                    Some(Ok(Message::Payload(payload_item))) => {
+                        if payload_item.is_eof() {
+                            self.eof = true;
+                        }
+                        sender.send(payload_item).unwrap();
+                    }
+
+                    Some(Ok(Message::Header(_header))) => {
+                        error!("received header from receive body phase");
+                        return Err(DecodeError::Body { message: "received header from receive body phase".into() });
+                    }
+
+                    Some(Err(e)) => {
+                        return Err(e);
+                    }
+
+                    None => {
+                        error!("cant read body");
+                        return Err(DecodeError::Body { message: "cant read body".into() });
+                    }
+                }
+            }
+        }
+    }
+
+    pub async fn skip_body(&mut self) {
+        if !self.eof {
+            let mut size: usize = 0;
+            while let Some(Ok(Message::Payload(payload_item))) = self.payload_stream.next().await {
+                if payload_item.is_eof() {
+                    self.eof = true;
+                    if size > 0 {
+                        info!(size = size, "skip request body");
+                    }
+                    break;
+                }
+                payload_item.as_bytes().map(|bytes| size += bytes.len());
+            }
+        }
     }
 }
 

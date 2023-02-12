@@ -1,11 +1,11 @@
 mod body;
 
 pub use body::ReqBody;
+pub use body::ReqBodySender;
 use bytes::Bytes;
 use futures::{Stream, StreamExt};
 use std::pin::Pin;
 use std::task::{Context, Poll};
-
 
 
 pub enum BodyError {
