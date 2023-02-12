@@ -1,9 +1,10 @@
 use crate::codec::body::payload_decoder::PayloadDecoder;
 use crate::codec::header_decoder::HeaderDecoder;
-use crate::codec::{ParseError, PayloadItem};
+use crate::codec::ParseError;
 use crate::protocol::RequestHeader;
 use bytes::{Bytes, BytesMut};
 use tokio_util::codec::Decoder;
+use crate::protocol::body::PayloadItem;
 
 pub enum Message {
     Header(RequestHeader),

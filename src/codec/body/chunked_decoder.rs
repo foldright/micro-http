@@ -1,11 +1,11 @@
 use crate::codec::body::chunked_decoder::ChunkedState::*;
-use crate::codec::body::payload_decoder::PayloadItem;
 use bytes::{Buf, Bytes, BytesMut};
 use std::io;
 use std::io::ErrorKind;
 use std::task::Poll;
 use tokio_util::codec::Decoder;
 use tracing::trace;
+use crate::protocol::body::PayloadItem;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ChunkedDecoder {

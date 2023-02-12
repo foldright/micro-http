@@ -10,7 +10,6 @@ pub use header_decoder::HeaderDecoder;
 
 pub use body::chunked_decoder::ChunkedDecoder;
 pub use body::length_decoder::LengthDecoder;
-pub use body::payload_decoder::PayloadItem;
 
 pub use error::ParseError;
 pub use request_decoder::Message;

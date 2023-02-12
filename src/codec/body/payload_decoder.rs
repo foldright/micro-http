@@ -2,13 +2,7 @@ use crate::codec::{ChunkedDecoder, LengthDecoder};
 use bytes::{Bytes, BytesMut};
 use std::io;
 use tokio_util::codec::Decoder;
-
-/// payload item produced from payload decoder
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum PayloadItem {
-    Chunk(Bytes),
-    Eof,
-}
+use crate::protocol::body::PayloadItem;
 
 /// decode payload for request body
 #[derive(Debug, Clone, PartialEq, Eq)]
