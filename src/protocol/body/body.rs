@@ -4,19 +4,20 @@ use std::task::{ready, Context, Poll};
 use bytes::Bytes;
 
 use futures::channel::{mpsc, oneshot};
-use futures::{FutureExt, SinkExt};
+use futures::{FutureExt, SinkExt, Stream, StreamExt};
 
 use http_body::{Body, Frame};
 
 use crate::codec::ParseError;
+use crate::protocol::PayloadItem;
 
 pub struct ReqBody {
-    signal: mpsc::Sender<oneshot::Sender<Option<Bytes>>>,
-    receiving: Option<oneshot::Receiver<Option<Bytes>>>,
+    signal: mpsc::Sender<oneshot::Sender<PayloadItem>>,
+    receiving: Option<oneshot::Receiver<PayloadItem>>,
 }
 
 impl ReqBody {
-    pub fn new(signal: mpsc::Sender<oneshot::Sender<Option<Bytes>>>) -> Self {
+    pub fn new(signal: mpsc::Sender<oneshot::Sender<PayloadItem>>) -> Self {
         Self { signal, receiving: None }
     }
 }
@@ -32,11 +33,11 @@ impl Body for ReqBody {
         loop {
             if let Some(oneshot_receiver) = &mut self.receiving {
                 return match ready!(oneshot_receiver.poll_unpin(cx)) {
-                    Ok(Some(bytes)) => {
+                    Ok(PayloadItem::Chunk(bytes)) => {
                         self.receiving.take();
                         Poll::Ready(Some(Ok(Frame::data(bytes))))
                     }
-                    Ok(None) => {
+                    Ok(PayloadItem::Eof) => {
                         self.receiving.take();
                         Poll::Ready(None)
                     }

@@ -10,10 +10,10 @@ use http::{Response, StatusCode};
 use http_body::Body;
 use http_body_util::{BodyExt, Empty};
 
-use crate::codec::{HeaderEncoder, Message, ParseError, RequestDecoder};
+use crate::codec::{HeaderEncoder, ParseError, RequestDecoder};
 use crate::handler::Handler;
 use crate::protocol::body::ReqBody;
-use crate::protocol::RequestHeader;
+use crate::protocol::{Message, PayloadItem, RequestHeader};
 use tokio::net::tcp::{OwnedReadHalf, OwnedWriteHalf};
 use tokio::net::TcpStream;
 use tokio_util::codec::{FramedRead, FramedWrite};
@@ -53,16 +53,17 @@ impl HttpConnection {
         // try to consume left body if need
         let eof = sender_result?;
         if !eof {
-            while let Some(Ok(Message::Chunked(some_bytes))) = self.framed_read.next().await {
-                if some_bytes.is_none() {}
-                break;
+            while let Some(Ok(Message::Payload(payload_item))) = self.framed_read.next().await {
+                if payload_item.is_eof() {
+                    break;
+                }
             }
         }
 
         Ok(())
     }
 
-    async fn send_body(&mut self, mut rx: Receiver<oneshot::Sender<Option<Bytes>>>) -> Result<bool, ParseError> {
+    async fn send_body(&mut self, mut rx: Receiver<oneshot::Sender<PayloadItem>>) -> Result<bool, ParseError> {
         let mut eof = false;
         loop {
             if eof {
@@ -71,11 +72,11 @@ impl HttpConnection {
 
             if let Some(sender) = rx.next().await {
                 match self.framed_read.next().await {
-                    Some(Ok(Message::Chunked(some_bytes))) => {
-                        if some_bytes.is_none() {
+                    Some(Ok(Message::Payload(payload_item))) => {
+                        if payload_item.is_eof() {
                             eof = true;
                         }
-                        sender.send(some_bytes).unwrap();
+                        sender.send(payload_item).unwrap();
                     }
 
                     Some(Ok(Message::Header(_header))) => {
@@ -107,7 +108,7 @@ impl HttpConnection {
                     self.do_process(header, &mut handler).await?;
                 }
 
-                Some(Ok(Message::Chunked(_))) => {
+                Some(Ok(Message::Payload(_))) => {
                     // not exactly, request can read part body
                     unreachable!("can't reach here because chunked has read in do_process");
                 }

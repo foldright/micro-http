@@ -12,5 +12,4 @@ pub use body::chunked_decoder::ChunkedDecoder;
 pub use body::length_decoder::LengthDecoder;
 
 pub use error::ParseError;
-pub use request_decoder::Message;
 pub use request_decoder::RequestDecoder;

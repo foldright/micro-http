@@ -5,7 +5,7 @@ use std::io::ErrorKind;
 use std::task::Poll;
 use tokio_util::codec::Decoder;
 use tracing::trace;
-use crate::protocol::body::PayloadItem;
+use crate::protocol::PayloadItem;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ChunkedDecoder {
@@ -276,9 +276,9 @@ mod tests {
 
             let item = option.unwrap();
             assert!(item.is_chunk());
-            assert_eq!(item.bytes().unwrap().len(), 16);
+            assert_eq!(item.as_bytes().unwrap().len(), 16);
 
-            let str = std::str::from_utf8(&item.bytes().unwrap()[..]).unwrap();
+            let str = std::str::from_utf8(&item.as_bytes().unwrap()[..]).unwrap();
 
             assert_eq!(str, "1234567890abcdef");
         }

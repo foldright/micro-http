@@ -2,7 +2,7 @@ use std::{cmp, io};
 
 use bytes::BytesMut;
 use tokio_util::codec::Decoder;
-use crate::protocol::body::PayloadItem;
+use crate::protocol::PayloadItem;
 
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -51,7 +51,7 @@ mod tests {
         let payload = item.unwrap().unwrap();
         assert!(payload.is_chunk());
 
-        let bytes = payload.bytes().unwrap();
+        let bytes = payload.as_bytes().unwrap();
 
         assert_eq!(bytes.len(), 10);
 

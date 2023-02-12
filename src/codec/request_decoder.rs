@@ -1,15 +1,9 @@
 use crate::codec::body::payload_decoder::PayloadDecoder;
 use crate::codec::header_decoder::HeaderDecoder;
 use crate::codec::ParseError;
-use crate::protocol::RequestHeader;
+use crate::protocol::{Message, PayloadItem, RequestHeader};
 use bytes::{Bytes, BytesMut};
 use tokio_util::codec::Decoder;
-use crate::protocol::body::PayloadItem;
-
-pub enum Message {
-    Header(RequestHeader),
-    Chunked(Option<Bytes>),
-}
 
 pub struct RequestDecoder {
     header_decoder: HeaderDecoder,
@@ -23,18 +17,19 @@ impl RequestDecoder {
 }
 
 impl Decoder for RequestDecoder {
-    type Item = Message;
+
+    type Item = Message<RequestHeader>;
     type Error = ParseError;
 
     fn decode(&mut self, src: &mut BytesMut) -> Result<Option<Self::Item>, Self::Error> {
         // parse payload if have payload_decoder
         if let Some(payload_decoder) = &mut self.payload_decoder {
             let message = match payload_decoder.decode(src)? {
-                Some(PayloadItem::Chunk(bytes)) => Some(Message::Chunked(Some(bytes))),
-                Some(PayloadItem::Eof) => {
+                Some(item @ PayloadItem::Chunk(_)) => Some(Message::Payload(item)),
+                Some(item @ PayloadItem::Eof) => {
                     // no need payload decoder in this request now
                     self.payload_decoder.take();
-                    Some(Message::Chunked(None))
+                    Some(Message::Payload(item))
                 }
                 None => None,
             };
