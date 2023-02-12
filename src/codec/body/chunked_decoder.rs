@@ -1,10 +1,13 @@
-use anyhow::anyhow;
-use bytes::{Buf, Bytes, BytesMut};
-use tokio_util::codec::Decoder;
-use crate::codec::body::BodyData;
 use crate::codec::body::chunked_decoder::ChunkedState::*;
+use crate::codec::body::payload_decoder::PayloadItem;
+use bytes::{Buf, Bytes, BytesMut};
+use std::io;
+use std::io::ErrorKind;
+use std::task::Poll;
+use tokio_util::codec::Decoder;
+use tracing::trace;
 
-
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ChunkedDecoder {
     state: ChunkedState,
     remaining_size: u64,
@@ -12,14 +15,11 @@ pub struct ChunkedDecoder {
 
 impl ChunkedDecoder {
     pub fn new() -> Self {
-        Self {
-            state: Size,
-            remaining_size: 0,
-        }
+        Self { state: Size, remaining_size: 0 }
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum ChunkedState {
     Size,
     SizeLws,
@@ -36,66 +36,87 @@ enum ChunkedState {
 }
 
 impl Decoder for ChunkedDecoder {
-    type Item = BodyData;
-    type Error = crate::Error;
+    type Item = PayloadItem;
+    type Error = io::Error;
 
     fn decode(&mut self, src: &mut BytesMut) -> Result<Option<Self::Item>, Self::Error> {
         loop {
             if self.state == End {
-                return Ok(Some(BodyData::Finished));
+                trace!("finished reading chunked data");
+                return Ok(Some(PayloadItem::Eof));
             }
 
             if src.len() == 0 {
+                // need more data
                 return Ok(None);
             }
 
-            match self.state.step(src, &mut self.remaining_size) {
-                Ok((new_state, None)) => {
-                    self.state = new_state;
-                    continue;
-                }
-                Ok((new_state, Some(bytes))) => {
-                    self.state = new_state;
-                    return Ok(Some(BodyData::Bytes(bytes)));
-                }
-                Err(e) => {
-                    return Err(e);
-                }
+            let mut buf = None;
+
+            self.state = match self.state.step(src, &mut self.remaining_size, &mut buf) {
+                Poll::Pending => return Ok(None),
+                Poll::Ready(Ok(new_state)) => new_state,
+                Poll::Ready(Err(e)) => return Err(e),
+            };
+
+            if let Some(bytes) = buf {
+                trace!(len = bytes.len(), "read chunked bytes");
+                return Ok(Some(PayloadItem::Chunk(bytes)));
             }
         }
     }
 }
 
+macro_rules! try_next_byte {
+    ($src:ident) => {{
+        if $src.len() > 0 {
+            $src.get_u8()
+        } else {
+            return Poll::Pending;
+        }
+    }};
+}
+
 impl ChunkedState {
-    fn step(&self, src: &mut BytesMut, remaining_size: &mut u64) -> crate::Result<(ChunkedState, Option<Bytes>)> {
+    fn step(
+        &self,
+        src: &mut BytesMut,
+        remaining_size: &mut u64,
+        buf: &mut Option<Bytes>,
+    ) -> Poll<Result<ChunkedState, io::Error>> {
         match self {
             Size => ChunkedState::read_size(src, remaining_size),
-            SizeLws => ChunkedState::read_size_lws(src, remaining_size),
-            Extension => ChunkedState::read_extension(src, remaining_size),
+            SizeLws => ChunkedState::read_size_lws(src),
+            Extension => ChunkedState::read_extension(src),
             SizeLf => ChunkedState::read_size_lf(src, remaining_size),
-            Body => ChunkedState::read_body(src, remaining_size),
-            BodyCr => ChunkedState::read_body_cr(src, remaining_size),
-            BodyLf => ChunkedState::read_body_lf(src, remaining_size),
-            Trailer => ChunkedState::read_trailer(src, remaining_size),
-            TrailerLf => ChunkedState::read_trailer_lf(src, remaining_size),
-            EndCr => ChunkedState::read_end_cr(src, remaining_size),
-            EndLf => ChunkedState::read_end_lf(src, remaining_size),
-            End => Ok((End, None)),
+            Body => ChunkedState::read_body(src, remaining_size, buf),
+            BodyCr => ChunkedState::read_body_cr(src),
+            BodyLf => ChunkedState::read_body_lf(src),
+            Trailer => ChunkedState::read_trailer(src),
+            TrailerLf => ChunkedState::read_trailer_lf(src),
+            EndCr => ChunkedState::read_end_cr(src),
+            EndLf => ChunkedState::read_end_lf(src),
+            End => Poll::Ready(Ok(End)),
         }
     }
 
-    fn read_size(src: &mut BytesMut, size_per_chunk: &mut u64) -> crate::Result<(ChunkedState, Option<Bytes>)> {
+    fn read_size(src: &mut BytesMut, size_per_chunk: &mut u64) -> Poll<Result<ChunkedState, io::Error>> {
         macro_rules! or_overflow {
-            ($e:expr) => (
+            ($e:expr) => {
                 match $e {
                     Some(val) => val,
-                    None => return Err(anyhow!("invalid chunk size: overflow")),
+                    None => {
+                        return Poll::Ready(Err(io::Error::new(
+                            ErrorKind::InvalidInput,
+                            "invalid overflow chunked length",
+                        )))
+                    }
                 }
-            )
+            };
         }
 
         let radix = 16;
-        match src.get_u8() {
+        match try_next_byte!(src) {
             b @ b'0'..=b'9' => {
                 *size_per_chunk = or_overflow!(size_per_chunk.checked_mul(radix));
                 *size_per_chunk = or_overflow!(size_per_chunk.checked_add((b - b'0') as u64));
@@ -109,60 +130,72 @@ impl ChunkedState {
                 *size_per_chunk = or_overflow!(size_per_chunk.checked_mul(radix));
                 *size_per_chunk = or_overflow!(size_per_chunk.checked_add((b + 10 - b'A') as u64));
             }
-            b'\t' | b' ' => return Ok((SizeLws, None)),
-            b';' => return Ok((Extension, None)),
-            b'\r' => return Ok((SizeLf, None)),
+            b'\t' | b' ' => return Poll::Ready(Ok(SizeLws)),
+            b';' => return Poll::Ready(Ok(Extension)),
+            b'\r' => return Poll::Ready(Ok(SizeLf)),
 
-            _ => return Err(anyhow!("invalid chunk size line: Invalid Size"))
+            _ => {
+                return Poll::Ready(Err(io::Error::new(
+                    ErrorKind::InvalidInput,
+                    "invalid chunk size line: Invalid Size",
+                )))
+            }
         }
 
-        Ok((Size, None))
+        Poll::Ready(Ok(Size))
     }
 
-    fn read_size_lws(src: &mut BytesMut, _size_per_chunk: &mut u64) -> crate::Result<(ChunkedState, Option<Bytes>)> {
-        match src.get_u8() {
+    fn read_size_lws(src: &mut BytesMut) -> Poll<Result<ChunkedState, io::Error>> {
+        match try_next_byte!(src) {
             // LWS can follow the chunk size, but no more digits can come
-            b'\t' | b' ' => Ok((ChunkedState::SizeLws, None)),
-            b';' => Ok((ChunkedState::Extension, None)),
-            b'\r' => Ok((ChunkedState::SizeLf, None)),
-            _ => Err(anyhow!("invalid chunk size linear white space")),
+            b'\t' | b' ' => Poll::Ready(Ok(SizeLws)),
+            b';' => Poll::Ready(Ok(Extension)),
+            b'\r' => Poll::Ready(Ok(SizeLf)),
+            _ => Poll::Ready(Err(io::Error::new(ErrorKind::InvalidInput, "invalid chunk size linear white space"))),
         }
     }
 
-    fn read_extension(src: &mut BytesMut, _size_per_chunk: &mut u64) -> crate::Result<(ChunkedState, Option<Bytes>)> {
+    fn read_extension(src: &mut BytesMut) -> Poll<Result<ChunkedState, io::Error>> {
         // We don't care about extensions really at all. Just ignore them.
         // They "end" at the next CRLF.
         //
         // However, some implementations may not check for the CR, so to save
         // them from themselves, we reject extensions containing plain LF as
         // well.
-        match src.get_u8() {
-            b'\r' => Ok((ChunkedState::SizeLf, None)),
-            b'\n' => Err(anyhow!("invalid chunk extension contains newline")),
-            _ => Ok((ChunkedState::Extension, None)), // no supported extensions
+        match try_next_byte!(src) {
+            b'\r' => Poll::Ready(Ok(SizeLf)),
+            b'\n' => {
+                Poll::Ready(Err(io::Error::new(ErrorKind::InvalidInput, "invalid chunk extension contains newline")))
+            }
+            _ => Poll::Ready(Ok(Extension)), // no supported extensions
         }
     }
 
-    fn read_size_lf(src: &mut BytesMut, size_per_chunk: &mut u64) -> crate::Result<(ChunkedState, Option<Bytes>)> {
-        match src.get_u8() {
+    fn read_size_lf(src: &mut BytesMut, size_per_chunk: &mut u64) -> Poll<Result<ChunkedState, io::Error>> {
+        match try_next_byte!(src) {
             b'\n' => {
                 if *size_per_chunk == 0 {
-                    Ok((EndCr, None))
+                    Poll::Ready(Ok(EndCr))
                 } else {
-                    Ok((Body, None))
+                    Poll::Ready(Ok(Body))
                 }
             }
-            _ => Err(anyhow!("invalid chunk size LF")),
+
+            _ => Poll::Ready(Err(io::Error::new(ErrorKind::InvalidInput, "invalid chunk size LF"))),
         }
     }
 
-    fn read_body(src: &mut BytesMut, size_per_chunk: &mut u64) -> crate::Result<(ChunkedState, Option<Bytes>)> {
+    fn read_body(
+        src: &mut BytesMut,
+        size_per_chunk: &mut u64,
+        buf: &mut Option<Bytes>,
+    ) -> Poll<Result<ChunkedState, io::Error>> {
         if src.is_empty() {
-            return Ok((Body, None));
+            return Poll::Ready(Ok(Body));
         }
 
         if *size_per_chunk == 0 {
-            return Ok((BodyCr, None));
+            return Poll::Ready(Ok(BodyCr));
         }
 
         // cap remaining bytes at the max capacity of usize
@@ -175,59 +208,60 @@ impl ChunkedState {
 
         *size_per_chunk -= read_size as u64;
         let bytes = src.split_to(read_size).freeze();
+        *buf = Some(bytes);
 
         if *size_per_chunk > 0 {
-            Ok((Body, Some(bytes)))
+            Poll::Ready(Ok(Body))
         } else {
-            Ok((BodyCr, Some(bytes)))
+            Poll::Ready(Ok(BodyCr))
         }
     }
 
-    fn read_body_cr(src: &mut BytesMut, _size_per_chunk: &mut u64) -> crate::Result<(ChunkedState, Option<Bytes>)> {
-        match src.get_u8() {
-            b'\r' => Ok((BodyLf, None)),
-            _ => Err(anyhow!("invalid chunk body CR")),
+    fn read_body_cr(src: &mut BytesMut) -> Poll<Result<ChunkedState, io::Error>> {
+        match try_next_byte!(src) {
+            b'\r' => Poll::Ready(Ok(BodyLf)),
+            _ => Poll::Ready(Err(io::Error::new(ErrorKind::InvalidInput, "invalid chunk body CR"))),
         }
     }
-    fn read_body_lf(src: &mut BytesMut, _size_per_chunk: &mut u64) -> crate::Result<(ChunkedState, Option<Bytes>)> {
-        match src.get_u8() {
-            b'\n' => Ok((Size, None)),
-            _ => Err(anyhow!("invalid chunk body LF")),
-        }
-    }
-
-    fn read_trailer(src: &mut BytesMut, _size_per_chunk: &mut u64) -> crate::Result<(ChunkedState, Option<Bytes>)> {
-        match src.get_u8() {
-            b'\r' => Ok((TrailerLf, None)),
-            _ => Ok((Trailer, None)),
-        }
-    }
-    fn read_trailer_lf(src: &mut BytesMut, _size_per_chunk: &mut u64) -> crate::Result<(ChunkedState, Option<Bytes>)> {
-        match src.get_u8() {
-            b'\n' => Ok((EndCr, None)),
-            _ => Err(anyhow!("invalid trailer end LF")),
+    fn read_body_lf(src: &mut BytesMut) -> Poll<Result<ChunkedState, io::Error>> {
+        match try_next_byte!(src) {
+            b'\n' => Poll::Ready(Ok(Size)),
+            _ => Poll::Ready(Err(io::Error::new(ErrorKind::InvalidInput, "invalid chunk body LF"))),
         }
     }
 
-    fn read_end_cr(src: &mut BytesMut, _size_per_chunk: &mut u64) -> crate::Result<(ChunkedState, Option<Bytes>)> {
-        match src.get_u8() {
-            b'\r' => Ok((EndLf, None)),
-            _ => Ok((Trailer, None)),
+    fn read_trailer(src: &mut BytesMut) -> Poll<Result<ChunkedState, io::Error>> {
+        match try_next_byte!(src) {
+            b'\r' => Poll::Ready(Ok(TrailerLf)),
+            _ => Poll::Ready(Ok(Trailer)),
         }
     }
-    fn read_end_lf(src: &mut BytesMut, _size_per_chunk: &mut u64) -> crate::Result<(ChunkedState, Option<Bytes>)> {
-        match src.get_u8() {
-            b'\n' => Ok((End, None)),
-            _ => Err(anyhow!("invalid chunk end LF")),
+    fn read_trailer_lf(src: &mut BytesMut) -> Poll<Result<ChunkedState, io::Error>> {
+        match try_next_byte!(src) {
+            b'\n' => Poll::Ready(Ok(EndCr)),
+            _ => Poll::Ready(Err(io::Error::new(ErrorKind::InvalidInput, "invalid trailer end LF"))),
+        }
+    }
+
+    fn read_end_cr(src: &mut BytesMut) -> Poll<Result<ChunkedState, io::Error>> {
+        match try_next_byte!(src) {
+            b'\r' => Poll::Ready(Ok(EndLf)),
+            _ => Poll::Ready(Ok(Trailer)),
+        }
+    }
+    fn read_end_lf(src: &mut BytesMut) -> Poll<Result<ChunkedState, io::Error>> {
+        match try_next_byte!(src) {
+            b'\n' => Poll::Ready(Ok(End)),
+            _ => Poll::Ready(Err(io::Error::new(ErrorKind::InvalidInput, "invalid chunk end LF"))),
         }
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use crate::codec::ChunkedDecoder;
     use bytes::BytesMut;
     use tokio_util::codec::Decoder;
-    use crate::codec::ChunkedDecoder;
 
     #[test]
     fn test_basic() {
@@ -240,10 +274,11 @@ mod tests {
             let option = result.unwrap();
             assert!(option.is_some());
 
-            let bytes = option.unwrap().into_bytes().unwrap();
-            assert_eq!(bytes.len(), 16);
+            let item = option.unwrap();
+            assert!(item.is_chunk());
+            assert_eq!(item.bytes().unwrap().len(), 16);
 
-            let str = std::str::from_utf8(&bytes[..]).unwrap();
+            let str = std::str::from_utf8(&item.bytes().unwrap()[..]).unwrap();
 
             assert_eq!(str, "1234567890abcdef");
         }
@@ -255,7 +290,7 @@ mod tests {
             let option = result.unwrap();
             assert!(option.is_some());
 
-            assert!(option.unwrap().is_finished());
+            assert!(option.unwrap().is_eof());
         }
     }
 }

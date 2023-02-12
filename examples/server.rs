@@ -1,5 +1,5 @@
 use std::sync::Arc;
-use anyhow::{anyhow, Context};
+use anyhow::{Context};
 use async_trait::async_trait;
 use http::{Request, Response, StatusCode};
 
@@ -57,15 +57,13 @@ impl Handler for SimpleHandler {
     type RespBody = String;
     type Error = tiny_http::Error;
 
-    async fn handle(&self, request: &mut Request<ReqBody>) -> std::result::Result<Response<Self::RespBody>, Self::Error> {
+    async fn handle(&self, request: Request<ReqBody>) -> std::result::Result<Response<Self::RespBody>, Self::Error> {
 
-        let path = request.uri().path().to_string();
-        let body = request.body_mut();
+        let _path = request.uri().path().to_string();
+        let (_header, body) = request.into_parts();
 
-        while let Some(Ok(frame)) = body.frame().await {
-            let bytes = frame.into_data().map_err(|_e| anyhow!("read request error {}", path)).unwrap();
-            info!(body = std::str::from_utf8(&bytes[..]).unwrap(), "receiving request data");
-        }
+        let body = body.collect().await?;
+        info!(body = std::str::from_utf8(&body.to_bytes()[..]).unwrap(), "receiving request data");
 
         let body = "Hello World!";
 

@@ -1,38 +1,38 @@
+use std::{cmp, io};
+
 use bytes::BytesMut;
 use tokio_util::codec::Decoder;
-use crate::codec::body::BodyData;
 
+use crate::codec::body::payload_decoder::PayloadItem;
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LengthDecoder {
     length: usize,
 }
 
 impl LengthDecoder {
     pub fn new(length: usize) -> Self {
-        Self {
-            length,
-        }
+        Self { length }
     }
 }
 
-
 impl Decoder for LengthDecoder {
-    type Item = BodyData;
-    type Error = crate::Error;
+    type Item = PayloadItem;
+    type Error = io::Error;
 
-    // TODO : the lengthDecoder will buffer all the content in the memory
-    //       we can set up a size point, and let the large bytes save in the disk
     fn decode(&mut self, src: &mut BytesMut) -> Result<Option<Self::Item>, Self::Error> {
         if self.length == 0 {
-            return Ok(Some(BodyData::Finished));
+            return Ok(Some(PayloadItem::Eof));
         }
 
-        if src.len() < self.length {
+        if src.len() == 0 {
             return Ok(None);
         }
 
-        let bytes = src.split_to(self.length).freeze();
-        self.length -= bytes.len();
+        let len = cmp::min(self.length, src.len());
+        let bytes = src.split_to(len).freeze();
 
-        Ok(Some(BodyData::Bytes(bytes)))
+        self.length -= len;
+        Ok(Some(PayloadItem::Chunk(bytes)))
     }
 }

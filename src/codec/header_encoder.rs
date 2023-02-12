@@ -1,12 +1,10 @@
 use anyhow::anyhow;
 use bytes::{BufMut, BytesMut};
-use http::{Version};
 use http::response::Parts;
+use http::Version;
 use tokio_util::codec::Encoder;
 
-
 pub struct HeaderEncoder;
-
 
 impl Encoder<Parts> for HeaderEncoder {
     type Error = crate::Error;
@@ -22,7 +20,6 @@ impl Encoder<Parts> for HeaderEncoder {
             }
             v => return Err(anyhow!("not support http version {:?}", v)),
         }
-
 
         for (header_name, header_value) in header.headers.iter() {
             dst.put_slice(header_name.as_str().as_bytes());

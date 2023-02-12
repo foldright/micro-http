@@ -2,7 +2,6 @@ use std::convert::Into;
 
 use http::{HeaderMap, Method, Request, Uri, Version};
 
-
 #[derive(Debug)]
 pub struct RequestHeader {
     inner: Request<()>,
@@ -43,11 +42,7 @@ impl RequestHeader {
 
     pub fn need_body(&self) -> bool {
         match self.method() {
-            &Method::GET
-            | &Method::HEAD
-            | &Method::DELETE
-            | &Method::OPTIONS
-            | &Method::CONNECT => false,
+            &Method::GET | &Method::HEAD | &Method::DELETE | &Method::OPTIONS | &Method::CONNECT => false,
             _ => true,
         }
     }
@@ -64,9 +59,7 @@ impl<'headers, 'buf> From<httparse::Request<'headers, 'buf>> for RequestHeader {
             builder = builder.header(header.name, header.value)
         }
 
-        RequestHeader {
-            inner: builder.body(()).unwrap(),
-        }
+        RequestHeader { inner: builder.body(()).unwrap() }
     }
 }
 
@@ -103,12 +96,9 @@ mod tests {
         "##};
 
         let mut parsed_req = httparse::Request::new(&mut []);
-        let mut headers: [MaybeUninit<httparse::Header>; 4] =
-            unsafe { MaybeUninit::uninit().assume_init() };
+        let mut headers: [MaybeUninit<httparse::Header>; 4] = unsafe { MaybeUninit::uninit().assume_init() };
 
-        parsed_req
-            .parse_with_uninit_headers(str.as_bytes(), &mut headers)
-            .unwrap();
+        parsed_req.parse_with_uninit_headers(str.as_bytes(), &mut headers).unwrap();
 
         let header: RequestHeader = parsed_req.into();
 
@@ -121,15 +111,9 @@ mod tests {
 
         assert_eq!(header.headers().len(), 3);
 
-        assert_eq!(
-            header.headers().get(http::header::ACCEPT),
-            Some(&HeaderValue::from_str("*/*").unwrap())
-        );
+        assert_eq!(header.headers().get(http::header::ACCEPT), Some(&HeaderValue::from_str("*/*").unwrap()));
 
-        assert_eq!(
-            header.headers().get(http::header::HOST),
-            Some(&HeaderValue::from_str("127.0.0.1:8080").unwrap())
-        );
+        assert_eq!(header.headers().get(http::header::HOST), Some(&HeaderValue::from_str("127.0.0.1:8080").unwrap()));
 
         assert_eq!(
             header.headers().get(http::header::USER_AGENT),
@@ -160,12 +144,9 @@ mod tests {
         "##};
 
         let mut parsed_req = httparse::Request::new(&mut []);
-        let mut headers: [MaybeUninit<httparse::Header>; 64] =
-            unsafe { MaybeUninit::uninit().assume_init() };
+        let mut headers: [MaybeUninit<httparse::Header>; 64] = unsafe { MaybeUninit::uninit().assume_init() };
 
-        parsed_req
-            .parse_with_uninit_headers(str.as_bytes(), &mut headers)
-            .unwrap();
+        parsed_req.parse_with_uninit_headers(str.as_bytes(), &mut headers).unwrap();
 
         let header: RequestHeader = parsed_req.into();
 
@@ -179,10 +160,7 @@ mod tests {
         assert_eq!(header.headers().len(), 15);
 
         // TODO maybe we can using macro to reduce code
-        assert_eq!(
-            header.headers().get(http::header::CONNECTION),
-            Some(&HeaderValue::from_str("keep-alive").unwrap())
-        );
+        assert_eq!(header.headers().get(http::header::CONNECTION), Some(&HeaderValue::from_str("keep-alive").unwrap()));
 
         assert_eq!(
             header.headers().get(http::header::CACHE_CONTROL),
@@ -192,52 +170,30 @@ mod tests {
         assert_eq!(
             header.headers().get("sec-ch-ua"),
             Some(
-                &HeaderValue::from_str(
-                    r##""#Not_A Brand";v="99", "Microsoft Edge";v="109", "Chromium";v="109""##
-                )
+                &HeaderValue::from_str(r##""#Not_A Brand";v="99", "Microsoft Edge";v="109", "Chromium";v="109""##)
                     .unwrap()
             )
         );
 
-        assert_eq!(
-            header.headers().get("sec-ch-ua-mobile"),
-            Some(&HeaderValue::from_str("?0").unwrap())
-        );
+        assert_eq!(header.headers().get("sec-ch-ua-mobile"), Some(&HeaderValue::from_str("?0").unwrap()));
+
+        assert_eq!(header.headers().get("sec-ch-ua-platform"), Some(&HeaderValue::from_str("\"macOS\"").unwrap()));
 
         assert_eq!(
-            header.headers().get("sec-ch-ua-platform"),
-            Some(&HeaderValue::from_str("\"macOS\"").unwrap())
-        );
-
-        assert_eq!(
-            header
-                .headers()
-                .get(http::header::UPGRADE_INSECURE_REQUESTS),
+            header.headers().get(http::header::UPGRADE_INSECURE_REQUESTS),
             Some(&HeaderValue::from_str("1").unwrap())
         );
 
         assert_eq!(header.headers().get(http::header::USER_AGENT),
                    Some(&HeaderValue::from_str("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36 Edg/109.0.1518.52").unwrap()));
 
-        assert_eq!(
-            header.headers().get("Sec-Fetch-Site"),
-            Some(&HeaderValue::from_str("none").unwrap())
-        );
+        assert_eq!(header.headers().get("Sec-Fetch-Site"), Some(&HeaderValue::from_str("none").unwrap()));
 
-        assert_eq!(
-            header.headers().get("Sec-Fetch-Mode"),
-            Some(&HeaderValue::from_str("navigate").unwrap())
-        );
+        assert_eq!(header.headers().get("Sec-Fetch-Mode"), Some(&HeaderValue::from_str("navigate").unwrap()));
 
-        assert_eq!(
-            header.headers().get("Sec-Fetch-User"),
-            Some(&HeaderValue::from_str("?1").unwrap())
-        );
+        assert_eq!(header.headers().get("Sec-Fetch-User"), Some(&HeaderValue::from_str("?1").unwrap()));
 
-        assert_eq!(
-            header.headers().get("Sec-Fetch-Dest"),
-            Some(&HeaderValue::from_str("document").unwrap())
-        );
+        assert_eq!(header.headers().get("Sec-Fetch-Dest"), Some(&HeaderValue::from_str("document").unwrap()));
 
         assert_eq!(
             header.headers().get(http::header::ACCEPT_ENCODING),

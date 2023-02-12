@@ -1,4 +1,3 @@
-
 use std::error::Error;
 
 use crate::protocol::body::ReqBody;
@@ -7,13 +6,11 @@ use http::{Request, Response};
 
 use http_body::Body;
 
-
 #[async_trait]
 pub trait Handler: Send + Sync + 'static {
     type RespBody: Body;
 
     type Error: Into<Box<dyn Error + Send + 'static>>;
 
-    async fn handle(&self, request: &mut Request<ReqBody>) -> Result<Response<Self::RespBody>, Self::Error>;
-
+    async fn handle(&self, request: Request<ReqBody>) -> Result<Response<Self::RespBody>, Self::Error>;
 }
