@@ -9,24 +9,27 @@ use futures::{join, SinkExt, StreamExt};
 use http::{Response, StatusCode};
 use http_body::Body;
 use http_body_util::{BodyExt, Empty};
+use tokio::io::{AsyncRead, AsyncWrite};
 
-use crate::codec::{HeaderEncoder, DecodeError, RequestDecoder};
+use crate::codec::{DecodeError, HeaderEncoder, RequestDecoder};
 use crate::handler::Handler;
 use crate::protocol::body::ReqBody;
 use crate::protocol::{Message, PayloadItem, RequestHeader};
-use tokio::net::tcp::{OwnedReadHalf, OwnedWriteHalf};
-use tokio::net::TcpStream;
+
 use tokio_util::codec::{FramedRead, FramedWrite};
 use tracing::{error, info};
 
-pub struct HttpConnection {
-    framed_read: FramedRead<OwnedReadHalf, RequestDecoder>,
-    framed_write: FramedWrite<OwnedWriteHalf, HeaderEncoder>,
+pub struct HttpConnection<R, W> {
+    framed_read: FramedRead<R, RequestDecoder>,
+    framed_write: FramedWrite<W, HeaderEncoder>,
 }
 
-impl HttpConnection {
-    pub fn new(stream: TcpStream) -> Self {
-        let (reader, writer) = stream.into_split();
+impl<R, W> HttpConnection<R, W>
+where
+    R: AsyncRead + Unpin,
+    W: AsyncWrite + Unpin,
+{
+    pub fn new(reader: R, writer: W) -> Self {
         Self {
             framed_read: FramedRead::with_capacity(reader, RequestDecoder::new(), 8 * 1024),
             framed_write: FramedWrite::new(writer, HeaderEncoder),
@@ -150,7 +153,10 @@ impl HttpConnection {
         T: Body + Unpin,
     {
         let (parts, mut body) = response.into_parts();
-        self.framed_write.send(parts).await.map_err(|_e| DecodeError::Body { message: "can't send response".into() })?;
+        self.framed_write
+            .send(parts)
+            .await
+            .map_err(|_e| DecodeError::Body { message: "can't send response".into() })?;
 
         loop {
             match body.frame().await {
@@ -170,3 +176,14 @@ impl HttpConnection {
         }
     }
 }
+
+// impl<R, W> From<TcpStream> for HttpConnection<R, W>
+// where
+//     R: AsyncRead + Unpin,
+//     W: AsyncWrite + Unpin,
+// {
+//     fn from(tcp_stream: TcpStream) -> Self {
+//         let (reader, writer) = tcp_stream.into_split();
+//         HttpConnection::new(reader, writer)
+//     }
+// }

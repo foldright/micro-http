@@ -4,6 +4,7 @@ use http::{Request, Response, StatusCode};
 use std::sync::Arc;
 
 use http_body_util::BodyExt;
+
 use tiny_http::connection::HttpConnection;
 use tiny_http::handler::Handler;
 use tiny_http::protocol::body::ReqBody;
@@ -41,7 +42,8 @@ async fn main() -> Result<()> {
         let handler = handler.clone();
 
         tokio::spawn(async move {
-            let connection = HttpConnection::new(tcp_stream);
+            let (reader, writer) = tcp_stream.into_split();
+            let connection = HttpConnection::new(reader, writer);
             connection.process(handler).await.with_context(|| format!("connection process error")).unwrap();
         });
     }
