@@ -10,7 +10,7 @@ use http::{Response, StatusCode};
 use http_body::Body;
 use http_body_util::{BodyExt, Empty};
 
-use crate::codec::{HeaderEncoder, ParseError, RequestDecoder};
+use crate::codec::{ParseError, RequestDecoder};
 use crate::handler::Handler;
 use crate::protocol::body::ReqBody;
 use crate::protocol::{Message, PayloadItem, RequestHeader};
@@ -18,6 +18,7 @@ use tokio::net::tcp::{OwnedReadHalf, OwnedWriteHalf};
 use tokio::net::TcpStream;
 use tokio_util::codec::{FramedRead, FramedWrite};
 use tracing::{error, info};
+use crate::codec::header::HeaderEncoder;
 
 pub struct HttpConnection {
     framed_read: FramedRead<OwnedReadHalf, RequestDecoder>,

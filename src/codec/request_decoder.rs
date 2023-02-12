@@ -1,8 +1,8 @@
-use crate::codec::body::payload_decoder::PayloadDecoder;
-use crate::codec::header_decoder::HeaderDecoder;
+use crate::codec::body::PayloadDecoder;
+use crate::codec::header::HeaderDecoder;
 use crate::codec::ParseError;
 use crate::protocol::{Message, PayloadItem, RequestHeader};
-use bytes::{BytesMut};
+use bytes::BytesMut;
 use tokio_util::codec::Decoder;
 
 pub struct RequestDecoder {
@@ -17,7 +17,6 @@ impl RequestDecoder {
 }
 
 impl Decoder for RequestDecoder {
-
     type Item = Message<RequestHeader>;
     type Error = ParseError;
 

@@ -1,8 +1,9 @@
-use crate::codec::{ChunkedDecoder, LengthDecoder};
-use bytes::{BytesMut};
+use crate::codec::body::chunked_decoder::ChunkedDecoder;
+use crate::codec::body::length_decoder::LengthDecoder;
+use crate::protocol::PayloadItem;
+use bytes::BytesMut;
 use std::io;
 use tokio_util::codec::Decoder;
-use crate::protocol::PayloadItem;
 
 /// decode payload for request body
 #[derive(Debug, Clone, PartialEq, Eq)]
