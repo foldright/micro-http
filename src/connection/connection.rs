@@ -10,7 +10,7 @@ use http::{Response, StatusCode};
 use http_body::Body;
 use http_body_util::{BodyExt, Empty};
 
-use crate::codec::{ParseError, RequestDecoder};
+use crate::codec::{HeaderEncoder, DecodeError, RequestDecoder};
 use crate::handler::Handler;
 use crate::protocol::body::ReqBody;
 use crate::protocol::{Message, PayloadItem, RequestHeader};
@@ -18,7 +18,6 @@ use tokio::net::tcp::{OwnedReadHalf, OwnedWriteHalf};
 use tokio::net::TcpStream;
 use tokio_util::codec::{FramedRead, FramedWrite};
 use tracing::{error, info};
-use crate::codec::header::HeaderEncoder;
 
 pub struct HttpConnection {
     framed_read: FramedRead<OwnedReadHalf, RequestDecoder>,
@@ -34,7 +33,7 @@ impl HttpConnection {
         }
     }
 
-    async fn do_process<H>(&mut self, header: RequestHeader, handler: &mut Arc<H>) -> Result<(), ParseError>
+    async fn do_process<H>(&mut self, header: RequestHeader, handler: &mut Arc<H>) -> Result<(), DecodeError>
     where
         H: Handler,
         H::RespBody: Body + Unpin,
@@ -64,7 +63,7 @@ impl HttpConnection {
         Ok(())
     }
 
-    async fn send_body(&mut self, mut rx: Receiver<oneshot::Sender<PayloadItem>>) -> Result<bool, ParseError> {
+    async fn send_body(&mut self, mut rx: Receiver<oneshot::Sender<PayloadItem>>) -> Result<bool, DecodeError> {
         let mut eof = false;
         loop {
             if eof {
@@ -82,7 +81,7 @@ impl HttpConnection {
 
                     Some(Ok(Message::Header(_header))) => {
                         error!("received header from receive body phase");
-                        return Err(ParseError::Body { message: "received header from receive body phase".into() });
+                        return Err(DecodeError::Body { message: "received header from receive body phase".into() });
                     }
 
                     Some(Err(e)) => {
@@ -91,14 +90,14 @@ impl HttpConnection {
 
                     None => {
                         error!("cant read body");
-                        return Err(ParseError::Body { message: "cant read body".into() });
+                        return Err(DecodeError::Body { message: "cant read body".into() });
                     }
                 }
             }
         }
     }
 
-    pub async fn process<H>(mut self, mut handler: Arc<H>) -> Result<(), ParseError>
+    pub async fn process<H>(mut self, mut handler: Arc<H>) -> Result<(), DecodeError>
     where
         H: Handler,
         H::RespBody: Body + Unpin,
@@ -130,7 +129,7 @@ impl HttpConnection {
         Ok(())
     }
 
-    async fn send_response<T, E>(&mut self, response_result: Result<Response<T>, E>) -> Result<(), ParseError>
+    async fn send_response<T, E>(&mut self, response_result: Result<Response<T>, E>) -> Result<(), DecodeError>
     where
         T: Body + Unpin,
         E: Into<Box<dyn Error + Send + 'static>>,
@@ -146,26 +145,26 @@ impl HttpConnection {
         }
     }
 
-    async fn do_send_response<T>(&mut self, response: Response<T>) -> Result<(), ParseError>
+    async fn do_send_response<T>(&mut self, response: Response<T>) -> Result<(), DecodeError>
     where
         T: Body + Unpin,
     {
         let (parts, mut body) = response.into_parts();
-        self.framed_write.send(parts).await.map_err(|_e| ParseError::Body { message: "can't send response".into() })?;
+        self.framed_write.send(parts).await.map_err(|_e| DecodeError::Body { message: "can't send response".into() })?;
 
         loop {
             match body.frame().await {
                 Some(Ok(frame)) => {
                     let data = frame
                         .into_data()
-                        .map_err(|_e| ParseError::Body { message: "resolve body response error".into() })?;
+                        .map_err(|_e| DecodeError::Body { message: "resolve body response error".into() })?;
                     self.framed_write.write_buffer_mut().put(data);
                     self.framed_write
                         .flush()
                         .await
-                        .map_err(|_e| ParseError::Body { message: "can't flush response".into() })?;
+                        .map_err(|_e| DecodeError::Body { message: "can't flush response".into() })?;
                 }
-                Some(Err(_e)) => return Err(ParseError::Body { message: "resolve response body error".into() }),
+                Some(Err(_e)) => return Err(DecodeError::Body { message: "resolve response body error".into() }),
                 None => return Ok(()),
             }
         }

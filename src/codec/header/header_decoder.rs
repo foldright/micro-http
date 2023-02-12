@@ -9,8 +9,8 @@ use snafu::ensure;
 use tokio_util::codec::Decoder;
 use tracing::trace;
 
-use crate::codec::ParseError;
-use crate::codec::ParseError::{InvalidContentLength, InvalidHeader, TooManyHeaders};
+use crate::codec::DecodeError;
+use crate::codec::DecodeError::{InvalidContentLength, InvalidHeader, TooManyHeaders};
 use crate::protocol::RequestHeader;
 
 const MAX_HEADER_NUM: usize = 64;
@@ -20,7 +20,7 @@ pub struct HeaderDecoder;
 
 impl Decoder for HeaderDecoder {
     type Item = (RequestHeader, PayloadDecoder);
-    type Error = ParseError;
+    type Error = DecodeError;
 
     fn decode(&mut self, src: &mut BytesMut) -> Result<Option<Self::Item>, Self::Error> {
         let mut req = httparse::Request::new(&mut []);
@@ -57,7 +57,7 @@ impl Decoder for HeaderDecoder {
     }
 }
 
-fn parse_payload(header: &RequestHeader) -> Result<PayloadDecoder, ParseError> {
+fn parse_payload(header: &RequestHeader) -> Result<PayloadDecoder, DecodeError> {
     if !header.need_body() {
         return Ok(PayloadDecoder::empty());
     }

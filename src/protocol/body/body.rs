@@ -8,7 +8,7 @@ use futures::{FutureExt, SinkExt};
 
 use http_body::{Body, Frame};
 
-use crate::codec::ParseError;
+use crate::codec::DecodeError;
 use crate::protocol::PayloadItem;
 
 pub struct ReqBody {
@@ -24,7 +24,7 @@ impl ReqBody {
 
 impl Body for ReqBody {
     type Data = Bytes;
-    type Error = ParseError;
+    type Error = DecodeError;
 
     fn poll_frame(
         mut self: Pin<&mut Self>,
@@ -43,7 +43,7 @@ impl Body for ReqBody {
                     }
                     Err(_) => {
                         self.receiving.take();
-                        Poll::Ready(Some(Err(ParseError::Body { message: "parse body canceled".into() })))
+                        Poll::Ready(Some(Err(DecodeError::Body { message: "parse body canceled".into() })))
                     }
                 };
             }
@@ -56,10 +56,10 @@ impl Body for ReqBody {
                             self.receiving = Some(rx);
                             continue;
                         }
-                        Err(e) => return Poll::Ready(Some(Err(ParseError::Body { message: e.to_string() }))),
+                        Err(e) => return Poll::Ready(Some(Err(DecodeError::Body { message: e.to_string() }))),
                     }
                 }
-                Err(e) => return Poll::Ready(Some(Err(ParseError::Body { message: e.to_string() }))),
+                Err(e) => return Poll::Ready(Some(Err(DecodeError::Body { message: e.to_string() }))),
             };
         }
     }

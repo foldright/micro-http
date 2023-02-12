@@ -1,6 +1,6 @@
 use crate::codec::body::PayloadDecoder;
 use crate::codec::header::HeaderDecoder;
-use crate::codec::ParseError;
+use crate::codec::DecodeError;
 use crate::protocol::{Message, PayloadItem, RequestHeader};
 use bytes::BytesMut;
 use tokio_util::codec::Decoder;
@@ -18,7 +18,7 @@ impl RequestDecoder {
 
 impl Decoder for RequestDecoder {
     type Item = Message<RequestHeader>;
-    type Error = ParseError;
+    type Error = DecodeError;
 
     fn decode(&mut self, src: &mut BytesMut) -> Result<Option<Self::Item>, Self::Error> {
         // parse payload if have payload_decoder

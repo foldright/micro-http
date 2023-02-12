@@ -4,7 +4,7 @@ use std::io::Error as IoError;
 
 #[derive(Debug, Snafu)]
 #[snafu(visibility(pub(crate)))]
-pub enum ParseError {
+pub enum DecodeError {
     #[snafu(display("header too large, current size: {}, max size: {max_size}"))]
     TooLargeHeader { current_size: usize, max_size: usize },
 
