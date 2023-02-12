@@ -4,7 +4,7 @@ use std::task::{ready, Context, Poll};
 use bytes::Bytes;
 
 use futures::channel::{mpsc, oneshot};
-use futures::{FutureExt, SinkExt, Stream, StreamExt};
+use futures::{FutureExt, SinkExt};
 
 use http_body::{Body, Frame};
 

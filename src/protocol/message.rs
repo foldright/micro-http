@@ -1,10 +1,16 @@
 use bytes::Bytes;
-use futures::future::Then;
 
 /// represent the request/response message
 pub enum Message<T> {
     Header(T),
     Payload(PayloadItem),
+}
+
+/// payload item produced from payload decoder
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum PayloadItem {
+    Chunk(Bytes),
+    Eof,
 }
 
 impl<T> Message<T> {
@@ -34,13 +40,6 @@ impl<T> From<Bytes> for Message<T> {
     fn from(bytes: Bytes) -> Self {
         Self::Payload(PayloadItem::Chunk(bytes))
     }
-}
-
-/// payload item produced from payload decoder
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum PayloadItem {
-    Chunk(Bytes),
-    Eof,
 }
 
 impl PayloadItem {

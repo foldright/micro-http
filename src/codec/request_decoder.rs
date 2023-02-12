@@ -2,7 +2,7 @@ use crate::codec::body::payload_decoder::PayloadDecoder;
 use crate::codec::header_decoder::HeaderDecoder;
 use crate::codec::ParseError;
 use crate::protocol::{Message, PayloadItem, RequestHeader};
-use bytes::{Bytes, BytesMut};
+use bytes::{BytesMut};
 use tokio_util::codec::Decoder;
 
 pub struct RequestDecoder {

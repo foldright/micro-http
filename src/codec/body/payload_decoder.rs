@@ -1,5 +1,5 @@
 use crate::codec::{ChunkedDecoder, LengthDecoder};
-use bytes::{Bytes, BytesMut};
+use bytes::{BytesMut};
 use std::io;
 use tokio_util::codec::Decoder;
 use crate::protocol::PayloadItem;
