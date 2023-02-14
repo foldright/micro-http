@@ -1,11 +1,7 @@
 use std::error::Error;
 
-
 use bytes::Bytes;
 use std::sync::Arc;
-
-use futures::channel::mpsc::Receiver;
-use futures::channel::oneshot;
 
 use futures::{SinkExt, StreamExt};
 use http::{Response, StatusCode};
@@ -54,13 +50,14 @@ where
                     error!("error status because chunked has read in do_process");
                     let error_response = build_error_response(StatusCode::BAD_REQUEST);
                     self.do_send_response(error_response).await?;
-                    // todo return error to force connection shutdown
+                    return Err(DecodeError::Body { message: "need header while receive body".into() }.into());
                 }
 
                 Some(Err(e)) => {
                     error!("can't receive next request, cause {}", e);
-                    let _error_response = build_error_response(StatusCode::BAD_REQUEST);
-                    todo!("convert parseError to response");
+                    let error_response = build_error_response(StatusCode::BAD_REQUEST);
+                    self.do_send_response(error_response).await?;
+                    return Err(e.into());
                 }
 
                 None => {
@@ -88,6 +85,7 @@ where
                 let body_sender_future = body_sender.send_body();
             }
 
+
             let mut result = Option::<Result<_, _>>::None;
             loop {
                 select! {
@@ -112,44 +110,10 @@ where
         Ok(())
     }
 
-    async fn send_body(&mut self, mut rx: Receiver<oneshot::Sender<PayloadItem>>) -> Result<bool, DecodeError> {
-        let mut eof = false;
-        loop {
-            if eof {
-                return Ok(true);
-            }
-
-            if let Some(sender) = rx.next().await {
-                match self.framed_read.next().await {
-                    Some(Ok(Message::Payload(payload_item))) => {
-                        if payload_item.is_eof() {
-                            eof = true;
-                        }
-                        sender.send(payload_item).unwrap();
-                    }
-
-                    Some(Ok(Message::Header(_header))) => {
-                        error!("received header from receive body phase");
-                        return Err(DecodeError::Body { message: "received header from receive body phase".into() });
-                    }
-
-                    Some(Err(e)) => {
-                        return Err(e);
-                    }
-
-                    None => {
-                        error!("cant read body");
-                        return Err(DecodeError::Body { message: "cant read body".into() });
-                    }
-                }
-            }
-        }
-    }
-
     async fn send_response<T, E>(&mut self, response_result: Result<Response<T>, E>) -> Result<(), HttpError>
     where
         T: Body<Data = Bytes> + Unpin,
-        E: Into<Box<dyn Error + Send + 'static>>,
+        E: Into<Box<dyn Error + Send>>,
     {
         match response_result {
             Ok(response) => self.do_send_response(response).await,

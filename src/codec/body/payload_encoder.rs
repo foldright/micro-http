@@ -26,20 +26,24 @@ enum Kind {
 
 impl PayloadEncoder {
     /// create an empty `PayloadEncoder`
+    /// #[allow(unused)]
     pub fn empty() -> Self {
         Self { kind: Kind::NoBody }
     }
 
     /// create a chunked `PayloadEncoder`
+    /// #[allow(unused)]
     pub fn chunked() -> Self {
         Self { kind: Kind::Chunked(ChunkedEncoder::new()) }
     }
 
     /// create a fixed length `PayloadEncoder`
+    #[allow(unused)]
     pub fn fix_length(size: usize) -> Self {
         Self { kind: Kind::Length(LengthEncoder::new(size)) }
     }
 
+    #[allow(unused)]
     pub fn is_chunked(&self) -> bool {
         match &self.kind {
             Kind::Length(_) => false,
@@ -48,6 +52,7 @@ impl PayloadEncoder {
         }
     }
 
+    #[allow(unused)]
     pub fn is_empty(&self) -> bool {
         match &self.kind {
             Kind::Length(_) => false,
@@ -56,6 +61,7 @@ impl PayloadEncoder {
         }
     }
 
+    #[allow(unused)]
     pub fn is_fix_length(&self) -> bool {
         match &self.kind {
             Kind::Length(_) => true,

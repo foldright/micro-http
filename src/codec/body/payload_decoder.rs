@@ -25,6 +25,7 @@ enum Kind {
 
 impl PayloadDecoder {
     /// create an empty `PayloadDecoder`
+    #[allow(unused)]
     pub fn empty() -> Self {
         Self { kind: Kind::NoBody }
     }
@@ -35,10 +36,12 @@ impl PayloadDecoder {
     }
 
     /// create a fixed length `PayloadDecoder`
+    #[allow(unused)]
     pub fn fix_length(size: usize) -> Self {
         Self { kind: Kind::Length(LengthDecoder::new(size)) }
     }
 
+    #[allow(unused)]
     pub fn is_chunked(&self) -> bool {
         match &self.kind {
             Kind::Length(_) => false,
@@ -47,6 +50,7 @@ impl PayloadDecoder {
         }
     }
 
+    #[allow(unused)]
     pub fn is_empty(&self) -> bool {
         match &self.kind {
             Kind::Length(_) => false,
@@ -55,6 +59,7 @@ impl PayloadDecoder {
         }
     }
 
+    #[allow(unused)]
     pub fn is_fix_length(&self) -> bool {
         match &self.kind {
             Kind::Length(_) => true,

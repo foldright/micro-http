@@ -1,19 +1,19 @@
-use anyhow::Context;
 use async_trait::async_trait;
 use http::{Request, Response, StatusCode};
+use std::error::Error;
 use std::sync::Arc;
+use http_body_util::BodyExt;
 
 use tiny_http::connection::HttpConnection;
 use tiny_http::handler::Handler;
 use tiny_http::protocol::body::ReqBody;
-use tiny_http::Result;
 use tokio::net::TcpListener;
 
 use tracing::{error, info, warn, Level};
 use tracing_subscriber::FmtSubscriber;
 
 #[tokio::main]
-async fn main() -> Result<()> {
+async fn main() {
     let subscriber = FmtSubscriber::builder().with_max_level(Level::INFO).finish();
 
     tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
@@ -23,7 +23,7 @@ async fn main() -> Result<()> {
         Ok(tcp_listener) => tcp_listener,
         Err(e) => {
             error!(cause = %e, "bind server error");
-            return Err(e.into());
+            return;
         }
     };
 
@@ -43,7 +43,14 @@ async fn main() -> Result<()> {
         tokio::spawn(async move {
             let (reader, writer) = tcp_stream.into_split();
             let connection = HttpConnection::new(reader, writer);
-            connection.process(handler).await.with_context(|| format!("connection process error")).unwrap();
+            match connection.process(handler).await {
+                Ok(_) => {
+                    info!("finished process, connection shutdown");
+                }
+                Err(e) => {
+                    error!("service has error, cause {}, connection shutdown", e);
+                }
+            }
         });
     }
 }
@@ -53,23 +60,26 @@ struct SimpleHandler;
 #[async_trait]
 impl Handler for SimpleHandler {
     type RespBody = String;
-    type Error = tiny_http::Error;
+    type Error = Box<dyn Error + Send>;
 
-    async fn handle(&self, request: Request<ReqBody>) -> std::result::Result<Response<Self::RespBody>, Self::Error> {
+    async fn handle(&self, request: Request<ReqBody>) -> Result<Response<Self::RespBody>, Self::Error> {
         let _path = request.uri().path().to_string();
-        let (_header, _body) = request.into_parts();
+        let (_header, body) = request.into_parts();
 
-        // let body = body.collect().await?;
-        // info!(body = std::str::from_utf8(&body.to_bytes()[..]).unwrap(), "receiving request body");
+        let body_bytes = match body.collect().await {
+            Ok(b) => b.to_bytes(),
+            Err(err) => {
+                return Err(Box::new(err));
+            }
+        };
+        info!(body = std::str::from_utf8(&body_bytes[..]).unwrap(), "receiving request body");
 
-        let body = "Hello World!";
-
-        //sleep(Duration::from_secs(10)).await;
+        let response_body = "Hello World!\r\n";
 
         let response = Response::builder()
             .status(StatusCode::OK)
-            .header(http::header::CONTENT_LENGTH, body.len())
-            .body(body.to_string())
+            .header(http::header::CONTENT_LENGTH, response_body.len())
+            .body(response_body.to_string())
             .unwrap();
 
         Ok(response)
