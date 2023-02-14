@@ -43,7 +43,7 @@ where
     pub async fn process<H>(mut self, mut handler: Arc<H>) -> Result<(), DecodeError>
     where
         H: Handler,
-        H::RespBody: Body<Data=Bytes> + Unpin,
+        H::RespBody: Body<Data = Bytes> + Unpin,
     {
         loop {
             match self.framed_read.next().await {
@@ -75,7 +75,7 @@ where
     async fn do_process<H>(&mut self, header: RequestHeader, handler: &mut Arc<H>) -> Result<(), DecodeError>
     where
         H: Handler,
-        H::RespBody: Body<Data=Bytes> + Unpin,
+        H::RespBody: Body<Data = Bytes> + Unpin,
     {
         let (req_body, mut body_sender) = ReqBody::body_channel(&mut self.framed_read);
 
@@ -149,7 +149,7 @@ where
 
     async fn send_response<T, E>(&mut self, response_result: Result<Response<T>, E>) -> Result<(), DecodeError>
     where
-        T: Body<Data=Bytes> + Unpin,
+        T: Body<Data = Bytes> + Unpin,
         E: Into<Box<dyn Error + Send + 'static>>,
     {
         match response_result {
@@ -165,7 +165,7 @@ where
 
     async fn do_send_response<T>(&mut self, response: Response<T>) -> Result<(), DecodeError>
     where
-        T: Body<Data=Bytes> + Unpin,
+        T: Body<Data = Bytes> + Unpin,
     {
         let (header_parts, mut body) = response.into_parts();
 
@@ -186,11 +186,15 @@ where
         loop {
             match body.frame().await {
                 Some(Ok(frame)) => {
-                    let data = frame
+                    let payload_item = frame
                         .into_data()
-                        .map(|bytes|PayloadItem::Chunk(bytes))
+                        .map(|bytes| PayloadItem::Chunk(bytes))
                         .map_err(|_e| DecodeError::Body { message: "resolve body response error".into() })?;
 
+                    self.framed_write
+                        .send(Message::Payload(payload_item))
+                        .await
+                        .map_err(|_e| DecodeError::Body { message: "can't send response".into() })?;
                 }
                 Some(Err(_e)) => return Err(DecodeError::Body { message: "resolve response body error".into() }),
                 None => return Ok(()),
@@ -198,14 +202,3 @@ where
         }
     }
 }
-
-// impl<R, W> From<TcpStream> for HttpConnection<R, W>
-// where
-//     R: AsyncRead + Unpin,
-//     W: AsyncWrite + Unpin,
-// {
-//     fn from(tcp_stream: TcpStream) -> Self {
-//         let (reader, writer) = tcp_stream.into_split();
-//         HttpConnection::new(reader, writer)
-//     }
-// }

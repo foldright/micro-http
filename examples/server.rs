@@ -67,7 +67,7 @@ impl Handler for SimpleHandler {
 
         let body = "Hello World!";
 
-        sleep(Duration::from_secs(10)).await;
+        //sleep(Duration::from_secs(10)).await;
 
         let response = Response::builder()
             .status(StatusCode::OK)
