@@ -10,7 +10,7 @@ use http_body::Body;
 pub trait Handler: Send + Sync + 'static {
     type RespBody: Body;
 
-    type Error: Into<Box<dyn Error + Send>>;
+    type Error: Into<Box<dyn Error + Send + Sync>>;
 
     async fn handle(&self, request: Request<ReqBody>) -> Result<Response<Self::RespBody>, Self::Error>;
 }

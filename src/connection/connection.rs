@@ -85,7 +85,6 @@ where
                 let body_sender_future = body_sender.send_body();
             }
 
-
             let mut result = Option::<Result<_, _>>::None;
             loop {
                 select! {
@@ -113,7 +112,7 @@ where
     async fn send_response<T, E>(&mut self, response_result: Result<Response<T>, E>) -> Result<(), HttpError>
     where
         T: Body<Data = Bytes> + Unpin,
-        E: Into<Box<dyn Error + Send>>,
+        E: Into<Box<dyn Error + Send + Sync>>,
     {
         match response_result {
             Ok(response) => self.do_send_response(response).await,

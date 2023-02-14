@@ -60,18 +60,14 @@ struct SimpleHandler;
 #[async_trait]
 impl Handler for SimpleHandler {
     type RespBody = String;
-    type Error = Box<dyn Error + Send>;
+    type Error = Box<dyn Error + Send + Sync>;
 
     async fn handle(&self, request: Request<ReqBody>) -> Result<Response<Self::RespBody>, Self::Error> {
         let _path = request.uri().path().to_string();
         let (_header, body) = request.into_parts();
 
-        let body_bytes = match body.collect().await {
-            Ok(b) => b.to_bytes(),
-            Err(err) => {
-                return Err(Box::new(err));
-            }
-        };
+        let body_bytes = body.collect().await?.to_bytes();
+
         info!(body = std::str::from_utf8(&body_bytes[..]).unwrap(), "receiving request body");
 
         let response_body = "Hello World!\r\n";
