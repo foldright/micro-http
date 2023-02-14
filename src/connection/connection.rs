@@ -1,5 +1,6 @@
 use std::error::Error;
 
+use anyhow::Context;
 use bytes::Bytes;
 use std::sync::Arc;
 
@@ -13,10 +14,10 @@ use http_body_util::{BodyExt, Empty};
 use tokio::io::{AsyncRead, AsyncWrite};
 use tokio::select;
 
-use crate::codec::{DecodeError, RequestDecoder, ResponseEncoder};
+use crate::codec::{DecodeError, EncoderError, RequestDecoder, ResponseEncoder};
 use crate::handler::Handler;
 use crate::protocol::body::ReqBody;
-use crate::protocol::{Message, PayloadItem, PayloadSize, RequestHeader, ResponseHead};
+use crate::protocol::{HttpError, Message, PayloadItem, PayloadSize, RequestHeader, ResponseHead};
 
 use tokio_util::codec::{FramedRead, FramedWrite};
 use tracing::{error, info};
@@ -38,7 +39,7 @@ where
         }
     }
 
-    pub async fn process<H>(mut self, mut handler: Arc<H>) -> Result<(), DecodeError>
+    pub async fn process<H>(mut self, mut handler: Arc<H>) -> Result<(), HttpError>
     where
         H: Handler,
         H::RespBody: Body<Data = Bytes> + Unpin,
@@ -50,27 +51,27 @@ where
                 }
 
                 Some(Ok(Message::Payload(_))) => {
-                    // not exactly, request can read part body
-                    unreachable!("can't reach here because chunked has read in do_process");
+                    error!("error status because chunked has read in do_process");
+                    let error_response = build_error_response(StatusCode::BAD_REQUEST);
+                    self.do_send_response(error_response).await?;
+                    // todo return error to force connection shutdown
                 }
 
-                Some(Err(_e)) => {
+                Some(Err(e)) => {
+                    error!("can't receive next request, cause {}", e);
+                    let error_response = build_error_response(StatusCode::BAD_REQUEST);
                     todo!("convert parseError to response");
-                    break;
                 }
 
                 None => {
-                    // todo: add remote addr to log
                     info!("cant read more request, break this connection down");
-                    break;
+                    return Ok(());
                 }
             }
         }
-
-        Ok(())
     }
 
-    async fn do_process<H>(&mut self, header: RequestHeader, handler: &mut Arc<H>) -> Result<(), DecodeError>
+    async fn do_process<H>(&mut self, header: RequestHeader, handler: &mut Arc<H>) -> Result<(), HttpError>
     where
         H: Handler,
         H::RespBody: Body<Data = Bytes> + Unpin,
@@ -145,23 +146,22 @@ where
         }
     }
 
-    async fn send_response<T, E>(&mut self, response_result: Result<Response<T>, E>) -> Result<(), DecodeError>
+    async fn send_response<T, E>(&mut self, response_result: Result<Response<T>, E>) -> Result<(), HttpError>
     where
         T: Body<Data = Bytes> + Unpin,
         E: Into<Box<dyn Error + Send + 'static>>,
     {
         match response_result {
             Ok(response) => self.do_send_response(response).await,
-            Err(_) => {
-                let error_response =
-                    Response::builder().status(StatusCode::INTERNAL_SERVER_ERROR).body(Empty::<Bytes>::new()).unwrap();
-
+            Err(e) => {
+                error!("handle response error, cause: {}", e.into());
+                let error_response = build_error_response(StatusCode::INTERNAL_SERVER_ERROR);
                 self.do_send_response(error_response).await
             }
         }
     }
 
-    async fn do_send_response<T>(&mut self, response: Response<T>) -> Result<(), DecodeError>
+    async fn do_send_response<T>(&mut self, response: Response<T>) -> Result<(), HttpError>
     where
         T: Body<Data = Bytes> + Unpin,
     {
@@ -176,10 +176,7 @@ where
             }
         };
 
-        self.framed_write
-            .send(Message::Header((ResponseHead::from_parts(header_parts, ()), payload_size)))
-            .await
-            .map_err(|_e| DecodeError::Body { message: "can't send response".into() })?;
+        self.framed_write.send(Message::Header((ResponseHead::from_parts(header_parts, ()), payload_size))).await?;
 
         loop {
             match body.frame().await {
@@ -194,9 +191,13 @@ where
                         .await
                         .map_err(|_e| DecodeError::Body { message: "can't send response".into() })?;
                 }
-                Some(Err(_e)) => return Err(DecodeError::Body { message: "resolve response body error".into() }),
+                Some(Err(_e)) => return Err(DecodeError::Body { message: "resolve response body error".into() }.into()),
                 None => return Ok(()),
             }
         }
     }
+}
+
+fn build_error_response(status_code: StatusCode) -> Response<Empty<Bytes>> {
+    Response::builder().status(status_code).body(Empty::<Bytes>::new()).unwrap()
 }

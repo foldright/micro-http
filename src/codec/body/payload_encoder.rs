@@ -4,6 +4,7 @@ use crate::protocol::PayloadItem;
 use bytes::BytesMut;
 use std::io;
 use tokio_util::codec::Encoder;
+use crate::codec::EncoderError;
 
 /// encode payload for request body
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -65,7 +66,7 @@ impl PayloadEncoder {
 }
 
 impl Encoder<PayloadItem> for PayloadEncoder {
-    type Error = io::Error;
+    type Error = EncoderError;
 
     fn encode(&mut self, item: PayloadItem, dst: &mut BytesMut) -> Result<(), Self::Error> {
         match &mut self.kind {

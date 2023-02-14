@@ -7,11 +7,12 @@ use std::io;
 use std::io::ErrorKind;
 use tokio_util::codec::Encoder;
 use tracing::error;
+use crate::codec::EncoderError;
 
 pub struct HeaderEncoder;
 
 impl Encoder<(ResponseHead, PayloadSize)> for HeaderEncoder {
-    type Error = io::Error;
+    type Error = EncoderError;
 
     fn encode(&mut self, item: (ResponseHead, PayloadSize), dst: &mut BytesMut) -> Result<(), Self::Error> {
         let (mut header, payload_size) = item;
@@ -26,7 +27,7 @@ impl Encoder<(ResponseHead, PayloadSize)> for HeaderEncoder {
             }
             v => {
                 error!(http_version = ?v, "unsupported http version");
-                return Err(io::Error::from(ErrorKind::Unsupported));
+                return Err(io::Error::from(ErrorKind::Unsupported).into());
             }
         }
 

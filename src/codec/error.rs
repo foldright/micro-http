@@ -23,3 +23,11 @@ pub enum DecodeError {
     #[snafu(display("parse body error: {message}"))]
     Body { message: String },
 }
+
+#[derive(Debug, Snafu)]
+#[snafu(visibility(pub(crate)))]
+pub enum EncoderError {
+
+    #[snafu(display("io error happens when parsing : {source}"), context(false))]
+    Io { source: IoError },
+}

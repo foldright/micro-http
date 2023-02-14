@@ -3,6 +3,7 @@ use std::io;
 use crate::protocol::PayloadItem;
 use bytes::BytesMut;
 use tokio_util::codec::Encoder;
+use crate::codec::EncoderError;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LengthEncoder {
@@ -16,7 +17,7 @@ impl LengthEncoder {
 }
 
 impl Encoder<PayloadItem> for LengthEncoder {
-    type Error = io::Error;
+    type Error = EncoderError;
 
     fn encode(&mut self, item: PayloadItem, dst: &mut BytesMut) -> Result<(), Self::Error> {
         if self.length == 0 {

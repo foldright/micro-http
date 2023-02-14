@@ -1,5 +1,6 @@
 use crate::codec::body::PayloadEncoder;
 use crate::codec::header::HeaderEncoder;
+use crate::codec::EncoderError;
 use crate::protocol::{Message, PayloadSize, ResponseHead};
 use bytes::BytesMut;
 use std::io;
@@ -19,14 +20,14 @@ impl ResponseEncoder {
 }
 
 impl Encoder<Message<(ResponseHead, PayloadSize)>> for ResponseEncoder {
-    type Error = io::Error;
+    type Error = EncoderError;
 
     fn encode(&mut self, item: Message<(ResponseHead, PayloadSize)>, dst: &mut BytesMut) -> Result<(), Self::Error> {
         match item {
             Message::Header((head, payload_size)) => {
                 if self.payload_encoder.is_some() {
                     error!("expect payload item but receive response head");
-                    return Err(io::Error::from(ErrorKind::InvalidInput));
+                    return Err(io::Error::from(ErrorKind::InvalidInput).into());
                 }
 
                 let payload_encoder = parse_payload_encoder(payload_size);
@@ -39,7 +40,7 @@ impl Encoder<Message<(ResponseHead, PayloadSize)>> for ResponseEncoder {
                     encoder
                 } else {
                     error!("expect response header but receive payload item");
-                    return Err(io::Error::from(ErrorKind::InvalidInput));
+                    return Err(io::Error::from(ErrorKind::InvalidInput).into());
                 };
 
                 let is_eof = payload_item.is_eof();

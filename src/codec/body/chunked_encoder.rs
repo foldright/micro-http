@@ -3,6 +3,7 @@ use bytes::BytesMut;
 use std::io::Write;
 
 use tokio_util::codec::Encoder;
+use crate::codec::EncoderError;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ChunkedEncoder {
@@ -17,7 +18,7 @@ impl ChunkedEncoder {
 }
 
 impl Encoder<PayloadItem> for ChunkedEncoder {
-    type Error = std::io::Error;
+    type Error = EncoderError;
 
     fn encode(&mut self, item: PayloadItem, dst: &mut BytesMut) -> Result<(), Self::Error> {
         if self.eof {
