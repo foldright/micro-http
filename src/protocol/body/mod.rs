@@ -7,10 +7,7 @@ pub use req_body::ReqBodySender;
 use std::pin::Pin;
 use std::task::{Context, Poll};
 
-
-pub enum BodyError {
-
-}
+pub enum BodyError {}
 
 pub struct Body<S: Stream> {
     stream: S,

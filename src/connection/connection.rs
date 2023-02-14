@@ -1,14 +1,12 @@
 use std::error::Error;
-use std::future::{Future, Ready};
 
-use bytes::{BufMut, Bytes};
+use bytes::Bytes;
 use std::sync::Arc;
-use std::task::Poll;
 
 use futures::channel::mpsc::Receiver;
-use futures::channel::{mpsc, oneshot};
-use futures::future::poll_fn;
-use futures::{join, SinkExt, StreamExt};
+use futures::channel::oneshot;
+
+use futures::{SinkExt, StreamExt};
 use http::{Response, StatusCode};
 use http_body::Body;
 use http_body_util::{BodyExt, Empty};

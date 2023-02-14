@@ -1,9 +1,8 @@
 use std::{cmp, io};
 
+use crate::protocol::PayloadItem;
 use bytes::BytesMut;
 use tokio_util::codec::Decoder;
-use crate::protocol::PayloadItem;
-
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LengthDecoder {

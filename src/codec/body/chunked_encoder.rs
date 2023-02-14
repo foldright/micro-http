@@ -1,10 +1,8 @@
 use crate::protocol::PayloadItem;
-use bytes::{Bytes, BytesMut};
+use bytes::BytesMut;
 use std::io::Write;
-use std::io::ErrorKind;
-use std::task::Poll;
-use tokio_util::codec::{Decoder, Encoder};
-use tracing::trace;
+
+use tokio_util::codec::Encoder;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ChunkedEncoder {

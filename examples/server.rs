@@ -2,16 +2,13 @@ use anyhow::Context;
 use async_trait::async_trait;
 use http::{Request, Response, StatusCode};
 use std::sync::Arc;
-use std::time::Duration;
-
-use http_body_util::BodyExt;
 
 use tiny_http::connection::HttpConnection;
 use tiny_http::handler::Handler;
 use tiny_http::protocol::body::ReqBody;
 use tiny_http::Result;
 use tokio::net::TcpListener;
-use tokio::time::sleep;
+
 use tracing::{error, info, warn, Level};
 use tracing_subscriber::FmtSubscriber;
 
@@ -60,7 +57,7 @@ impl Handler for SimpleHandler {
 
     async fn handle(&self, request: Request<ReqBody>) -> std::result::Result<Response<Self::RespBody>, Self::Error> {
         let _path = request.uri().path().to_string();
-        let (_header, body) = request.into_parts();
+        let (_header, _body) = request.into_parts();
 
         // let body = body.collect().await?;
         // info!(body = std::str::from_utf8(&body.to_bytes()[..]).unwrap(), "receiving request body");

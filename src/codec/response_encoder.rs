@@ -1,11 +1,11 @@
 use crate::codec::body::PayloadEncoder;
-use crate::protocol::{Message, PayloadItem, PayloadSize, ResponseHead};
+use crate::codec::header::HeaderEncoder;
+use crate::protocol::{Message, PayloadSize, ResponseHead};
 use bytes::BytesMut;
 use std::io;
 use std::io::ErrorKind;
 use tokio_util::codec::Encoder;
 use tracing::error;
-use crate::codec::header::HeaderEncoder;
 
 pub struct ResponseEncoder {
     header_encoder: HeaderEncoder,
