@@ -18,7 +18,7 @@ pub struct ReqBody {
 }
 
 impl ReqBody {
-    pub fn new(signal: mpsc::Sender<oneshot::Sender<PayloadItem>>) -> Self {
+    fn new(signal: mpsc::Sender<oneshot::Sender<PayloadItem>>) -> Self {
         Self { signal, receiving: None }
     }
 

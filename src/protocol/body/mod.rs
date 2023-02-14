@@ -1,9 +1,9 @@
-mod body;
+mod req_body;
 
-pub use body::ReqBody;
-pub use body::ReqBodySender;
 use bytes::Bytes;
 use futures::{Stream, StreamExt};
+pub use req_body::ReqBody;
+pub use req_body::ReqBodySender;
 use std::pin::Pin;
 use std::task::{Context, Poll};
 

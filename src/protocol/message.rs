@@ -13,6 +13,14 @@ pub enum PayloadItem {
     Eof,
 }
 
+/// represent the payload size
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum PayloadSize {
+    Length(usize),
+    Chunked,
+    Empty,
+}
+
 impl<T> Message<T> {
     pub fn is_payload(&self) -> bool {
         match self {

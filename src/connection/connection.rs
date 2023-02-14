@@ -15,17 +15,17 @@ use http_body_util::{BodyExt, Empty};
 use tokio::io::{AsyncRead, AsyncWrite};
 use tokio::select;
 
-use crate::codec::{DecodeError, HeaderEncoder, RequestDecoder};
+use crate::codec::{DecodeError, RequestDecoder, ResponseEncoder};
 use crate::handler::Handler;
 use crate::protocol::body::ReqBody;
-use crate::protocol::{Message, PayloadItem, RequestHeader};
+use crate::protocol::{Message, PayloadItem, PayloadSize, RequestHeader, ResponseHead};
 
 use tokio_util::codec::{FramedRead, FramedWrite};
 use tracing::{error, info};
 
 pub struct HttpConnection<R, W> {
     framed_read: FramedRead<R, RequestDecoder>,
-    framed_write: FramedWrite<W, HeaderEncoder>,
+    framed_write: FramedWrite<W, ResponseEncoder>,
 }
 
 impl<R, W> HttpConnection<R, W>
@@ -36,14 +36,14 @@ where
     pub fn new(reader: R, writer: W) -> Self {
         Self {
             framed_read: FramedRead::with_capacity(reader, RequestDecoder::new(), 8 * 1024),
-            framed_write: FramedWrite::new(writer, HeaderEncoder),
+            framed_write: FramedWrite::new(writer, ResponseEncoder::new()),
         }
     }
 
     pub async fn process<H>(mut self, mut handler: Arc<H>) -> Result<(), DecodeError>
     where
         H: Handler,
-        H::RespBody: Body + Unpin,
+        H::RespBody: Body<Data=Bytes> + Unpin,
     {
         loop {
             match self.framed_read.next().await {
@@ -75,7 +75,7 @@ where
     async fn do_process<H>(&mut self, header: RequestHeader, handler: &mut Arc<H>) -> Result<(), DecodeError>
     where
         H: Handler,
-        H::RespBody: Body + Unpin,
+        H::RespBody: Body<Data=Bytes> + Unpin,
     {
         let (req_body, mut body_sender) = ReqBody::body_channel(&mut self.framed_read);
 
@@ -87,7 +87,7 @@ where
             tokio::pin! {
                 let request_handle_future = handler.handle(request);
                 let body_sender_future = body_sender.send_body();
-            };
+            }
 
             let mut result = Option::<Result<_, _>>::None;
             loop {
@@ -149,7 +149,7 @@ where
 
     async fn send_response<T, E>(&mut self, response_result: Result<Response<T>, E>) -> Result<(), DecodeError>
     where
-        T: Body + Unpin,
+        T: Body<Data=Bytes> + Unpin,
         E: Into<Box<dyn Error + Send + 'static>>,
     {
         match response_result {
@@ -165,11 +165,21 @@ where
 
     async fn do_send_response<T>(&mut self, response: Response<T>) -> Result<(), DecodeError>
     where
-        T: Body + Unpin,
+        T: Body<Data=Bytes> + Unpin,
     {
-        let (parts, mut body) = response.into_parts();
+        let (header_parts, mut body) = response.into_parts();
+
+        let payload_size = {
+            let size_hint = body.size_hint();
+            match size_hint.exact() {
+                Some(0) => PayloadSize::Empty,
+                Some(length) => PayloadSize::Length(length as usize),
+                None => PayloadSize::Chunked,
+            }
+        };
+
         self.framed_write
-            .send(parts)
+            .send(Message::Header((ResponseHead::from_parts(header_parts, ()), payload_size)))
             .await
             .map_err(|_e| DecodeError::Body { message: "can't send response".into() })?;
 
@@ -178,12 +188,9 @@ where
                 Some(Ok(frame)) => {
                     let data = frame
                         .into_data()
+                        .map(|bytes|PayloadItem::Chunk(bytes))
                         .map_err(|_e| DecodeError::Body { message: "resolve body response error".into() })?;
-                    self.framed_write.write_buffer_mut().put(data);
-                    self.framed_write
-                        .flush()
-                        .await
-                        .map_err(|_e| DecodeError::Body { message: "can't flush response".into() })?;
+
                 }
                 Some(Err(_e)) => return Err(DecodeError::Body { message: "resolve response body error".into() }),
                 None => return Ok(()),

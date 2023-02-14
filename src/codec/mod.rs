@@ -2,9 +2,8 @@ mod body;
 mod error;
 mod header;
 mod request_decoder;
+mod response_encoder;
 
 pub use error::DecodeError;
 pub use request_decoder::RequestDecoder;
-
-// todo: need to hide
-pub use header::HeaderEncoder;
+pub use response_encoder::ResponseEncoder;
