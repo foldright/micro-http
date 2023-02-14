@@ -1,6 +1,6 @@
 use std::error::Error;
 
-use anyhow::Context;
+
 use bytes::Bytes;
 use std::sync::Arc;
 
@@ -14,7 +14,7 @@ use http_body_util::{BodyExt, Empty};
 use tokio::io::{AsyncRead, AsyncWrite};
 use tokio::select;
 
-use crate::codec::{DecodeError, EncoderError, RequestDecoder, ResponseEncoder};
+use crate::codec::{DecodeError, RequestDecoder, ResponseEncoder};
 use crate::handler::Handler;
 use crate::protocol::body::ReqBody;
 use crate::protocol::{HttpError, Message, PayloadItem, PayloadSize, RequestHeader, ResponseHead};
@@ -59,7 +59,7 @@ where
 
                 Some(Err(e)) => {
                     error!("can't receive next request, cause {}", e);
-                    let error_response = build_error_response(StatusCode::BAD_REQUEST);
+                    let _error_response = build_error_response(StatusCode::BAD_REQUEST);
                     todo!("convert parseError to response");
                 }
 
