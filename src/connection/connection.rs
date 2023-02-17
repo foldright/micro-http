@@ -134,10 +134,14 @@ where
             let size_hint = body.size_hint();
             match size_hint.exact() {
                 Some(0) => PayloadSize::Empty,
+                // todo usize maybe overflow
                 Some(length) => PayloadSize::Length(length as usize),
                 None => PayloadSize::Chunked,
             }
         };
+
+        // Future
+        // Stream  Iterator
 
         self.framed_write.send(Message::Header((ResponseHead::from_parts(header_parts, ()), payload_size))).await?;
 
