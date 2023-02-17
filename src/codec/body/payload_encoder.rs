@@ -1,10 +1,9 @@
 use crate::codec::body::chunked_encoder::ChunkedEncoder;
 use crate::codec::body::length_encoder::LengthEncoder;
-use crate::protocol::PayloadItem;
+use crate::protocol::{PayloadItem, SendError};
 use bytes::BytesMut;
 
 use tokio_util::codec::Encoder;
-use crate::codec::EncoderError;
 
 /// encode payload for request body
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -72,7 +71,7 @@ impl PayloadEncoder {
 }
 
 impl Encoder<PayloadItem> for PayloadEncoder {
-    type Error = EncoderError;
+    type Error = SendError;
 
     fn encode(&mut self, item: PayloadItem, dst: &mut BytesMut) -> Result<(), Self::Error> {
         match &mut self.kind {

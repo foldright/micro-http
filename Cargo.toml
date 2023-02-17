@@ -27,7 +27,7 @@ tokio-util = { version= "0.7.4", features = ["codec", "io"] }
 async-trait = "0.1.63"
 futures = "0.3.26"
 
-snafu = "0.7.4"
+thiserror = "1"
 
 [dev-dependencies]
 indoc = "1.0.8"

@@ -1,10 +1,9 @@
 
 
-use crate::protocol::PayloadItem;
+use crate::protocol::{PayloadItem, SendError};
 use bytes::BytesMut;
 use tokio_util::codec::Encoder;
 use tracing::warn;
-use crate::codec::EncoderError;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LengthEncoder {
@@ -18,7 +17,7 @@ impl LengthEncoder {
 }
 
 impl Encoder<PayloadItem> for LengthEncoder {
-    type Error = EncoderError;
+    type Error = SendError;
 
     fn encode(&mut self, item: PayloadItem, dst: &mut BytesMut) -> Result<(), Self::Error> {
         if self.length == 0 {

@@ -1,4 +1,4 @@
-use crate::protocol::PayloadItem;
+use crate::protocol::{ParseError, PayloadItem};
 use bytes::{Buf, Bytes, BytesMut};
 use std::io;
 use std::io::ErrorKind;
@@ -37,7 +37,7 @@ enum ChunkedState {
 
 impl Decoder for ChunkedDecoder {
     type Item = PayloadItem;
-    type Error = io::Error;
+    type Error = ParseError;
 
     fn decode(&mut self, src: &mut BytesMut) -> Result<Option<Self::Item>, Self::Error> {
         loop {
@@ -56,7 +56,7 @@ impl Decoder for ChunkedDecoder {
             self.state = match self.state.step(src, &mut self.remaining_size, &mut buf) {
                 Poll::Pending => return Ok(None),
                 Poll::Ready(Ok(new_state)) => new_state,
-                Poll::Ready(Err(e)) => return Err(e),
+                Poll::Ready(Err(e)) => return Err(ParseError::Io { source: e }),
             };
 
             if let Some(bytes) = buf {

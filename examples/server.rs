@@ -1,8 +1,8 @@
 use async_trait::async_trait;
 use http::{Request, Response, StatusCode};
+use http_body_util::BodyExt;
 use std::error::Error;
 use std::sync::Arc;
-use http_body_util::BodyExt;
 
 use tiny_http::connection::HttpConnection;
 use tiny_http::handler::Handler;

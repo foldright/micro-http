@@ -1,17 +1,15 @@
 use std::mem::MaybeUninit;
 
 use crate::codec::body::PayloadDecoder;
-use crate::codec::error::TooLargeHeaderSnafu;
 use bytes::{Buf, BytesMut};
 use http::HeaderValue;
 use httparse::{Error, Status};
-use snafu::ensure;
 use tokio_util::codec::Decoder;
 use tracing::trace;
 
-use crate::codec::DecodeError;
-use crate::codec::DecodeError::{InvalidContentLength, InvalidHeader, TooManyHeaders};
-use crate::protocol::RequestHeader;
+use crate::ensure;
+use crate::protocol::ParseError::{InvalidContentLength, InvalidHeader, TooLargeHeader, TooManyHeaders};
+use crate::protocol::{ParseError, RequestHeader};
 
 const MAX_HEADER_NUM: usize = 64;
 const MAX_HEADER_BYTES: usize = 8 * 1024;
@@ -20,7 +18,7 @@ pub struct HeaderDecoder;
 
 impl Decoder for HeaderDecoder {
     type Item = (RequestHeader, PayloadDecoder);
-    type Error = DecodeError;
+    type Error = ParseError;
 
     fn decode(&mut self, src: &mut BytesMut) -> Result<Option<Self::Item>, Self::Error> {
         let mut req = httparse::Request::new(&mut []);
@@ -28,8 +26,8 @@ impl Decoder for HeaderDecoder {
             unsafe { MaybeUninit::uninit().assume_init() };
 
         let parsed_result = req.parse_with_uninit_headers(src.as_ref(), &mut headers).map_err(|e| match e {
-            Error::TooManyHeaders => TooManyHeaders { max_num: MAX_HEADER_NUM, source: e },
-            _ => InvalidHeader { source: e },
+            Error::TooManyHeaders => TooManyHeaders { max_num: MAX_HEADER_NUM },
+            e => InvalidHeader { reason: e.to_string() },
         });
 
         match parsed_result? {
@@ -37,7 +35,7 @@ impl Decoder for HeaderDecoder {
                 trace!(body_size = body_offset, "parsed body size");
                 ensure!(
                     body_offset <= MAX_HEADER_BYTES,
-                    TooLargeHeaderSnafu { current_size: body_offset, max_size: MAX_HEADER_BYTES }
+                    TooLargeHeader { current_size: body_offset, max_size: MAX_HEADER_BYTES }
                 );
 
                 let header = req.into();
@@ -49,7 +47,7 @@ impl Decoder for HeaderDecoder {
             Status::Partial => {
                 ensure!(
                     src.len() <= MAX_HEADER_BYTES,
-                    TooLargeHeaderSnafu { current_size: src.len(), max_size: MAX_HEADER_BYTES }
+                    TooLargeHeader { current_size: src.len(), max_size: MAX_HEADER_BYTES }
                 );
                 Ok(None)
             }
@@ -57,7 +55,7 @@ impl Decoder for HeaderDecoder {
     }
 }
 
-fn parse_payload(header: &RequestHeader) -> Result<PayloadDecoder, DecodeError> {
+fn parse_payload(header: &RequestHeader) -> Result<PayloadDecoder, ParseError> {
     if !header.need_body() {
         return Ok(PayloadDecoder::empty());
     }
@@ -78,15 +76,15 @@ fn parse_payload(header: &RequestHeader) -> Result<PayloadDecoder, DecodeError> 
         }
 
         (None, Some(cl_value)) => {
-            let cl_str = cl_value.to_str().map_err(|_| InvalidContentLength { message: "can't to_str".into() })?;
+            let cl_str = cl_value.to_str().map_err(|_| InvalidContentLength { reason: "value can't to_str".into() })?;
 
-            let length = cl_str.trim().parse::<u64>().map_err(|_| InvalidContentLength { message: cl_str.into() })?;
+            let length = cl_str.trim().parse::<u64>().map_err(|_| InvalidContentLength { reason: format!("value {} is not u64", cl_str) })?;
 
             Ok(PayloadDecoder::fix_length(length))
         }
 
         (Some(_), Some(_)) => {
-            Err(InvalidContentLength { message: "transfer_encoding and content_length both present in headers".into() })
+            Err(InvalidContentLength { reason: "transfer_encoding and content_length both present in headers".into() })
         }
     }
 }

@@ -1,7 +1,6 @@
 use crate::codec::body::PayloadEncoder;
 use crate::codec::header::HeaderEncoder;
-use crate::codec::EncoderError;
-use crate::protocol::{Message, PayloadSize, ResponseHead};
+use crate::protocol::{Message, PayloadSize, ResponseHead, SendError};
 use bytes::BytesMut;
 use std::io;
 use std::io::ErrorKind;
@@ -20,7 +19,7 @@ impl ResponseEncoder {
 }
 
 impl Encoder<Message<(ResponseHead, PayloadSize)>> for ResponseEncoder {
-    type Error = EncoderError;
+    type Error = SendError;
 
     fn encode(&mut self, item: Message<(ResponseHead, PayloadSize)>, dst: &mut BytesMut) -> Result<(), Self::Error> {
         match item {

@@ -9,8 +9,7 @@ use futures::{FutureExt, SinkExt, Stream, StreamExt};
 use http_body::{Body, Frame};
 use tracing::{error, info};
 
-use crate::codec::DecodeError;
-use crate::protocol::{Message, PayloadItem, RequestHeader};
+use crate::protocol::{Message, ParseError, PayloadItem, RequestHeader};
 
 pub struct ReqBody {
     signal: mpsc::Sender<oneshot::Sender<PayloadItem>>,
@@ -47,9 +46,9 @@ where
 
 impl<'conn, S> ReqBodySender<'conn, S>
 where
-    S: Stream<Item = Result<Message<RequestHeader>, DecodeError>> + Unpin,
+    S: Stream<Item = Result<Message<RequestHeader>, ParseError>> + Unpin,
 {
-    pub async fn send_body(&mut self) -> Result<(), DecodeError> {
+    pub async fn send_body(&mut self) -> Result<(), ParseError> {
         loop {
             if self.eof {
                 return Ok(());
@@ -66,7 +65,7 @@ where
 
                     Some(Ok(Message::Header(_header))) => {
                         error!("received header from receive body phase");
-                        return Err(DecodeError::Body { message: "received header from receive body phase".into() });
+                        return Err(ParseError::InvalidBody { reason: "received header from receive body phase".into() });
                     }
 
                     Some(Err(e)) => {
@@ -75,7 +74,7 @@ where
 
                     None => {
                         error!("cant read body");
-                        return Err(DecodeError::Body { message: "cant read body".into() });
+                        return Err(ParseError::InvalidBody { reason: "cant read body".into() });
                     }
                 }
             }
@@ -101,7 +100,7 @@ where
 
 impl Body for ReqBody {
     type Data = Bytes;
-    type Error = DecodeError;
+    type Error = ParseError;
 
     fn poll_frame(
         mut self: Pin<&mut Self>,
@@ -120,7 +119,7 @@ impl Body for ReqBody {
                     }
                     Err(_) => {
                         self.receiving.take();
-                        Poll::Ready(Some(Err(DecodeError::Body { message: "parse body canceled".into() })))
+                        Poll::Ready(Some(Err(ParseError::InvalidBody { reason: "parse body canceled".into() })))
                     }
                 };
             }
@@ -133,10 +132,10 @@ impl Body for ReqBody {
                             self.receiving = Some(rx);
                             continue;
                         }
-                        Err(e) => return Poll::Ready(Some(Err(DecodeError::Body { message: e.to_string() }))),
+                        Err(e) => return Poll::Ready(Some(Err(ParseError::InvalidBody { reason: e.to_string() }))),
                     }
                 }
-                Err(e) => return Poll::Ready(Some(Err(DecodeError::Body { message: e.to_string() }))),
+                Err(e) => return Poll::Ready(Some(Err(ParseError::InvalidBody { reason: e.to_string() }))),
             };
         }
     }

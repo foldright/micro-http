@@ -1,4 +1,4 @@
-use crate::protocol::{PayloadSize, ResponseHead};
+use crate::protocol::{PayloadSize, ResponseHead, SendError};
 
 use bytes::{BufMut, BytesMut};
 
@@ -7,12 +7,11 @@ use std::io;
 use std::io::ErrorKind;
 use tokio_util::codec::Encoder;
 use tracing::error;
-use crate::codec::EncoderError;
 
 pub struct HeaderEncoder;
 
 impl Encoder<(ResponseHead, PayloadSize)> for HeaderEncoder {
-    type Error = EncoderError;
+    type Error = SendError;
 
     fn encode(&mut self, item: (ResponseHead, PayloadSize), dst: &mut BytesMut) -> Result<(), Self::Error> {
         let (mut header, payload_size) = item;

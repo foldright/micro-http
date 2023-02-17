@@ -1,4 +1,5 @@
 use std::error::Error;
+use std::fmt::Display;
 
 use bytes::Bytes;
 use std::sync::Arc;
@@ -10,10 +11,12 @@ use http_body_util::{BodyExt, Empty};
 use tokio::io::{AsyncRead, AsyncWrite};
 use tokio::select;
 
-use crate::codec::{DecodeError, RequestDecoder, ResponseEncoder};
+use crate::codec::{RequestDecoder, ResponseEncoder};
 use crate::handler::Handler;
 use crate::protocol::body::ReqBody;
-use crate::protocol::{HttpError, Message, PayloadItem, PayloadSize, RequestHeader, ResponseHead};
+use crate::protocol::{
+    HttpError, Message, ParseError, PayloadItem, PayloadSize, RequestHeader, ResponseHead, SendError,
+};
 
 use tokio_util::codec::{FramedRead, FramedWrite};
 use tracing::{error, info};
@@ -39,6 +42,7 @@ where
     where
         H: Handler,
         H::RespBody: Body<Data = Bytes> + Unpin,
+        <H::RespBody as Body>::Error : Display,
     {
         loop {
             match self.framed_read.next().await {
@@ -50,7 +54,7 @@ where
                     error!("error status because chunked has read in do_process");
                     let error_response = build_error_response(StatusCode::BAD_REQUEST);
                     self.do_send_response(error_response).await?;
-                    return Err(DecodeError::Body { message: "need header while receive body".into() }.into());
+                    return Err(ParseError::InvalidBody { reason: "need header while receive body".into() }.into());
                 }
 
                 Some(Err(e)) => {
@@ -72,6 +76,7 @@ where
     where
         H: Handler,
         H::RespBody: Body<Data = Bytes> + Unpin,
+        <H::RespBody as Body>::Error : Display,
     {
         let (req_body, mut body_sender) = ReqBody::body_channel(&mut self.framed_read);
 
@@ -85,6 +90,7 @@ where
                 let body_sender_future = body_sender.send_body();
             }
 
+            #[allow(unused_assignments)]
             let mut result = Option::<Result<_, _>>::None;
             loop {
                 select! {
@@ -112,6 +118,7 @@ where
     async fn send_response<T, E>(&mut self, response_result: Result<Response<T>, E>) -> Result<(), HttpError>
     where
         T: Body<Data = Bytes> + Unpin,
+        T::Error: Display,
         E: Into<Box<dyn Error + Send + Sync>>,
     {
         match response_result {
@@ -127,6 +134,7 @@ where
     async fn do_send_response<T>(&mut self, response: Response<T>) -> Result<(), HttpError>
     where
         T: Body<Data = Bytes> + Unpin,
+        T::Error: Display,
     {
         let (header_parts, mut body) = response.into_parts();
 
@@ -147,14 +155,16 @@ where
                     let payload_item = frame
                         .into_data()
                         .map(|bytes| PayloadItem::Chunk(bytes))
-                        .map_err(|_e| DecodeError::Body { message: "resolve body response error".into() })?;
+                        .map_err(|_e| SendError::InvalidBody { reason: "resolve body response error".into() })?;
 
                     self.framed_write
                         .send(Message::Payload(payload_item))
                         .await
-                        .map_err(|_e| DecodeError::Body { message: "can't send response".into() })?;
+                        .map_err(|_e| SendError::InvalidBody { reason: "can't send response".into() })?;
                 }
-                Some(Err(_e)) => return Err(DecodeError::Body { message: "resolve response body error".into() }.into()),
+                Some(Err(e)) => {
+                    return Err(SendError::InvalidBody { reason: format!("resolve response body error: {}", e) }.into())
+                }
                 None => return Ok(()),
             }
         }

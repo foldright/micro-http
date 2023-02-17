@@ -1,6 +1,6 @@
-use std::{cmp, io};
+use std::cmp;
 
-use crate::protocol::PayloadItem;
+use crate::protocol::{ParseError, PayloadItem};
 use bytes::BytesMut;
 use tokio_util::codec::Decoder;
 
@@ -17,7 +17,7 @@ impl LengthDecoder {
 
 impl Decoder for LengthDecoder {
     type Item = PayloadItem;
-    type Error = io::Error;
+    type Error = ParseError;
 
     fn decode(&mut self, src: &mut BytesMut) -> Result<Option<Self::Item>, Self::Error> {
         if self.length == 0 {

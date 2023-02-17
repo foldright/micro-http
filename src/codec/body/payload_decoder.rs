@@ -1,8 +1,7 @@
 use crate::codec::body::chunked_decoder::ChunkedDecoder;
 use crate::codec::body::length_decoder::LengthDecoder;
-use crate::protocol::PayloadItem;
+use crate::protocol::{ParseError, PayloadItem};
 use bytes::BytesMut;
-use std::io;
 use tokio_util::codec::Decoder;
 
 /// decode payload for request body
@@ -71,7 +70,7 @@ impl PayloadDecoder {
 
 impl Decoder for PayloadDecoder {
     type Item = PayloadItem;
-    type Error = io::Error;
+    type Error = ParseError;
 
     fn decode(&mut self, src: &mut BytesMut) -> Result<Option<Self::Item>, Self::Error> {
         match &mut self.kind {
