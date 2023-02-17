@@ -5,10 +5,11 @@ use bytes::Bytes;
 use std::sync::Arc;
 
 use futures::{SinkExt, StreamExt};
+use http::header::EXPECT;
 use http::{Response, StatusCode};
 use http_body::Body;
 use http_body_util::{BodyExt, Empty};
-use tokio::io::{AsyncRead, AsyncWrite};
+use tokio::io::{AsyncRead, AsyncWrite, AsyncWriteExt};
 use tokio::select;
 
 use crate::codec::{RequestDecoder, ResponseEncoder};
@@ -42,7 +43,7 @@ where
     where
         H: Handler,
         H::RespBody: Body<Data = Bytes> + Unpin,
-        <H::RespBody as Body>::Error : Display,
+        <H::RespBody as Body>::Error: Display,
     {
         loop {
             match self.framed_read.next().await {
@@ -76,8 +77,20 @@ where
     where
         H: Handler,
         H::RespBody: Body<Data = Bytes> + Unpin,
-        <H::RespBody as Body>::Error : Display,
+        <H::RespBody as Body>::Error: Display,
     {
+        // process expect: 100-continue
+        if let Some(value) = header.headers().get(EXPECT) {
+            let slice = value.as_bytes();
+            if slice.len() >= 4 && &slice[0..4] == b"100-" {
+                let writer = self.framed_write.get_mut();
+                let _ =
+                    writer.write(b"HTTP/1.1 100 Continue\r\n\r\n").await.map_err(|e| SendError::Io { source: e })?;
+                writer.flush().await.map_err(|e| SendError::Io { source: e })?;
+                info!("receive expect request header, sent continue response");
+            }
+        }
+
         let (req_body, mut body_sender) = ReqBody::body_channel(&mut self.framed_read);
 
         let request = header.body(req_body);
