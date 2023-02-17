@@ -80,7 +80,7 @@ fn parse_payload(header: &RequestHeader) -> Result<PayloadDecoder, DecodeError> 
         (None, Some(cl_value)) => {
             let cl_str = cl_value.to_str().map_err(|_| InvalidContentLength { message: "can't to_str".into() })?;
 
-            let length = cl_str.trim().parse::<usize>().map_err(|_| InvalidContentLength { message: cl_str.into() })?;
+            let length = cl_str.trim().parse::<u64>().map_err(|_| InvalidContentLength { message: cl_str.into() })?;
 
             Ok(PayloadDecoder::fix_length(length))
         }

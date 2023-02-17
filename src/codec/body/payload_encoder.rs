@@ -39,7 +39,7 @@ impl PayloadEncoder {
 
     /// create a fixed length `PayloadEncoder`
     #[allow(unused)]
-    pub fn fix_length(size: usize) -> Self {
+    pub fn fix_length(size: u64) -> Self {
         Self { kind: Kind::Length(LengthEncoder::new(size)) }
     }
 

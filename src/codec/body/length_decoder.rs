@@ -6,11 +6,11 @@ use tokio_util::codec::Decoder;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LengthDecoder {
-    length: usize,
+    length: u64,
 }
 
 impl LengthDecoder {
-    pub fn new(length: usize) -> Self {
+    pub fn new(length: u64) -> Self {
         Self { length }
     }
 }
@@ -28,10 +28,10 @@ impl Decoder for LengthDecoder {
             return Ok(None);
         }
 
-        let len = cmp::min(self.length, src.len());
-        let bytes = src.split_to(len).freeze();
+        let len = cmp::min(self.length, src.len() as u64);
+        let bytes = src.split_to(len as usize).freeze();
 
-        self.length -= len;
+        self.length -= bytes.len() as u64;
         Ok(Some(PayloadItem::Chunk(bytes)))
     }
 }

@@ -16,7 +16,7 @@ pub enum PayloadItem {
 /// represent the payload size
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum PayloadSize {
-    Length(usize),
+    Length(u64),
     Chunked,
     Empty,
 }
