@@ -92,7 +92,10 @@ where
                     }
                     break;
                 }
-                payload_item.as_bytes().map(|bytes| size += bytes.len());
+
+                if let Some(bytes) = payload_item.as_bytes() {
+                    size += bytes.len();
+                }
             }
         }
     }

@@ -14,6 +14,12 @@ pub struct ResponseEncoder {
 
 impl ResponseEncoder {
     pub fn new() -> Self {
+        Default::default()
+    }
+}
+
+impl Default for ResponseEncoder {
+    fn default() -> Self {
         Self { header_encoder: HeaderEncoder, payload_encoder: None }
     }
 }

@@ -167,7 +167,7 @@ where
                 Some(Ok(frame)) => {
                     let payload_item = frame
                         .into_data()
-                        .map(|bytes| PayloadItem::Chunk(bytes))
+                        .map(PayloadItem::Chunk)
                         .map_err(|_e| SendError::InvalidBody { reason: "resolve body response error".into() })?;
 
                     self.framed_write
@@ -176,7 +176,7 @@ where
                         .map_err(|_e| SendError::InvalidBody { reason: "can't send response".into() })?;
                 }
                 Some(Err(e)) => {
-                    return Err(SendError::InvalidBody { reason: format!("resolve response body error: {}", e) }.into())
+                    return Err(SendError::InvalidBody { reason: format!("resolve response body error: {e}") }.into())
                 }
                 None => return Ok(()),
             }

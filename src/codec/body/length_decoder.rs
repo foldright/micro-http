@@ -24,7 +24,7 @@ impl Decoder for LengthDecoder {
             return Ok(Some(PayloadItem::Eof));
         }
 
-        if src.len() == 0 {
+        if src.is_empty() {
             return Ok(None);
         }
 

@@ -46,7 +46,7 @@ impl Decoder for ChunkedDecoder {
                 return Ok(Some(PayloadItem::Eof));
             }
 
-            if src.len() == 0 {
+            if src.is_empty() {
                 // need more data
                 return Ok(None);
             }

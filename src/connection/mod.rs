@@ -1,3 +1,3 @@
-mod connection;
+mod http_connection;
 
-pub use connection::HttpConnection;
+pub use http_connection::HttpConnection;

@@ -27,7 +27,7 @@ impl Encoder<PayloadItem> for LengthEncoder {
 
         match item {
             PayloadItem::Chunk(bytes) => {
-                if bytes.len() == 0 {
+                if bytes.is_empty() {
                     return Ok(());
                 }
                 dst.extend_from_slice(&bytes[..]);

@@ -11,6 +11,12 @@ pub struct RequestDecoder {
 
 impl RequestDecoder {
     pub fn new() -> Self {
+        Default::default()
+    }
+}
+
+impl Default for RequestDecoder {
+    fn default() -> Self {
         Self { header_decoder: HeaderDecoder, payload_decoder: None }
     }
 }

@@ -7,15 +7,19 @@ pub struct RequestHeader {
     inner: Request<()>,
 }
 
-impl RequestHeader {
-    pub fn as_ref(&self) -> &Request<()> {
+impl AsRef<Request<()>> for RequestHeader {
+    fn as_ref(&self) -> &Request<()> {
         &self.inner
     }
+}
 
-    pub fn as_mut(&mut self) -> &mut Request<()> {
+impl AsMut<Request<()>> for RequestHeader {
+    fn as_mut(&mut self) -> &mut Request<()> {
         &mut self.inner
     }
+}
 
+impl RequestHeader {
     pub fn into_inner(self) -> Request<()> {
         self.inner
     }
@@ -41,10 +45,7 @@ impl RequestHeader {
     }
 
     pub fn need_body(&self) -> bool {
-        match self.method() {
-            &Method::GET | &Method::HEAD | &Method::DELETE | &Method::OPTIONS | &Method::CONNECT => false,
-            _ => true,
-        }
+        !matches!(self.method(), &Method::GET | &Method::HEAD | &Method::DELETE | &Method::OPTIONS | &Method::CONNECT)
     }
 }
 
