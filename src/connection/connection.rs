@@ -41,7 +41,7 @@ where
 
     pub async fn process<H>(mut self, mut handler: Arc<H>) -> Result<(), HttpError>
     where
-        H: Handler,
+        H: Handler<ReqBody>,
         H::RespBody: Body<Data = Bytes> + Unpin,
         <H::RespBody as Body>::Error: Display,
     {
@@ -75,7 +75,7 @@ where
 
     async fn do_process<H>(&mut self, header: RequestHeader, handler: &mut Arc<H>) -> Result<(), HttpError>
     where
-        H: Handler,
+        H: Handler<ReqBody>,
         H::RespBody: Body<Data = Bytes> + Unpin,
         <H::RespBody as Body>::Error: Display,
     {
@@ -99,7 +99,7 @@ where
         let response_result = {
             // both are lazy, and need to pin in the stack while using select!
             tokio::pin! {
-                let request_handle_future = handler.handle(request);
+                let request_handle_future = handler.call(request);
                 let body_sender_future = body_sender.send_body();
             }
 

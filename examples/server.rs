@@ -1,11 +1,10 @@
-use async_trait::async_trait;
 use http::{Request, Response, StatusCode};
 use http_body_util::BodyExt;
 use std::error::Error;
 use std::sync::Arc;
 
 use tiny_http::connection::HttpConnection;
-use tiny_http::handler::Handler;
+use tiny_http::handler::make_handler;
 use tiny_http::protocol::body::ReqBody;
 use tokio::net::TcpListener;
 
@@ -26,7 +25,7 @@ async fn main() {
         }
     };
 
-    let handler = SimpleHandler;
+    let handler = make_handler(simple_handler);
     let handler = Arc::new(handler);
     loop {
         let (tcp_stream, _remote_addr) = match tcp_listener.accept().await {
@@ -54,29 +53,21 @@ async fn main() {
     }
 }
 
-struct SimpleHandler;
+async fn simple_handler(request: Request<ReqBody>) -> Result<Response<String>, Box<dyn Error + Send + Sync>> {
+    let path = request.uri().path().to_string();
+    info!("request path {}", path);
 
-#[async_trait]
-impl Handler for SimpleHandler {
-    type RespBody = String;
-    type Error = Box<dyn Error + Send + Sync>;
+    let (_header, body) = request.into_parts();
 
-    async fn handle(&self, request: Request<ReqBody>) -> Result<Response<Self::RespBody>, Self::Error> {
-        let _path = request.uri().path().to_string();
-        let (_header, body) = request.into_parts();
+    let body_bytes = body.collect().await?.to_bytes();
+    info!(body = std::str::from_utf8(&body_bytes[..]).unwrap(), "receiving request body");
 
-        let body_bytes = body.collect().await?.to_bytes();
+    let response_body = "Hello World!\r\n";
+    let response = Response::builder()
+        .status(StatusCode::OK)
+        .header(http::header::CONTENT_LENGTH, response_body.len())
+        .body(response_body.to_string())
+        .unwrap();
 
-        info!(body = std::str::from_utf8(&body_bytes[..]).unwrap(), "receiving request body");
-
-        let response_body = "Hello World!\r\n";
-
-        let response = Response::builder()
-            .status(StatusCode::OK)
-            .header(http::header::CONTENT_LENGTH, response_body.len())
-            .body(response_body.to_string())
-            .unwrap();
-
-        Ok(response)
-    }
+    Ok(response)
 }

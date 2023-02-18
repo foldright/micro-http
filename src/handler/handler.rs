@@ -1,16 +1,54 @@
 use std::error::Error;
+use std::future::Future;
+use std::task::{Context, Poll};
 
-use crate::protocol::body::ReqBody;
-use async_trait::async_trait;
 use http::{Request, Response};
 
 use http_body::Body;
 
-#[async_trait]
-pub trait Handler: Send + Sync + 'static {
+pub trait Handler<ReqBody> {
     type RespBody: Body;
 
     type Error: Into<Box<dyn Error + Send + Sync>>;
 
-    async fn handle(&self, request: Request<ReqBody>) -> Result<Response<Self::RespBody>, Self::Error>;
+    type Future: Future<Output = Result<Response<Self::RespBody>, Self::Error>>;
+
+    fn poll_ready(&self, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>>;
+
+    fn call(&self, req: Request<ReqBody>) -> Self::Future;
+}
+
+#[derive(Debug)]
+pub struct HandlerFn<F> {
+    f: F,
+}
+
+impl<F, ReqBody, RespBody, Err, Ret> Handler<ReqBody> for HandlerFn<F>
+where
+    RespBody: Body,
+    Err: Into<Box<dyn Error + Send + Sync>>,
+    Ret: Future<Output = Result<Response<RespBody>, Err>>,
+    F: Fn(Request<ReqBody>) -> Ret,
+{
+    type RespBody = RespBody;
+    type Error = Err;
+    type Future = Ret;
+
+    fn poll_ready(&self, _cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
+        Poll::Ready(Ok(()))
+    }
+
+    fn call(&self, req: Request<ReqBody>) -> Self::Future {
+        (self.f)(req)
+    }
+}
+
+pub fn make_handler<F, ReqBody, RespBody, Err, Ret>(f: F) -> HandlerFn<F>
+where
+    RespBody: Body,
+    Err: Into<Box<dyn Error + Send + Sync>>,
+    Ret: Future<Output = Result<Response<RespBody>, Err>>,
+    F: Fn(Request<ReqBody>) -> Ret,
+{
+    HandlerFn { f }
 }
