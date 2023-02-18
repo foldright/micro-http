@@ -1,7 +1,15 @@
 [package]
 name = "micro-http"
 version = "0.1.0-alpha"
+authors = ["Zava <zava.kid@gmail.com>"]
 edition = "2021"
+homepage = "https://github.com/foldright/micro-http"
+license = "MIT OR Apache-2.0"
+keywords = ["http", "async", "web"]
+categories = ["web-programming::http-server", "network-programming"]
+description = """
+the async micro http server
+"""
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
