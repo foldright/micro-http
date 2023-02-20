@@ -1,5 +1,6 @@
 use std::convert::Into;
 
+use http::request::Parts;
 use http::{HeaderMap, Method, Request, Uri, Version};
 
 #[derive(Debug)]
@@ -46,6 +47,12 @@ impl RequestHeader {
 
     pub fn need_body(&self) -> bool {
         !matches!(self.method(), &Method::GET | &Method::HEAD | &Method::DELETE | &Method::OPTIONS | &Method::CONNECT)
+    }
+}
+
+impl From<Parts> for RequestHeader {
+    fn from(parts: Parts) -> Self {
+        Self { inner: Request::from_parts(parts, ()) }
     }
 }
 

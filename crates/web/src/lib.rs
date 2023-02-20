@@ -1,2 +1,5 @@
 mod handler;
-pub use handler::FnHandler;
+mod extract;
+
+pub use handler::HttpHandler;
+pub use extract::FromRequest;

@@ -1,6 +1,5 @@
 use std::error::Error;
 use std::future::Future;
-use std::task::{Context, Poll};
 
 use http::{Request, Response};
 
@@ -12,8 +11,6 @@ pub trait Handler<ReqBody> {
     type Error: Into<Box<dyn Error + Send + Sync>>;
 
     type Future: Future<Output = Result<Response<Self::RespBody>, Self::Error>>;
-
-    fn poll_ready(&self, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>>;
 
     fn call(&self, req: Request<ReqBody>) -> Self::Future;
 }
@@ -33,10 +30,6 @@ where
     type RespBody = RespBody;
     type Error = Err;
     type Future = Ret;
-
-    fn poll_ready(&self, _cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
-        Poll::Ready(Ok(()))
-    }
 
     fn call(&self, req: Request<ReqBody>) -> Self::Future {
         (self.f)(req)
