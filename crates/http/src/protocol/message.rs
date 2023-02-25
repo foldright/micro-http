@@ -1,15 +1,15 @@
-use bytes::Bytes;
+use bytes::{Buf, Bytes};
 
 /// represent the request/response message
-pub enum Message<T> {
+pub enum Message<T, Data: Buf = Bytes> {
     Header(T),
-    Payload(PayloadItem),
+    Payload(PayloadItem<Data>),
 }
 
 /// payload item produced from payload decoder
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum PayloadItem {
-    Chunk(Bytes),
+pub enum PayloadItem<Data: Buf = Bytes> {
+    Chunk(Data),
     Eof,
 }
 
@@ -50,7 +50,7 @@ impl<T> From<Bytes> for Message<T> {
     }
 }
 
-impl PayloadItem {
+impl<D: Buf> PayloadItem<D> {
     pub fn is_eof(&self) -> bool {
         match self {
             PayloadItem::Chunk(_) => false,
@@ -64,7 +64,9 @@ impl PayloadItem {
             PayloadItem::Eof => false,
         }
     }
+}
 
+impl PayloadItem {
     pub fn as_bytes(&self) -> Option<&Bytes> {
         match self {
             PayloadItem::Chunk(bytes) => Some(bytes),

@@ -1,7 +1,7 @@
 use crate::codec::body::chunked_encoder::ChunkedEncoder;
 use crate::codec::body::length_encoder::LengthEncoder;
 use crate::protocol::{PayloadItem, SendError};
-use bytes::BytesMut;
+use bytes::{Buf, BytesMut};
 
 use tokio_util::codec::Encoder;
 
@@ -70,10 +70,10 @@ impl PayloadEncoder {
     }
 }
 
-impl Encoder<PayloadItem> for PayloadEncoder {
+impl<D: Buf> Encoder<PayloadItem<D>> for PayloadEncoder {
     type Error = SendError;
 
-    fn encode(&mut self, item: PayloadItem, dst: &mut BytesMut) -> Result<(), Self::Error> {
+    fn encode(&mut self, item: PayloadItem<D>, dst: &mut BytesMut) -> Result<(), Self::Error> {
         match &mut self.kind {
             Kind::Length(encoder) => encoder.encode(item, dst),
             Kind::Chunked(encoder) => encoder.encode(item, dst),

@@ -1,5 +1,5 @@
 use crate::protocol::{PayloadItem, SendError};
-use bytes::BytesMut;
+use bytes::{Buf, BytesMut};
 use std::io::Write;
 
 use tokio_util::codec::Encoder;
@@ -16,19 +16,19 @@ impl ChunkedEncoder {
     }
 }
 
-impl Encoder<PayloadItem> for ChunkedEncoder {
+impl <D: Buf> Encoder<PayloadItem<D>> for ChunkedEncoder {
     type Error = SendError;
 
-    fn encode(&mut self, item: PayloadItem, dst: &mut BytesMut) -> Result<(), Self::Error> {
+    fn encode(&mut self, item: PayloadItem<D>, dst: &mut BytesMut) -> Result<(), Self::Error> {
         if self.eof {
             return Ok(());
         }
 
         match item {
             PayloadItem::Chunk(bytes) => {
-                write!(helper::Writer(dst), "{:X\r\n}", bytes.len())?;
-                dst.reserve(bytes.len() + 2);
-                dst.extend_from_slice(&bytes[..]);
+                write!(helper::Writer(dst), "{:X\r\n}", bytes.remaining())?;
+                dst.reserve(bytes.remaining() + 2);
+                dst.extend_from_slice(bytes.chunk());
                 dst.extend_from_slice(b"\r\n");
                 Ok(())
             }

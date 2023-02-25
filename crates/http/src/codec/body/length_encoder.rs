@@ -1,7 +1,5 @@
-
-
 use crate::protocol::{PayloadItem, SendError};
-use bytes::BytesMut;
+use bytes::{Buf, BytesMut};
 use tokio_util::codec::Encoder;
 use tracing::warn;
 
@@ -16,10 +14,10 @@ impl LengthEncoder {
     }
 }
 
-impl Encoder<PayloadItem> for LengthEncoder {
+impl<D: Buf> Encoder<PayloadItem<D>> for LengthEncoder {
     type Error = SendError;
 
-    fn encode(&mut self, item: PayloadItem, dst: &mut BytesMut) -> Result<(), Self::Error> {
+    fn encode(&mut self, item: PayloadItem<D>, dst: &mut BytesMut) -> Result<(), Self::Error> {
         if self.length == 0 {
             warn!("encode payload_item but no need to encode anymore");
             return Ok(());
@@ -27,11 +25,11 @@ impl Encoder<PayloadItem> for LengthEncoder {
 
         match item {
             PayloadItem::Chunk(bytes) => {
-                if bytes.is_empty() {
+                if !bytes.has_remaining() {
                     return Ok(());
                 }
-                dst.extend_from_slice(&bytes[..]);
-                self.length -= bytes.len() as u64;
+                dst.extend_from_slice(bytes.chunk());
+                self.length -= bytes.remaining() as u64;
                 Ok(())
             }
             PayloadItem::Eof => Ok(()),

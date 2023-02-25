@@ -130,7 +130,7 @@ where
 
     async fn send_response<T, E>(&mut self, response_result: Result<Response<T>, E>) -> Result<(), HttpError>
     where
-        T: Body<Data = Bytes> + Unpin,
+        T: Body + Unpin,
         T::Error: Display,
         E: Into<Box<dyn Error + Send + Sync>>,
     {
@@ -146,7 +146,7 @@ where
 
     async fn do_send_response<T>(&mut self, response: Response<T>) -> Result<(), HttpError>
     where
-        T: Body<Data = Bytes> + Unpin,
+        T: Body + Unpin,
         T::Error: Display,
     {
         let (header_parts, mut body) = response.into_parts();
@@ -160,14 +160,14 @@ where
             }
         };
 
-        self.framed_write.send(Message::Header((ResponseHead::from_parts(header_parts, ()), payload_size))).await?;
+        self.framed_write.send(Message::<_, T::Data>::Header((ResponseHead::from_parts(header_parts, ()), payload_size))).await?;
 
         loop {
             match body.frame().await {
                 Some(Ok(frame)) => {
                     let payload_item = frame
                         .into_data()
-                        .map(PayloadItem::Chunk)
+                        .map(|d| PayloadItem::Chunk(d))
                         .map_err(|_e| SendError::InvalidBody { reason: "resolve body response error".into() })?;
 
                     self.framed_write

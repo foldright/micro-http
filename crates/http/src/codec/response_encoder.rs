@@ -1,7 +1,7 @@
 use crate::codec::body::PayloadEncoder;
 use crate::codec::header::HeaderEncoder;
 use crate::protocol::{Message, PayloadSize, ResponseHead, SendError};
-use bytes::BytesMut;
+use bytes::{Buf, BytesMut};
 use std::io;
 use std::io::ErrorKind;
 use tokio_util::codec::Encoder;
@@ -24,10 +24,10 @@ impl Default for ResponseEncoder {
     }
 }
 
-impl Encoder<Message<(ResponseHead, PayloadSize)>> for ResponseEncoder {
+impl <D: Buf> Encoder<Message<(ResponseHead, PayloadSize), D>> for ResponseEncoder {
     type Error = SendError;
 
-    fn encode(&mut self, item: Message<(ResponseHead, PayloadSize)>, dst: &mut BytesMut) -> Result<(), Self::Error> {
+    fn encode(&mut self, item: Message<(ResponseHead, PayloadSize), D>, dst: &mut BytesMut) -> Result<(), Self::Error> {
         match item {
             Message::Header((head, payload_size)) => {
                 if self.payload_encoder.is_some() {
