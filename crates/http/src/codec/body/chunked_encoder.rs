@@ -14,6 +14,10 @@ impl ChunkedEncoder {
     pub fn new() -> Self {
         Self { eof: false, send_size: 0 }
     }
+
+    pub fn is_finish(&self) -> bool {
+        self.eof
+    }
 }
 
 impl <D: Buf> Encoder<PayloadItem<D>> for ChunkedEncoder {

@@ -1,15 +1,18 @@
-use http::{Request, Response, StatusCode};
+use http::{header, HeaderMap, HeaderName, Method, Request, Response, StatusCode};
 use http_body_util::BodyExt;
 use std::error::Error;
 use std::sync::Arc;
+use http_body_util::combinators::BoxBody;
 
 use tokio::net::TcpListener;
 
+use micro_http::connection::HttpConnection;
+use micro_http::handler::{Handler, make_handler};
+use micro_http::protocol::body::ReqBody;
+use micro_http::protocol::RequestHeader;
+use micro_web::FnHandler;
 use tracing::{error, info, warn, Level};
 use tracing_subscriber::FmtSubscriber;
-use micro_http::connection::HttpConnection;
-use micro_http::handler::make_handler;
-use micro_http::protocol::body::ReqBody;
 
 #[tokio::main]
 async fn main() {
@@ -25,7 +28,7 @@ async fn main() {
         }
     };
 
-    let handler = make_handler(simple_handler);
+    let handler = FnHandler::new(simple_handler);
     let handler = Arc::new(handler);
     loop {
         let (tcp_stream, _remote_addr) = match tcp_listener.accept().await {
@@ -53,21 +56,6 @@ async fn main() {
     }
 }
 
-async fn simple_handler(request: Request<ReqBody>) -> Result<Response<String>, Box<dyn Error + Send + Sync>> {
-    let path = request.uri().path().to_string();
-    info!("request path {}", path);
-
-    let (_header, body) = request.into_parts();
-
-    let body_bytes = body.collect().await?.to_bytes();
-    info!(body = std::str::from_utf8(&body_bytes[..]).unwrap(), "receiving request body");
-
-    let response_body = "Hello World!\r\n";
-    let response = Response::builder()
-        .status(StatusCode::OK)
-        .header(http::header::CONTENT_LENGTH, response_body.len())
-        .body(response_body.to_string())
-        .unwrap();
-
-    Ok(response)
+async fn simple_handler(method: Method) -> String {
+    format!("receive from method: {}\r\n", method)
 }

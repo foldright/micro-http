@@ -3,7 +3,9 @@
 #![feature(async_fn_in_trait)]
 #![feature(impl_trait_projections)]
 mod extract;
+mod fn_trait;
 mod handler;
 mod responder;
 
 pub use extract::FromRequest;
+pub use handler::FnHandler;

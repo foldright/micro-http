@@ -1,3 +1,4 @@
+use crate::fn_trait::FnTrait;
 use crate::responder::Responder;
 use crate::FromRequest;
 use http::{Request, Response};
@@ -9,34 +10,27 @@ use std::error::Error;
 use std::future::Future;
 use std::marker::PhantomData;
 
-pub trait HttpHandler<Args> {
-    type Output;
-    async fn call(&self, args: Args) -> Self::Output;
-}
-
-struct HttpHandlerHolder<Args, H: HttpHandler<Args>> {
-    handler: H,
+/// a `FnTrait` holder which represents any async Fn
+pub struct FnHandler<F: FnTrait<Args>, Args> {
+    f: F,
     _phantom: PhantomData<fn(Args)>,
 }
 
-impl<Args, H, RespBody> HttpHandlerHolder<Args, H>
+impl<F, Args> FnHandler<F, Args>
 where
-    H: HttpHandler<Args>,
-    H::Output: Responder<Body = RespBody>,
-    RespBody: Body,
-    Args: FromRequest,
+    F: FnTrait<Args>,
 {
-    pub fn new(handler: H) -> Self {
-        Self { handler, _phantom: PhantomData }
+    pub fn new(f: F) -> Self {
+        Self { f, _phantom: PhantomData }
     }
 }
 
-impl<Args, H, RespBody> Handler<ReqBody> for HttpHandlerHolder<Args, H>
+impl<F, Args, RespBody> Handler<ReqBody> for FnHandler<F, Args>
 where
-    H: HttpHandler<Args>,
-    H::Output: Responder<Body = RespBody>,
+    F: FnTrait<Args> + for<'r> FnTrait<<Args as FromRequest<'r>>::Output>,
+    for<'r> <F as FnTrait<<Args as FromRequest<'r>>::Output>>::Output: Responder<Body = RespBody>,
     RespBody: Body,
-    Args: FromRequest,
+    Args: for<'r> FromRequest<'r>,
 {
     type RespBody = RespBody;
     type Error = Box<dyn Error + Send + Sync>;
@@ -44,45 +38,16 @@ where
     async fn call(&self, req: Request<ReqBody>) -> Result<Response<Self::RespBody>, Self::Error> {
         let (parts, mut body) = req.into_parts();
         let header = RequestHeader::from(parts);
-        let args = Args::from_request(&header, &mut body).await?;
-        let responder = self.handler.call(args).await;
+        let args = Args::from_request(&header).await?;
+        let responder = self.f.call(args).await;
         Ok(responder.response_to(&header))
     }
 }
 
-macro_rules! impl_http_handler_for_fn ({ $($param:ident)* } => {
-    impl<Func, Fut, $($param,)*> HttpHandler<($($param,)*)> for Func
-    where
-        Func: Fn($($param),*) -> Fut,
-        Fut: Future,
-    {
-        type Output = Fut::Output;
-
-        #[inline]
-        #[allow(non_snake_case)]
-        async fn call(&self, ($($param,)*): ($($param,)*)) -> Self::Output {
-            (self)($($param,)*).await
-        }
-    }
-});
-
-impl_http_handler_for_fn! {}
-impl_http_handler_for_fn! { A }
-impl_http_handler_for_fn! { A B }
-impl_http_handler_for_fn! { A B C }
-impl_http_handler_for_fn! { A B C D }
-impl_http_handler_for_fn! { A B C D E }
-impl_http_handler_for_fn! { A B C D E F }
-impl_http_handler_for_fn! { A B C D E F G }
-impl_http_handler_for_fn! { A B C D E F G H }
-impl_http_handler_for_fn! { A B C D E F G H I }
-impl_http_handler_for_fn! { A B C D E F G H I J }
-impl_http_handler_for_fn! { A B C D E F G H I J K }
-impl_http_handler_for_fn! { A B C D E F G H I J K L }
-
 #[cfg(test)]
 mod test {
-    use crate::handler::{HttpHandler, HttpHandlerHolder};
+    use crate::fn_trait::FnTrait;
+    use crate::handler::FnHandler;
     use crate::responder::Responder;
     use bytes::Bytes;
     use http::{Method, Response};
@@ -93,31 +58,22 @@ mod test {
     use std::error::Error;
     use std::marker::PhantomData;
 
-    fn assert_is_http_handler<Args, T: HttpHandler<Args>>(handler: T) {
+    fn assert_is_fn_handler<H: FnTrait<Args>, Args>(_handler: &FnHandler<H, Args>) {
         // no op
     }
 
-    fn assert_is_http_handler_holder<Args, H: HttpHandler<Args>>(handler: HttpHandlerHolder<Args, H>) {
-        // no op
-    }
-
-    fn assert_is_http_handler_holder_is_handler<T: Handler<ReqBody>>(handler: T) {
+    fn assert_is_handler<T: Handler<ReqBody>>(_handler: &T) {
         // no op
     }
 
     #[test]
     fn assert_fn_is_http_handler() {
-        async fn get(header: Method) -> () {
+        async fn get(_header: Method) -> () {
             ()
         }
 
-        assert_is_http_handler(get);
-
-        let http_handler = HttpHandlerHolder { handler: get, _phantom: PhantomData };
-        assert_is_http_handler_holder(http_handler);
-
-        let http_handler_holder = HttpHandlerHolder::new(get);
-
-        assert_is_http_handler_holder_is_handler(http_handler_holder);
+        let http_handler = FnHandler::new(get);
+        assert_is_fn_handler(&http_handler);
+        assert_is_handler(&http_handler);
     }
 }

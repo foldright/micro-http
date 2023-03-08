@@ -48,9 +48,9 @@ impl <D: Buf> Encoder<Message<(ResponseHead, PayloadSize), D>> for ResponseEncod
                     return Err(io::Error::from(ErrorKind::InvalidInput).into());
                 };
 
-                let is_eof = payload_item.is_eof();
                 let result = payload_encoder.encode(payload_item, dst);
 
+                let is_eof = payload_encoder.is_finish();
                 if is_eof {
                     self.payload_encoder.take();
                 }

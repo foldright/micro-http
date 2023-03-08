@@ -31,7 +31,12 @@ impl Encoder<(ResponseHead, PayloadSize)> for HeaderEncoder {
         }
 
         match payload_size {
-            PayloadSize::Length(_) => {}
+            PayloadSize::Length(n) => match header.headers_mut().get_mut(header::CONTENT_LENGTH) {
+                Some(value) => *value = n.into(),
+                None => {
+                    header.headers_mut().insert(header::CONTENT_LENGTH, n.into());
+                }
+            },
             PayloadSize::Chunked => match header.headers_mut().get_mut(header::CONTENT_LENGTH) {
                 Some(value) => *value = 0.into(),
                 None => {

@@ -12,6 +12,10 @@ impl LengthEncoder {
     pub fn new(length: u64) -> Self {
         Self { length }
     }
+
+    pub fn is_finish(&self) -> bool {
+        self.length == 0
+    }
 }
 
 impl<D: Buf> Encoder<PayloadItem<D>> for LengthEncoder {

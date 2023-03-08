@@ -68,6 +68,14 @@ impl PayloadEncoder {
             Kind::NoBody => false,
         }
     }
+
+    pub fn is_finish(&self) -> bool {
+        match &self.kind {
+            Kind::Length(encoder) => encoder.is_finish(),
+            Kind::Chunked(encoder) => encoder.is_finish(),
+            Kind::NoBody => true,
+        }
+    }
 }
 
 impl<D: Buf> Encoder<PayloadItem<D>> for PayloadEncoder {
