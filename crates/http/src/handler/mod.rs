@@ -7,12 +7,9 @@ use http_body::Body;
 
 pub trait Handler<ReqBody> {
     type RespBody: Body;
-
     type Error: Into<Box<dyn Error + Send + Sync>>;
 
-    type Future: Future<Output = Result<Response<Self::RespBody>, Self::Error>>;
-
-    fn call(&self, req: Request<ReqBody>) -> Self::Future;
+    async fn call(&self, req: Request<ReqBody>) -> Result<Response<Self::RespBody>, Self::Error>;
 }
 
 #[derive(Debug)]
@@ -20,19 +17,18 @@ pub struct HandlerFn<F> {
     f: F,
 }
 
-impl<F, ReqBody, RespBody, Err, Ret> Handler<ReqBody> for HandlerFn<F>
+impl<ReqBody, RespBody, Err, F, Fut> Handler<ReqBody> for HandlerFn<F>
 where
     RespBody: Body,
+    F: Fn(Request<ReqBody>) -> Fut,
     Err: Into<Box<dyn Error + Send + Sync>>,
-    Ret: Future<Output = Result<Response<RespBody>, Err>>,
-    F: Fn(Request<ReqBody>) -> Ret,
+    Fut: Future<Output = Result<Response<RespBody>, Err>>,
 {
     type RespBody = RespBody;
     type Error = Err;
-    type Future = Ret;
 
-    fn call(&self, req: Request<ReqBody>) -> Self::Future {
-        (self.f)(req)
+    async fn call(&self, req: Request<ReqBody>) -> Result<Response<Self::RespBody>, Self::Error> {
+        (self.f)(req).await
     }
 }
 
