@@ -1,5 +1,4 @@
 use http::{HeaderMap, Method};
-use micro_http::protocol::body::ReqBody;
 use micro_http::protocol::{HttpError, RequestHeader};
 
 pub trait FromRequest<'r> {
@@ -36,7 +35,6 @@ macro_rules! impl_from_request_for_fn ({ $($param:ident)* } => {
     {
         type Output = ($($param::Output,)*);
         async fn from_request(req: &'r RequestHeader) -> Result<Self::Output, HttpError> {
-
             Ok(($($param::from_request(req).await?,)*))
         }
     }
@@ -78,24 +76,3 @@ impl<'r> FromRequest<'r> for &HeaderMap {
         Ok(req.headers())
     }
 }
-
-// impl<T> FromRequest for Option<T>
-// where
-//     T: FromRequest,
-// {
-//     async fn from_request(req: &RequestHeader, body: &mut ReqBody) -> Result<Self, HttpError> {
-//         match T::from_request(req, body).await {
-//             Ok(t) => Ok(Some(t)),
-//             Err(_) => Ok(None),
-//         }
-//     }
-// }
-//
-// impl<T> FromRequest for Result<T, HttpError>
-// where
-//     T: FromRequest,
-// {
-//     async fn from_request(req: &RequestHeader, body: &mut ReqBody) -> Result<Self, HttpError> {
-//         Ok(T::from_request(req, body).await)
-//     }
-// }

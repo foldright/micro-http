@@ -7,7 +7,6 @@ use micro_http::handler::Handler;
 use micro_http::protocol::body::ReqBody;
 use micro_http::protocol::RequestHeader;
 use std::error::Error;
-use std::future::Future;
 use std::marker::PhantomData;
 
 /// a `FnTrait` holder which represents any async Fn

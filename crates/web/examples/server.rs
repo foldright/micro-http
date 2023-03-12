@@ -1,15 +1,9 @@
-use http::{header, HeaderMap, HeaderName, Method, Request, Response, StatusCode};
-use http_body_util::BodyExt;
-use std::error::Error;
+use http::Method;
 use std::sync::Arc;
-use http_body_util::combinators::BoxBody;
 
 use tokio::net::TcpListener;
 
 use micro_http::connection::HttpConnection;
-use micro_http::handler::{Handler, make_handler};
-use micro_http::protocol::body::ReqBody;
-use micro_http::protocol::RequestHeader;
 use micro_web::FnHandler;
 use tracing::{error, info, warn, Level};
 use tracing_subscriber::FmtSubscriber;

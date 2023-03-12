@@ -1,17 +1,3 @@
-use std::marker::PhantomData;
-
-// impl<Args, H, RespBody> FnTraitHolder<Args, H>
-//     where
-//         H: FnTrait<Args>,
-//         H::Output: Responder<Body = RespBody>,
-//         RespBody: Body,
-//         Args: for<'r> FromRequest<'r>,
-// {
-//     pub fn new(handler: H) -> Self {
-//         Self { handler, _phantom: PhantomData }
-//     }
-// }
-
 /// Represents a function
 pub trait FnTrait<Args> {
     type Output;
