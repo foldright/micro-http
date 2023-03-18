@@ -8,7 +8,7 @@ use tokio_util::codec::Decoder;
 use tracing::trace;
 
 use crate::ensure;
-use crate::protocol::ParseError::{InvalidContentLength, InvalidHeader, TooLargeHeader};
+
 use crate::protocol::{ParseError, RequestHeader};
 
 const MAX_HEADER_NUM: usize = 64;
