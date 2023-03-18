@@ -1,3 +1,4 @@
+use crate::body::RespBody;
 use bytes::Bytes;
 use http::{Response, StatusCode};
 use http_body::Body;
@@ -5,17 +6,13 @@ use http_body_util::{Empty, Full};
 use micro_http::protocol::RequestHeader;
 
 pub trait Responder {
-    type Body: Body;
-
-    fn response_to(self, req: &RequestHeader) -> Response<Self::Body>;
+    fn response_to(self, req: &RequestHeader) -> Response<RespBody>;
 }
 
 // todo: impl for Result & Option
 
 impl<T: Responder> Responder for (T, StatusCode) {
-    type Body = T::Body;
-
-    fn response_to(self, req: &RequestHeader) -> Response<Self::Body> {
+    fn response_to(self, req: &RequestHeader) -> Response<RespBody> {
         let (responder, status) = self;
         let mut response = responder.response_to(req);
         *response.status_mut() = status;
@@ -24,37 +21,29 @@ impl<T: Responder> Responder for (T, StatusCode) {
 }
 
 impl<T: Responder> Responder for Box<T> {
-    type Body = T::Body;
-
-    fn response_to(self, req: &RequestHeader) -> Response<Self::Body> {
+    fn response_to(self, req: &RequestHeader) -> Response<RespBody> {
         (*self).response_to(req)
     }
 }
 
 impl Responder for () {
-    type Body = Empty<Bytes>;
-
-    fn response_to(self, _req: &RequestHeader) -> Response<Self::Body> {
-        Response::new(Empty::new())
+    fn response_to(self, _req: &RequestHeader) -> Response<RespBody> {
+        Response::new(RespBody::empty())
     }
 }
 
 impl Responder for &'static str {
-    type Body = Full<&'static [u8]>;
-
-    fn response_to(self, _req: &RequestHeader) -> Response<Self::Body> {
-        Response::builder().body(Full::new(self.as_bytes())).unwrap()
+    fn response_to(self, _req: &RequestHeader) -> Response<RespBody> {
+        Response::builder().body(RespBody::from(self)).unwrap()
     }
 }
 
 impl Responder for String {
-    type Body = String;
-
-    fn response_to(self, _req: &RequestHeader) -> Response<Self::Body> {
+    fn response_to(self, _req: &RequestHeader) -> Response<RespBody> {
         Response::builder()
             .status(StatusCode::OK)
             .header(http::header::CONTENT_LENGTH, self.len())
-            .body(self)
+            .body(RespBody::from(self))
             .unwrap()
     }
 }

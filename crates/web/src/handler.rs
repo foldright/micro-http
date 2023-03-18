@@ -1,3 +1,4 @@
+use crate::body::{OptionReqBody, RespBody};
 use crate::fn_trait::FnTrait;
 use crate::responder::Responder;
 use crate::FromRequest;
@@ -24,20 +25,20 @@ where
     }
 }
 
-impl<F, Args, RespBody> Handler<ReqBody> for FnHandler<F, Args>
+impl<F, Args> Handler<ReqBody> for FnHandler<F, Args>
 where
     F: FnTrait<Args> + for<'r> FnTrait<<Args as FromRequest<'r>>::Output>,
-    for<'r> <F as FnTrait<<Args as FromRequest<'r>>::Output>>::Output: Responder<Body = RespBody>,
-    RespBody: Body,
+    for<'r> <F as FnTrait<<Args as FromRequest<'r>>::Output>>::Output: Responder,
     Args: for<'r> FromRequest<'r>,
 {
     type RespBody = RespBody;
     type Error = Box<dyn Error + Send + Sync>;
 
     async fn call(&self, req: Request<ReqBody>) -> Result<Response<Self::RespBody>, Self::Error> {
-        let (parts, mut body) = req.into_parts();
+        let (parts, body) = req.into_parts();
         let header = RequestHeader::from(parts);
-        let args = Args::from_request(&header).await?;
+        let req_body = OptionReqBody::from(body);
+        let args = Args::from_request(&header, req_body.clone()).await?;
         let responder = self.f.call(args).await;
         Ok(responder.response_to(&header))
     }
