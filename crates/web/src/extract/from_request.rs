@@ -1,7 +1,4 @@
 use crate::body::OptionReqBody;
-use bytes::Bytes;
-use http::{HeaderMap, Method};
-use http_body_util::BodyExt;
 use micro_http::protocol::{ParseError, RequestHeader};
 
 pub trait FromRequest<'r> {
@@ -37,6 +34,7 @@ macro_rules! impl_from_request_for_fn ({ $($param:ident)* } => {
         $($param: FromRequest<'r>,)*
     {
         type Output = ($($param::Output,)*);
+
         async fn from_request(req: &'r RequestHeader, body: OptionReqBody) -> Result<Self::Output, ParseError> {
             Ok(($($param::from_request(req, body.clone()).await?,)*))
         }
@@ -56,34 +54,3 @@ impl_from_request_for_fn! { A B C D E F G H I }
 impl_from_request_for_fn! { A B C D E F G H I J }
 impl_from_request_for_fn! { A B C D E F G H I J K }
 impl_from_request_for_fn! { A B C D E F G H I J K L }
-
-impl<'r> FromRequest<'r> for Method {
-    type Output = Method;
-
-    async fn from_request(req: &'r RequestHeader, _body: OptionReqBody) -> Result<Self::Output, ParseError> {
-        Ok(req.method().clone())
-    }
-}
-impl<'r> FromRequest<'r> for &RequestHeader {
-    type Output = &'r RequestHeader;
-
-    async fn from_request(req: &'r RequestHeader, _body: OptionReqBody) -> Result<Self::Output, ParseError> {
-        Ok(req)
-    }
-}
-
-impl<'r> FromRequest<'r> for &HeaderMap {
-    type Output = &'r HeaderMap;
-
-    async fn from_request(req: &'r RequestHeader, _body: OptionReqBody) -> Result<Self::Output, ParseError> {
-        Ok(req.headers())
-    }
-}
-
-impl<'r> FromRequest<'r> for Bytes {
-    type Output = Bytes;
-
-    async fn from_request(_req: &'r RequestHeader, body: OptionReqBody) -> Result<Self::Output, ParseError> {
-        body.apply(|b| async { b.collect().await.map(|c| c.to_bytes()) }).await
-    }
-}

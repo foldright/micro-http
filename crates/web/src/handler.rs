@@ -3,7 +3,6 @@ use crate::fn_trait::FnTrait;
 use crate::responder::Responder;
 use crate::FromRequest;
 use http::{Request, Response};
-use http_body::Body;
 use micro_http::handler::Handler;
 use micro_http::protocol::body::ReqBody;
 use micro_http::protocol::RequestHeader;

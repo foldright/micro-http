@@ -1,12 +1,9 @@
 use bytes::Bytes;
-use futures::Stream;
 use http_body::Body as HttpBody;
 use http_body::{Frame, SizeHint};
 use http_body_util::combinators::UnsyncBoxBody;
 use micro_http::protocol::body::ReqBody;
 use micro_http::protocol::{HttpError, ParseError};
-use std::cell::Cell;
-use std::error::Error;
 use std::future::Future;
 use std::pin::Pin;
 use std::sync::Arc;

@@ -1,8 +1,5 @@
 use crate::body::RespBody;
-use bytes::Bytes;
 use http::{Response, StatusCode};
-use http_body::Body;
-use http_body_util::{Empty, Full};
 use micro_http::protocol::RequestHeader;
 
 pub trait Responder {

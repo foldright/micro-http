@@ -1,7 +1,6 @@
-use std::str::Utf8Error;
+use bytes::Bytes;
 use http::Method;
 use std::sync::Arc;
-use bytes::Bytes;
 
 use tokio::net::TcpListener;
 
@@ -52,10 +51,7 @@ async fn main() {
     }
 }
 
-async fn simple_handler(method: Method, bytes: Bytes) -> String {
-    match std::str::from_utf8(bytes.as_ref()) {
-        Ok(s) => println!("receive body: {}", s),
-        Err(_) => return format!("request body is not utf8"),
-    }
+async fn simple_handler(method: Method, str: String) -> String {
+    println!("receive body: {}", str);
     format!("receive from method: {}\r\n", method)
 }
