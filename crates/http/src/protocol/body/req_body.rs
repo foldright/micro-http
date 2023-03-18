@@ -65,7 +65,7 @@ where
 
                     Some(Ok(Message::Header(_header))) => {
                         error!("received header from receive body phase");
-                        return Err(ParseError::InvalidBody { reason: "received header from receive body phase".into() });
+                        return Err(ParseError::invalid_body("received header from receive body phase"));
                     }
 
                     Some(Err(e)) => {
@@ -74,7 +74,7 @@ where
 
                     None => {
                         error!("cant read body");
-                        return Err(ParseError::InvalidBody { reason: "cant read body".into() });
+                        return Err(ParseError::invalid_body("cant read body"));
                     }
                 }
             }
@@ -122,7 +122,7 @@ impl Body for ReqBody {
                     }
                     Err(_) => {
                         self.receiving.take();
-                        Poll::Ready(Some(Err(ParseError::InvalidBody { reason: "parse body canceled".into() })))
+                        Poll::Ready(Some(Err(ParseError::invalid_body("parse body canceled"))))
                     }
                 };
             }
@@ -135,10 +135,10 @@ impl Body for ReqBody {
                             self.receiving = Some(rx);
                             continue;
                         }
-                        Err(e) => return Poll::Ready(Some(Err(ParseError::InvalidBody { reason: e.to_string() }))),
+                        Err(e) => return Poll::Ready(Some(Err(ParseError::invalid_body(e)))),
                     }
                 }
-                Err(e) => return Poll::Ready(Some(Err(ParseError::InvalidBody { reason: e.to_string() }))),
+                Err(e) => return Poll::Ready(Some(Err(ParseError::invalid_body(e)))),
             };
         }
     }

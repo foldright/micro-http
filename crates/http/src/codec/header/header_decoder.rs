@@ -8,7 +8,7 @@ use tokio_util::codec::Decoder;
 use tracing::trace;
 
 use crate::ensure;
-use crate::protocol::ParseError::{InvalidContentLength, InvalidHeader, TooLargeHeader, TooManyHeaders};
+use crate::protocol::ParseError::{InvalidContentLength, InvalidHeader, TooLargeHeader};
 use crate::protocol::{ParseError, RequestHeader};
 
 const MAX_HEADER_NUM: usize = 64;
@@ -26,17 +26,14 @@ impl Decoder for HeaderDecoder {
             unsafe { MaybeUninit::uninit().assume_init() };
 
         let parsed_result = req.parse_with_uninit_headers(src.as_ref(), &mut headers).map_err(|e| match e {
-            Error::TooManyHeaders => TooManyHeaders { max_num: MAX_HEADER_NUM },
-            e => InvalidHeader { reason: e.to_string() },
+            Error::TooManyHeaders => ParseError::too_many_headers(MAX_HEADER_NUM),
+            e => ParseError::invalid_header(e.to_string()),
         });
 
         match parsed_result? {
             Status::Complete(body_offset) => {
                 trace!(body_size = body_offset, "parsed body size");
-                ensure!(
-                    body_offset <= MAX_HEADER_BYTES,
-                    TooLargeHeader { current_size: body_offset, max_size: MAX_HEADER_BYTES }
-                );
+                ensure!(body_offset <= MAX_HEADER_BYTES, ParseError::too_large_header(body_offset, MAX_HEADER_BYTES));
 
                 let header = req.into();
                 let payload_decoder = parse_payload(&header)?;
@@ -45,10 +42,7 @@ impl Decoder for HeaderDecoder {
                 Ok(Some((header, payload_decoder)))
             }
             Status::Partial => {
-                ensure!(
-                    src.len() <= MAX_HEADER_BYTES,
-                    TooLargeHeader { current_size: src.len(), max_size: MAX_HEADER_BYTES }
-                );
+                ensure!(src.len() <= MAX_HEADER_BYTES, ParseError::too_large_header(src.len(), MAX_HEADER_BYTES));
                 Ok(None)
             }
         }
@@ -76,15 +70,18 @@ fn parse_payload(header: &RequestHeader) -> Result<PayloadDecoder, ParseError> {
         }
 
         (None, Some(cl_value)) => {
-            let cl_str = cl_value.to_str().map_err(|_| InvalidContentLength { reason: "value can't to_str".into() })?;
+            let cl_str = cl_value.to_str().map_err(|_| ParseError::invalid_content_length("value can't to_str"))?;
 
-            let length = cl_str.trim().parse::<u64>().map_err(|_| InvalidContentLength { reason: format!("value {cl_str} is not u64") })?;
+            let length = cl_str
+                .trim()
+                .parse::<u64>()
+                .map_err(|_| ParseError::invalid_content_length(format!("value {cl_str} is not u64")))?;
 
             Ok(PayloadDecoder::fix_length(length))
         }
 
         (Some(_), Some(_)) => {
-            Err(InvalidContentLength { reason: "transfer_encoding and content_length both present in headers".into() })
+            Err(ParseError::invalid_content_length("transfer_encoding and content_length both present in headers"))
         }
     }
 }

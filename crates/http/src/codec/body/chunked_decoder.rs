@@ -56,7 +56,7 @@ impl Decoder for ChunkedDecoder {
             self.state = match self.state.step(src, &mut self.remaining_size, &mut buf) {
                 Poll::Pending => return Ok(None),
                 Poll::Ready(Ok(new_state)) => new_state,
-                Poll::Ready(Err(e)) => return Err(ParseError::Io { source: e }),
+                Poll::Ready(Err(e)) => return Err(ParseError::io(e)),
             };
 
             if let Some(bytes) = buf {

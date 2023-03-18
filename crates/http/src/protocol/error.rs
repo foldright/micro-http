@@ -34,14 +34,56 @@ pub enum ParseError {
     InvalidBody { reason: String },
 
     #[error("io error: {source}")]
-    Io { #[from] source: io::Error},
+    Io {
+        #[from]
+        source: io::Error,
+    },
+}
+
+impl ParseError {
+    pub fn too_large_header(current_size: usize, max_size: usize) -> Self {
+        Self::TooLargeHeader { current_size, max_size }
+    }
+
+    pub fn too_many_headers(max_num: usize) -> Self {
+        Self::TooManyHeaders { max_num }
+    }
+
+    pub fn invalid_header<S: ToString>(str: S) -> Self {
+        Self::InvalidHeader { reason: str.to_string() }
+    }
+
+    pub fn invalid_body<S: ToString>(str: S) -> Self {
+        Self::InvalidBody { reason: str.to_string() }
+    }
+
+    pub fn invalid_content_length<S: ToString>(str: S) -> Self {
+        Self::InvalidContentLength { reason: str.to_string() }
+    }
+
+    pub fn io<E: Into<io::Error>>(e: E) -> Self {
+        Self::Io { source: e.into() }
+    }
 }
 
 #[derive(Error, Debug)]
 pub enum SendError {
     #[error("invalid body: {reason}")]
-    InvalidBody {reason: String},
+    InvalidBody { reason: String },
 
     #[error("io error: {source}")]
-    Io { #[from] source: io::Error},
+    Io {
+        #[from]
+        source: io::Error,
+    },
+}
+
+impl SendError {
+    pub fn invalid_body<S: ToString>(str: S) -> Self {
+        Self::InvalidBody { reason: str.to_string() }
+    }
+
+    pub fn io<E: Into<io::Error>>(e: E) -> Self {
+        Self::Io { source: e.into() }
+    }
 }

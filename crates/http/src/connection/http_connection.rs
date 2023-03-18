@@ -55,7 +55,7 @@ where
                     error!("error status because chunked has read in do_process");
                     let error_response = build_error_response(StatusCode::BAD_REQUEST);
                     self.do_send_response(error_response).await?;
-                    return Err(ParseError::InvalidBody { reason: "need header while receive body".into() }.into());
+                    return Err(ParseError::invalid_body("need header while receive body").into());
                 }
 
                 Some(Err(e)) => {
@@ -84,9 +84,8 @@ where
             let slice = value.as_bytes();
             if slice.len() >= 4 && &slice[0..4] == b"100-" {
                 let writer = self.framed_write.get_mut();
-                let _ =
-                    writer.write(b"HTTP/1.1 100 Continue\r\n\r\n").await.map_err(|e| SendError::Io { source: e })?;
-                writer.flush().await.map_err(|e| SendError::Io { source: e })?;
+                let _ = writer.write(b"HTTP/1.1 100 Continue\r\n\r\n").await.map_err(|e| SendError::io(e))?;
+                writer.flush().await.map_err(|e| SendError::io(e))?;
                 info!("receive expect request header, sent continue response");
             }
         }
@@ -160,7 +159,9 @@ where
             }
         };
 
-        self.framed_write.send(Message::<_, T::Data>::Header((ResponseHead::from_parts(header_parts, ()), payload_size))).await?;
+        self.framed_write
+            .send(Message::<_, T::Data>::Header((ResponseHead::from_parts(header_parts, ()), payload_size)))
+            .await?;
 
         loop {
             match body.frame().await {
@@ -168,16 +169,14 @@ where
                     let payload_item = frame
                         .into_data()
                         .map(|d| PayloadItem::Chunk(d))
-                        .map_err(|_e| SendError::InvalidBody { reason: "resolve body response error".into() })?;
+                        .map_err(|_e| SendError::invalid_body("resolve body response error"))?;
 
                     self.framed_write
                         .send(Message::Payload(payload_item))
                         .await
-                        .map_err(|_e| SendError::InvalidBody { reason: "can't send response".into() })?;
+                        .map_err(|_e| SendError::invalid_body("can't send response"))?;
                 }
-                Some(Err(e)) => {
-                    return Err(SendError::InvalidBody { reason: format!("resolve response body error: {e}") }.into())
-                }
+                Some(Err(e)) => return Err(SendError::invalid_body(format!("resolve response body error: {e}")).into()),
                 None => return Ok(()),
             }
         }
