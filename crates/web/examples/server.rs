@@ -1,4 +1,3 @@
-use bytes::Bytes;
 use http::Method;
 use std::sync::Arc;
 
@@ -51,7 +50,11 @@ async fn main() {
     }
 }
 
-async fn simple_handler(method: Method, str: String) -> String {
-    println!("receive body: {}", str);
-    format!("receive from method: {}\r\n", method)
+async fn simple_handler(method: Method, str: Option<String>, str2: Option<String>) -> String {
+    println!("receive body: {}, {}", str.is_some(), str2.is_some());
+    format!("1: receive from method: {}\r\n", method)
+}
+
+async fn simple_handler_2(method: Method) -> String {
+    format!("2: receive from method: {}\r\n", method)
 }

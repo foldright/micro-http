@@ -1,15 +1,15 @@
-use crate::body::RespBody;
+use crate::body::ResponseBody;
 use http::{Response, StatusCode};
 use micro_http::protocol::RequestHeader;
 
 pub trait Responder {
-    fn response_to(self, req: &RequestHeader) -> Response<RespBody>;
+    fn response_to(self, req: &RequestHeader) -> Response<ResponseBody>;
 }
 
 // todo: impl for Result & Option
 
 impl<T: Responder> Responder for (T, StatusCode) {
-    fn response_to(self, req: &RequestHeader) -> Response<RespBody> {
+    fn response_to(self, req: &RequestHeader) -> Response<ResponseBody> {
         let (responder, status) = self;
         let mut response = responder.response_to(req);
         *response.status_mut() = status;
@@ -18,29 +18,29 @@ impl<T: Responder> Responder for (T, StatusCode) {
 }
 
 impl<T: Responder> Responder for Box<T> {
-    fn response_to(self, req: &RequestHeader) -> Response<RespBody> {
+    fn response_to(self, req: &RequestHeader) -> Response<ResponseBody> {
         (*self).response_to(req)
     }
 }
 
 impl Responder for () {
-    fn response_to(self, _req: &RequestHeader) -> Response<RespBody> {
-        Response::new(RespBody::empty())
+    fn response_to(self, _req: &RequestHeader) -> Response<ResponseBody> {
+        Response::new(ResponseBody::empty())
     }
 }
 
 impl Responder for &'static str {
-    fn response_to(self, _req: &RequestHeader) -> Response<RespBody> {
-        Response::builder().body(RespBody::from(self)).unwrap()
+    fn response_to(self, _req: &RequestHeader) -> Response<ResponseBody> {
+        Response::builder().body(ResponseBody::from(self)).unwrap()
     }
 }
 
 impl Responder for String {
-    fn response_to(self, _req: &RequestHeader) -> Response<RespBody> {
+    fn response_to(self, _req: &RequestHeader) -> Response<ResponseBody> {
         Response::builder()
             .status(StatusCode::OK)
             .header(http::header::CONTENT_LENGTH, self.len())
-            .body(RespBody::from(self))
+            .body(ResponseBody::from(self))
             .unwrap()
     }
 }

@@ -6,6 +6,34 @@ pub trait FromRequest<'r> {
     async fn from_request(req: &'r RequestHeader, body: OptionReqBody) -> Result<Self::Output, ParseError>;
 }
 
+impl<'r, T> FromRequest<'r> for Option<T>
+where
+    T: FromRequest<'r>,
+{
+    type Output = Option<T::Output>;
+
+    async fn from_request(req: &'r RequestHeader, body: OptionReqBody) -> Result<Self::Output, ParseError> {
+        match T::from_request(req, body.clone()).await {
+            Ok(t) => Ok(Some(t)),
+            Err(_) => Ok(None),
+        }
+    }
+}
+
+impl<'r, T> FromRequest<'r> for Result<T, ParseError>
+where
+    T: FromRequest<'r>,
+{
+    type Output = Result<T::Output, ParseError>;
+
+    async fn from_request(req: &'r RequestHeader, body: OptionReqBody) -> Result<Self::Output, ParseError> {
+        match T::from_request(req, body.clone()).await {
+            Ok(t) => Ok(Ok(t)),
+            e => Ok(e),
+        }
+    }
+}
+
 /// impl `FromRequest` for tuples
 ///
 /// for example, it will impl Fn(A, B) like this:

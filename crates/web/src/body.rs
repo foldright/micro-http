@@ -43,7 +43,7 @@ impl OptionReqBody {
     }
 }
 
-pub struct RespBody {
+pub struct ResponseBody {
     inner: Kind,
 }
 
@@ -52,7 +52,7 @@ enum Kind {
     Stream(UnsyncBoxBody<Bytes, HttpError>),
 }
 
-impl RespBody {
+impl ResponseBody {
     pub fn empty() -> Self {
         Self { inner: Kind::Once(None) }
     }
@@ -69,19 +69,19 @@ impl RespBody {
     }
 }
 
-impl From<String> for RespBody {
+impl From<String> for ResponseBody {
     fn from(value: String) -> Self {
-        RespBody { inner: Kind::Once(Some(Bytes::from(value))) }
+        ResponseBody { inner: Kind::Once(Some(Bytes::from(value))) }
     }
 }
 
-impl From<()> for RespBody {
+impl From<()> for ResponseBody {
     fn from(_: ()) -> Self {
         Self::empty()
     }
 }
 
-impl From<Option<Bytes>> for RespBody {
+impl From<Option<Bytes>> for ResponseBody {
     fn from(option: Option<Bytes>) -> Self {
         match option {
             Some(bytes) => Self::once(bytes),
@@ -90,7 +90,7 @@ impl From<Option<Bytes>> for RespBody {
     }
 }
 
-impl From<&'static str> for RespBody {
+impl From<&'static str> for ResponseBody {
     fn from(value: &'static str) -> Self {
         if value.is_empty() {
             Self::empty()
@@ -100,7 +100,7 @@ impl From<&'static str> for RespBody {
     }
 }
 
-impl HttpBody for RespBody {
+impl HttpBody for ResponseBody {
     type Data = Bytes;
     type Error = HttpError;
 
@@ -136,7 +136,7 @@ impl HttpBody for RespBody {
 
 #[cfg(test)]
 mod tests {
-    use crate::body::RespBody;
+    use crate::body::ResponseBody;
     use bytes::Bytes;
     use futures::{FutureExt, TryStreamExt};
     use http_body::{Body as HttpBody, Frame};
@@ -150,7 +150,7 @@ mod tests {
 
     #[test]
     fn is_send() {
-        check_send::<RespBody>();
+        check_send::<ResponseBody>();
     }
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
@@ -158,7 +158,7 @@ mod tests {
         let s = "Hello world".to_string();
         let len = s.len() as u64;
 
-        let mut body = RespBody::from(s);
+        let mut body = ResponseBody::from(s);
 
         assert_eq!(body.size_hint().exact(), Some(len));
         assert_eq!(body.is_end_stream(), false);
@@ -172,7 +172,7 @@ mod tests {
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
     async fn test_empty_body() {
-        let mut body = RespBody::from("");
+        let mut body = ResponseBody::from("");
 
         assert_eq!(body.is_end_stream(), true);
         assert_eq!(body.size_hint().exact(), Some(0));
@@ -190,7 +190,7 @@ mod tests {
         let stream = futures::stream::iter(chunks).map_err(|err| Box::new(err) as Box<dyn Error>);
         let mut stream_body = StreamBody::new(stream);
 
-        let mut body = RespBody::stream(stream_body);
+        let mut body = ResponseBody::stream(stream_body);
 
         assert!(body.size_hint().exact().is_none());
         assert_eq!(body.is_end_stream(), false);

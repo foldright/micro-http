@@ -1,4 +1,4 @@
-use crate::body::{OptionReqBody, RespBody};
+use crate::body::{OptionReqBody, ResponseBody};
 use crate::fn_trait::FnTrait;
 use crate::responder::Responder;
 use crate::FromRequest;
@@ -30,7 +30,7 @@ where
     for<'r> <F as FnTrait<<Args as FromRequest<'r>>::Output>>::Output: Responder,
     Args: for<'r> FromRequest<'r>,
 {
-    type RespBody = RespBody;
+    type RespBody = ResponseBody;
     type Error = Box<dyn Error + Send + Sync>;
 
     async fn call(&self, req: Request<ReqBody>) -> Result<Response<Self::RespBody>, Self::Error> {

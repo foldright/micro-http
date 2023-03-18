@@ -8,5 +8,6 @@ mod fn_trait;
 mod handler;
 mod responder;
 
+pub use body::ResponseBody;
 pub use extract::FromRequest;
 pub use handler::FnHandler;
