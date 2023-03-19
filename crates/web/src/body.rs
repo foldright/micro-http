@@ -145,6 +145,7 @@ mod tests {
     use std::error::Error;
     use std::io;
     use tracing::Instrument;
+    use micro_http::protocol::ParseError;
 
     fn check_send<T: Send>() {}
 
@@ -187,7 +188,7 @@ mod tests {
             Ok(Frame::data(Bytes::from(vec![2]))),
             Ok(Frame::data(Bytes::from(vec![3]))),
         ];
-        let stream = futures::stream::iter(chunks).map_err(|err| Box::new(err) as Box<dyn Error>);
+        let stream = futures::stream::iter(chunks).map_err(|err|ParseError::io(err).into());
         let mut stream_body = StreamBody::new(stream);
 
         let mut body = ResponseBody::stream(stream_body);
