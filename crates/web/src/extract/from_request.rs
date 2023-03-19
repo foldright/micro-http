@@ -38,9 +38,10 @@ where
 ///
 /// for example, it will impl Fn(A, B) like this:
 ///
-/// ```no_run
+/// ```ignore
+/// # #![feature(async_fn_in_trait)]
 /// # use micro_http::protocol::{HttpError, ParseError, RequestHeader};
-/// # use micro_web::FromRequest;
+/// # use micro_web::{FromRequest, OptionReqBody};
 ///
 /// impl<'r, A, B> FromRequest<'r> for (A, B)
 /// where

@@ -11,3 +11,4 @@ mod responder;
 pub use body::ResponseBody;
 pub use extract::FromRequest;
 pub use handler::FnHandler;
+pub use body::OptionReqBody;

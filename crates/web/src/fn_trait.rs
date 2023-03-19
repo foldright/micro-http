@@ -7,7 +7,7 @@ pub trait FnTrait<Args> {
 /// impl `Fn` for `FnTrait`, From 0 parameters to 12 parameters
 ///
 /// for example, it will impl Fn(A, B) like this:
-///```no_run
+///```ignore
 /// impl<Func, Fut, A, B> FnTrait<(A, B)> for Func
 ///    where
 ///        Func: Fn(A, B) -> Fut,
