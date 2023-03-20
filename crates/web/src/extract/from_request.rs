@@ -4,7 +4,7 @@ use micro_http::protocol::{ParseError, RequestHeader};
 
 #[async_trait]
 pub trait FromRequest {
-    type Output<'r>;
+    type Output<'r> : Send;
     async fn from_request(req: &RequestHeader, body: OptionReqBody) -> Result<Self::Output<'_>, ParseError>;
 }
 

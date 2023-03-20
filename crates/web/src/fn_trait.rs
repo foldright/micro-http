@@ -1,9 +1,9 @@
 use std::future::Future;
 
 /// Represents a function
-pub trait FnTrait<Args> {
+pub trait FnTrait<Args> : Send + Sync {
     type Output;
-    type Fut: Future<Output = Self::Output>;
+    type Fut: Future<Output = Self::Output> + Send;
     fn call(&self, args: Args) -> Self::Fut;
 }
 
@@ -28,8 +28,8 @@ pub trait FnTrait<Args> {
 macro_rules! impl_fn_trait_for_fn ({ $($param:ident)* } => {
     impl<Func, Fut, $($param,)*> FnTrait<($($param,)*)> for Func
     where
-        Func: Fn($($param),*) -> Fut,
-        Fut: std::future::Future,
+        Func: Fn($($param),*) -> Fut + Send + Sync ,
+        Fut: std::future::Future + Send,
     {
         type Output = Fut::Output;
         type Fut = Fut;

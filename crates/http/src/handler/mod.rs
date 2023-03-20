@@ -1,10 +1,12 @@
 use std::error::Error;
 use std::future::Future;
+use async_trait::async_trait;
 
 use http::{Request, Response};
 
 use http_body::Body;
 
+#[async_trait]
 pub trait Handler<ReqBody> {
     type RespBody: Body;
     type Error: Into<Box<dyn Error + Send + Sync>>;
@@ -17,12 +19,14 @@ pub struct HandlerFn<F> {
     f: F,
 }
 
+#[async_trait]
 impl<ReqBody, RespBody, Err, F, Fut> Handler<ReqBody> for HandlerFn<F>
 where
     RespBody: Body,
-    F: Fn(Request<ReqBody>) -> Fut,
+    ReqBody: Send + 'static,
+    F: Fn(Request<ReqBody>) -> Fut + Send + Sync,
     Err: Into<Box<dyn Error + Send + Sync>>,
-    Fut: Future<Output = Result<Response<RespBody>, Err>>,
+    Fut: Future<Output = Result<Response<RespBody>, Err>> + Send,
 {
     type RespBody = RespBody;
     type Error = Err;
