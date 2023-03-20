@@ -1,7 +1,10 @@
+use std::future::Future;
+
 /// Represents a function
 pub trait FnTrait<Args> {
     type Output;
-    async fn call(&self, args: Args) -> Self::Output;
+    type Fut: Future<Output = Self::Output>;
+    fn call(&self, args: Args) -> Self::Fut;
 }
 
 /// impl `Fn` for `FnTrait`, From 0 parameters to 12 parameters
@@ -29,11 +32,12 @@ macro_rules! impl_fn_trait_for_fn ({ $($param:ident)* } => {
         Fut: std::future::Future,
     {
         type Output = Fut::Output;
+        type Fut = Fut;
 
         #[inline]
         #[allow(non_snake_case)]
-        async fn call(&self, ($($param,)*): ($($param,)*)) -> Self::Output {
-            (self)($($param,)*).await
+        fn call(&self, ($($param,)*): ($($param,)*)) -> Self::Fut {
+            (self)($($param,)*)
         }
     }
 });
