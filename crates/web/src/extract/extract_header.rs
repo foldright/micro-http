@@ -3,42 +3,42 @@ use crate::extract::from_request::FromRequest;
 use http::{HeaderMap, Method};
 use micro_http::protocol::{ParseError, RequestHeader};
 
-impl<'r> FromRequest<'r> for Method {
-    type Output = Method;
+impl FromRequest for Method {
+    type Output<'any> = Method;
 
-    async fn from_request(req: &'r RequestHeader, _body: OptionReqBody) -> Result<Self::Output, ParseError> {
+    async fn from_request(req: &RequestHeader, _body: OptionReqBody) -> Result<Self::Output<'_>, ParseError> {
         Ok(req.method().clone())
     }
 }
 
-impl<'r> FromRequest<'r> for &Method {
-    type Output = &'r Method;
+impl FromRequest for &Method {
+    type Output<'r> = &'r Method;
 
-    async fn from_request(req: &'r RequestHeader, _body: OptionReqBody) -> Result<Self::Output, ParseError> {
+    async fn from_request(req: &RequestHeader, _body: OptionReqBody) -> Result<Self::Output<'_>, ParseError> {
         Ok(req.method())
     }
 }
 
-impl<'r> FromRequest<'r> for &RequestHeader {
-    type Output = &'r RequestHeader;
+impl FromRequest for &RequestHeader {
+    type Output<'r> = &'r RequestHeader;
 
-    async fn from_request(req: &'r RequestHeader, _body: OptionReqBody) -> Result<Self::Output, ParseError> {
+    async fn from_request(req: &RequestHeader, _body: OptionReqBody) -> Result<Self::Output<'_>, ParseError> {
         Ok(req)
     }
 }
 
-impl<'r> FromRequest<'r> for &HeaderMap {
-    type Output = &'r HeaderMap;
+impl FromRequest for &HeaderMap {
+    type Output<'r> = &'r HeaderMap;
 
-    async fn from_request(req: &'r RequestHeader, _body: OptionReqBody) -> Result<Self::Output, ParseError> {
+    async fn from_request(req: &RequestHeader, _body: OptionReqBody) -> Result<Self::Output<'_>, ParseError> {
         Ok(req.headers())
     }
 }
 
-impl<'r> FromRequest<'r> for HeaderMap {
-    type Output = HeaderMap;
+impl FromRequest for HeaderMap {
+    type Output<'any> = HeaderMap;
 
-    async fn from_request(req: &'r RequestHeader, _body: OptionReqBody) -> Result<Self::Output, ParseError> {
+    async fn from_request(req: &RequestHeader, _body: OptionReqBody) -> Result<Self::Output<'_>, ParseError> {
         Ok(req.headers().clone())
     }
 }

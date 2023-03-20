@@ -26,9 +26,9 @@ where
 
 impl<F, Args> Handler<ReqBody> for FnHandler<F, Args>
 where
-    F: FnTrait<Args> + for<'r> FnTrait<<Args as FromRequest<'r>>::Output>,
-    for<'r> <F as FnTrait<<Args as FromRequest<'r>>::Output>>::Output: Responder,
-    Args: for<'r> FromRequest<'r>,
+    F: FnTrait<Args> + for<'r> FnTrait<<Args as FromRequest>::Output<'r>>,
+    for<'r> <F as FnTrait<<Args as FromRequest>::Output<'r>>>::Output: Responder,
+    Args: FromRequest,
 {
     type RespBody = ResponseBody;
     type Error = Box<dyn Error + Send + Sync>;

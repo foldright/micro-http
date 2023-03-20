@@ -1,18 +1,18 @@
 use crate::body::OptionReqBody;
 use micro_http::protocol::{ParseError, RequestHeader};
 
-pub trait FromRequest<'r> {
-    type Output;
-    async fn from_request(req: &'r RequestHeader, body: OptionReqBody) -> Result<Self::Output, ParseError>;
+pub trait FromRequest {
+    type Output<'r>;
+    async fn from_request(req: &RequestHeader, body: OptionReqBody) -> Result<Self::Output<'_>, ParseError>;
 }
 
-impl<'r, T> FromRequest<'r> for Option<T>
+impl<T> FromRequest for Option<T>
 where
-    T: FromRequest<'r>,
+    T: FromRequest,
 {
-    type Output = Option<T::Output>;
+    type Output<'r> = Option<T::Output<'r>>;
 
-    async fn from_request(req: &'r RequestHeader, body: OptionReqBody) -> Result<Self::Output, ParseError> {
+    async fn from_request(req: &RequestHeader, body: OptionReqBody) -> Result<Self::Output<'_>, ParseError> {
         match T::from_request(req, body.clone()).await {
             Ok(t) => Ok(Some(t)),
             Err(_) => Ok(None),
@@ -20,19 +20,19 @@ where
     }
 }
 
-impl<'r, T> FromRequest<'r> for Result<T, ParseError>
-where
-    T: FromRequest<'r>,
-{
-    type Output = Result<T::Output, ParseError>;
-
-    async fn from_request(req: &'r RequestHeader, body: OptionReqBody) -> Result<Self::Output, ParseError> {
-        match T::from_request(req, body.clone()).await {
-            Ok(t) => Ok(Ok(t)),
-            e => Ok(e),
-        }
-    }
-}
+// impl<'r, T> FromRequest<'r> for Result<T, ParseError>
+// where
+//     T: FromRequest<'r>,
+// {
+//     type Output = Result<T::Output, ParseError>;
+//
+//     async fn from_request(req: &'r RequestHeader, body: OptionReqBody) -> Result<Self::Output, ParseError> {
+//         match T::from_request(req, body.clone()).await {
+//             Ok(t) => Ok(Ok(t)),
+//             e => Ok(e),
+//         }
+//     }
+// }
 
 /// impl `FromRequest` for tuples
 ///
@@ -58,13 +58,13 @@ where
 /// }
 /// ```
 macro_rules! impl_from_request_for_fn ({ $($param:ident)* } => {
-    impl<'r, $($param,)*> FromRequest<'r> for ($($param,)*)
+    impl<$($param,)*> FromRequest for ($($param,)*)
     where
-        $($param: FromRequest<'r>,)*
+        $($param: FromRequest,)*
     {
-        type Output = ($($param::Output,)*);
+        type Output<'r> = ($($param::Output<'r>,)*);
 
-        async fn from_request(req: &'r RequestHeader, body: OptionReqBody) -> Result<Self::Output, ParseError> {
+        async fn from_request(req: &RequestHeader, body: OptionReqBody) -> Result<Self::Output<'_>, ParseError> {
             Ok(($($param::from_request(req, body.clone()).await?,)*))
         }
     }
