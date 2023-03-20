@@ -1,9 +1,11 @@
+use async_trait::async_trait;
 use crate::body::OptionReqBody;
 use crate::FromRequest;
 use bytes::Bytes;
 use http_body_util::BodyExt;
 use micro_http::protocol::{ParseError, RequestHeader};
 
+#[async_trait]
 impl FromRequest for Bytes {
     type Output<'any> = Bytes;
 
@@ -12,6 +14,7 @@ impl FromRequest for Bytes {
     }
 }
 
+#[async_trait]
 impl FromRequest for String {
     type Output<'any> = String;
 

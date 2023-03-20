@@ -1,8 +1,10 @@
+use async_trait::async_trait;
 use crate::body::OptionReqBody;
 use crate::extract::from_request::FromRequest;
 use http::{HeaderMap, Method};
 use micro_http::protocol::{ParseError, RequestHeader};
 
+#[async_trait]
 impl FromRequest for Method {
     type Output<'any> = Method;
 
@@ -11,6 +13,7 @@ impl FromRequest for Method {
     }
 }
 
+#[async_trait]
 impl FromRequest for &Method {
     type Output<'r> = &'r Method;
 
@@ -19,6 +22,7 @@ impl FromRequest for &Method {
     }
 }
 
+#[async_trait]
 impl FromRequest for &RequestHeader {
     type Output<'r> = &'r RequestHeader;
 
@@ -27,6 +31,7 @@ impl FromRequest for &RequestHeader {
     }
 }
 
+#[async_trait]
 impl FromRequest for &HeaderMap {
     type Output<'r> = &'r HeaderMap;
 
@@ -35,6 +40,7 @@ impl FromRequest for &HeaderMap {
     }
 }
 
+#[async_trait]
 impl FromRequest for HeaderMap {
     type Output<'any> = HeaderMap;
 

@@ -1,11 +1,14 @@
+use async_trait::async_trait;
 use crate::body::OptionReqBody;
 use micro_http::protocol::{ParseError, RequestHeader};
 
+#[async_trait]
 pub trait FromRequest {
     type Output<'r>;
     async fn from_request(req: &RequestHeader, body: OptionReqBody) -> Result<Self::Output<'_>, ParseError>;
 }
 
+#[async_trait]
 impl<T> FromRequest for Option<T>
 where
     T: FromRequest,
@@ -20,19 +23,20 @@ where
     }
 }
 
-// impl<'r, T> FromRequest<'r> for Result<T, ParseError>
-// where
-//     T: FromRequest<'r>,
-// {
-//     type Output = Result<T::Output, ParseError>;
-//
-//     async fn from_request(req: &'r RequestHeader, body: OptionReqBody) -> Result<Self::Output, ParseError> {
-//         match T::from_request(req, body.clone()).await {
-//             Ok(t) => Ok(Ok(t)),
-//             e => Ok(e),
-//         }
-//     }
-// }
+#[async_trait]
+impl<T> FromRequest for Result<T, ParseError>
+where
+    T: FromRequest,
+{
+    type Output<'r> = Result<T::Output<'r>, ParseError>;
+
+    async fn from_request(req: &RequestHeader, body: OptionReqBody) -> Result<Self::Output<'_>, ParseError> {
+        match T::from_request(req, body.clone()).await {
+            Ok(t) => Ok(Ok(t)),
+            e => Ok(e),
+        }
+    }
+}
 
 /// impl `FromRequest` for tuples
 ///
@@ -58,9 +62,11 @@ where
 /// }
 /// ```
 macro_rules! impl_from_request_for_fn ({ $($param:ident)* } => {
+    #[async_trait]
     impl<$($param,)*> FromRequest for ($($param,)*)
     where
         $($param: FromRequest,)*
+        $(for <'any> $param::Output<'any>: Send,)*
     {
         type Output<'r> = ($($param::Output<'r>,)*);
 
