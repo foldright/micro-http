@@ -138,13 +138,10 @@ impl HttpBody for ResponseBody {
 mod tests {
     use crate::body::ResponseBody;
     use bytes::Bytes;
-    use futures::{FutureExt, TryStreamExt};
+    use futures::TryStreamExt;
     use http_body::{Body as HttpBody, Frame};
-    use http_body_util::{BodyExt, Full, StreamBody};
-    use micro_http::protocol::body::ReqBody;
-    use std::error::Error;
+    use http_body_util::{BodyExt, StreamBody};
     use std::io;
-    use tracing::Instrument;
     use micro_http::protocol::ParseError;
 
     fn check_send<T: Send>() {}
@@ -189,7 +186,7 @@ mod tests {
             Ok(Frame::data(Bytes::from(vec![3]))),
         ];
         let stream = futures::stream::iter(chunks).map_err(|err|ParseError::io(err).into());
-        let mut stream_body = StreamBody::new(stream);
+        let stream_body = StreamBody::new(stream);
 
         let mut body = ResponseBody::stream(stream_body);
 

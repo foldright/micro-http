@@ -62,7 +62,7 @@ where
 /// }
 /// ```
 macro_rules! impl_from_request_for_fn ({ $($param:ident)* } => {
-    #[async_trait]
+    #[async_trait::async_trait]
     impl<$($param,)*> FromRequest for ($($param,)*)
     where
         $($param: FromRequest,)*
@@ -70,13 +70,23 @@ macro_rules! impl_from_request_for_fn ({ $($param:ident)* } => {
     {
         type Output<'r> = ($($param::Output<'r>,)*);
 
+        #[allow(unused_variables)]
         async fn from_request(req: &RequestHeader, body: OptionReqBody) -> Result<Self::Output<'_>, ParseError> {
             Ok(($($param::from_request(req, body.clone()).await?,)*))
         }
     }
 });
 
-impl_from_request_for_fn! {}
+#[async_trait]
+impl FromRequest for () {
+    type Output<'r> = ();
+
+    async fn from_request(_req: &RequestHeader, _body: OptionReqBody) -> Result<Self::Output<'static>, ParseError> {
+        Ok(())
+    }
+}
+
+
 impl_from_request_for_fn! {A}
 impl_from_request_for_fn! {A B}
 impl_from_request_for_fn! {A B C}

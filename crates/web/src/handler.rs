@@ -49,15 +49,9 @@ where
 mod test {
     use crate::fn_trait::FnTrait;
     use crate::handler::FnHandler;
-    use crate::responder::Responder;
-    use bytes::Bytes;
-    use http::{Method, Response};
-    use http_body_util::Empty;
+    use http::Method;
     use micro_http::handler::Handler;
     use micro_http::protocol::body::ReqBody;
-    use micro_http::protocol::RequestHeader;
-    use std::error::Error;
-    use std::marker::PhantomData;
 
     fn assert_is_fn_handler<H: FnTrait<Args>, Args>(_handler: &FnHandler<H, Args>) {
         // no op

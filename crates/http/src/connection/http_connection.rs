@@ -84,8 +84,8 @@ where
             let slice = value.as_bytes();
             if slice.len() >= 4 && &slice[0..4] == b"100-" {
                 let writer = self.framed_write.get_mut();
-                let _ = writer.write(b"HTTP/1.1 100 Continue\r\n\r\n").await.map_err(|e| SendError::io(e))?;
-                writer.flush().await.map_err(|e| SendError::io(e))?;
+                let _ = writer.write(b"HTTP/1.1 100 Continue\r\n\r\n").await.map_err(SendError::io)?;
+                writer.flush().await.map_err(SendError::io)?;
                 info!("receive expect request header, sent continue response");
             }
         }
@@ -168,7 +168,7 @@ where
                 Some(Ok(frame)) => {
                     let payload_item = frame
                         .into_data()
-                        .map(|d| PayloadItem::Chunk(d))
+                        .map(PayloadItem::Chunk)
                         .map_err(|_e| SendError::invalid_body("resolve body response error"))?;
 
                     self.framed_write
