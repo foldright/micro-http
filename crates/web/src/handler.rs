@@ -1,14 +1,14 @@
-use crate::body::{ResponseBody};
+use crate::body::ResponseBody;
 use crate::fn_trait::FnTrait;
 use crate::responder::Responder;
 use crate::{FromRequest, OptionReqBody};
+use async_trait::async_trait;
 use http::{Request, Response};
 use micro_http::handler::Handler;
 use micro_http::protocol::body::ReqBody;
 use micro_http::protocol::RequestHeader;
 use std::error::Error;
 use std::marker::PhantomData;
-use async_trait::async_trait;
 
 /// a `FnTrait` holder which represents any async Fn
 pub struct FnHandler<F: FnTrait<Args>, Args> {
@@ -25,6 +25,7 @@ where
     }
 }
 
+// TODO 签名还可以精简
 #[async_trait]
 impl<F, Args> Handler<ReqBody> for FnHandler<F, Args>
 where

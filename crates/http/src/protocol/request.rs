@@ -1,7 +1,7 @@
 use std::convert::Into;
 
 use http::request::Parts;
-use http::{HeaderMap, Method, Request, Uri, Version};
+use http::{Extensions, HeaderMap, Method, Request, Uri, Version};
 
 #[derive(Debug)]
 pub struct RequestHeader {
@@ -43,6 +43,10 @@ impl RequestHeader {
 
     pub fn headers(&self) -> &HeaderMap {
         self.inner.headers()
+    }
+
+    pub fn extensions(&self) -> &Extensions {
+        self.inner.extensions()
     }
 
     pub fn need_body(&self) -> bool {

@@ -7,7 +7,7 @@ use http::{Request, Response};
 use http_body::Body;
 
 #[async_trait]
-pub trait Handler<ReqBody> {
+pub trait Handler<ReqBody> : Send + Sync {
     type RespBody: Body;
     type Error: Into<Box<dyn Error + Send + Sync>>;
 

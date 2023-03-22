@@ -27,4 +27,6 @@ tracing-subscriber = "0.3.16"
 tokio = { version = "1", features = ["rt-multi-thread", "net", "io-util", "macros", "sync", "signal", "test-util"] }
 async-trait = "0.1"
 
+matchit = "0.7.0"
+
 [dev-dependencies]
