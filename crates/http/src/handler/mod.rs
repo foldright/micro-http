@@ -5,9 +5,10 @@ use async_trait::async_trait;
 use http::{Request, Response};
 
 use http_body::Body;
+use crate::protocol::body::ReqBody;
 
 #[async_trait]
-pub trait Handler<ReqBody> : Send + Sync {
+pub trait Handler : Send + Sync {
     type RespBody: Body;
     type Error: Into<Box<dyn Error + Send + Sync>>;
 
@@ -20,10 +21,9 @@ pub struct HandlerFn<F> {
 }
 
 #[async_trait]
-impl<ReqBody, RespBody, Err, F, Fut> Handler<ReqBody> for HandlerFn<F>
+impl<RespBody, Err, F, Fut> Handler for HandlerFn<F>
 where
     RespBody: Body,
-    ReqBody: Send + 'static,
     F: Fn(Request<ReqBody>) -> Fut + Send + Sync,
     Err: Into<Box<dyn Error + Send + Sync>>,
     Fut: Future<Output = Result<Response<RespBody>, Err>> + Send,
@@ -36,7 +36,7 @@ where
     }
 }
 
-pub fn make_handler<F, ReqBody, RespBody, Err, Ret>(f: F) -> HandlerFn<F>
+pub fn make_handler<F, RespBody, Err, Ret>(f: F) -> HandlerFn<F>
 where
     RespBody: Body,
     Err: Into<Box<dyn Error + Send + Sync>>,

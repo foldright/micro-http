@@ -31,6 +31,7 @@ impl<R, W> HttpConnection<R, W>
 where
     R: AsyncRead + Unpin,
     W: AsyncWrite + Unpin,
+
 {
     pub fn new(reader: R, writer: W) -> Self {
         Self {
@@ -41,7 +42,7 @@ where
 
     pub async fn process<H>(mut self, mut handler: Arc<H>) -> Result<(), HttpError>
     where
-        H: Handler<ReqBody>,
+        H: Handler,
         H::RespBody: Body<Data = Bytes> + Unpin,
         <H::RespBody as Body>::Error: Display,
     {
@@ -75,7 +76,7 @@ where
 
     async fn do_process<H>(&mut self, header: RequestHeader, handler: &mut Arc<H>) -> Result<(), HttpError>
     where
-        H: Handler<ReqBody>,
+        H: Handler,
         H::RespBody: Body<Data = Bytes> + Unpin,
         <H::RespBody as Body>::Error: Display,
     {

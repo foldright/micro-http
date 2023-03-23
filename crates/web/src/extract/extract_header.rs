@@ -3,12 +3,13 @@ use crate::body::OptionReqBody;
 use crate::extract::from_request::FromRequest;
 use http::{HeaderMap, Method};
 use micro_http::protocol::{ParseError, RequestHeader};
+use crate::RequestContext;
 
 #[async_trait]
 impl FromRequest for Method {
     type Output<'any> = Method;
 
-    async fn from_request(req: &RequestHeader, _body: OptionReqBody) -> Result<Self::Output<'_>, ParseError> {
+    async fn from_request(req: &RequestContext, _body: OptionReqBody) -> Result<Self::Output<'static>, ParseError> {
         Ok(req.method().clone())
     }
 }
@@ -17,7 +18,7 @@ impl FromRequest for Method {
 impl FromRequest for &Method {
     type Output<'r> = &'r Method;
 
-    async fn from_request(req: &RequestHeader, _body: OptionReqBody) -> Result<Self::Output<'_>, ParseError> {
+    async fn from_request<'r>(req: &'r RequestContext, _body: OptionReqBody) -> Result<Self::Output<'r>, ParseError> {
         Ok(req.method())
     }
 }
@@ -26,8 +27,8 @@ impl FromRequest for &Method {
 impl FromRequest for &RequestHeader {
     type Output<'r> = &'r RequestHeader;
 
-    async fn from_request(req: &RequestHeader, _body: OptionReqBody) -> Result<Self::Output<'_>, ParseError> {
-        Ok(req)
+    async fn from_request<'r>(req: &'r RequestContext, _body: OptionReqBody) -> Result<Self::Output<'r>, ParseError> {
+        Ok(req.request_header())
     }
 }
 
@@ -35,7 +36,7 @@ impl FromRequest for &RequestHeader {
 impl FromRequest for &HeaderMap {
     type Output<'r> = &'r HeaderMap;
 
-    async fn from_request(req: &RequestHeader, _body: OptionReqBody) -> Result<Self::Output<'_>, ParseError> {
+    async fn from_request<'r>(req: &'r RequestContext, _body: OptionReqBody) -> Result<Self::Output<'r>, ParseError> {
         Ok(req.headers())
     }
 }
@@ -44,7 +45,7 @@ impl FromRequest for &HeaderMap {
 impl FromRequest for HeaderMap {
     type Output<'any> = HeaderMap;
 
-    async fn from_request(req: &RequestHeader, _body: OptionReqBody) -> Result<Self::Output<'_>, ParseError> {
+    async fn from_request(req: &RequestContext, _body: OptionReqBody) -> Result<Self::Output<'static>, ParseError> {
         Ok(req.headers().clone())
     }
 }

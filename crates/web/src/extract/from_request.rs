@@ -1,11 +1,12 @@
 use async_trait::async_trait;
 use crate::body::OptionReqBody;
 use micro_http::protocol::{ParseError, RequestHeader};
+use crate::RequestContext;
 
 #[async_trait]
 pub trait FromRequest {
     type Output<'r> : Send;
-    async fn from_request(req: &RequestHeader, body: OptionReqBody) -> Result<Self::Output<'_>, ParseError>;
+    async fn from_request<'r>(req: &'r RequestContext, body: OptionReqBody) -> Result<Self::Output<'r>, ParseError>;
 }
 
 #[async_trait]
@@ -15,7 +16,7 @@ where
 {
     type Output<'r> = Option<T::Output<'r>>;
 
-    async fn from_request(req: &RequestHeader, body: OptionReqBody) -> Result<Self::Output<'_>, ParseError> {
+    async fn from_request<'r>(req: &'r RequestContext, body: OptionReqBody) -> Result<Self::Output<'r>, ParseError> {
         match T::from_request(req, body.clone()).await {
             Ok(t) => Ok(Some(t)),
             Err(_) => Ok(None),
@@ -30,7 +31,7 @@ where
 {
     type Output<'r> = Result<T::Output<'r>, ParseError>;
 
-    async fn from_request(req: &RequestHeader, body: OptionReqBody) -> Result<Self::Output<'_>, ParseError> {
+    async fn from_request<'r>(req: &'r RequestContext, body: OptionReqBody) -> Result<Self::Output<'r>, ParseError> {
         match T::from_request(req, body.clone()).await {
             Ok(t) => Ok(Ok(t)),
             e => Ok(e),
@@ -71,7 +72,7 @@ macro_rules! impl_from_request_for_fn ({ $($param:ident)* } => {
         type Output<'r> = ($($param::Output<'r>,)*);
 
         #[allow(unused_variables)]
-        async fn from_request(req: &RequestHeader, body: OptionReqBody) -> Result<Self::Output<'_>, ParseError> {
+        async fn from_request<'r>(req: &'r RequestContext, body: OptionReqBody) -> Result<Self::Output<'r>, ParseError> {
             Ok(($($param::from_request(req, body.clone()).await?,)*))
         }
     }
@@ -81,7 +82,7 @@ macro_rules! impl_from_request_for_fn ({ $($param:ident)* } => {
 impl FromRequest for () {
     type Output<'r> = ();
 
-    async fn from_request(_req: &RequestHeader, _body: OptionReqBody) -> Result<Self::Output<'static>, ParseError> {
+    async fn from_request(_req: &RequestContext, _body: OptionReqBody) -> Result<Self::Output<'static>, ParseError> {
         Ok(())
     }
 }

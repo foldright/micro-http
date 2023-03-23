@@ -1,17 +1,28 @@
 use crate::body::ResponseBody;
 use crate::fn_trait::FnTrait;
+use crate::request::PathParams;
 use crate::responder::Responder;
-use crate::{FromRequest, OptionReqBody};
+use crate::{FromRequest, OptionReqBody, RequestContext};
 use async_trait::async_trait;
 use http::{Request, Response};
+use matchit::Params;
 use micro_http::handler::Handler;
 use micro_http::protocol::body::ReqBody;
 use micro_http::protocol::RequestHeader;
 use std::error::Error;
 use std::marker::PhantomData;
 
+#[async_trait]
+pub trait RequestHandler: Send + Sync {
+    async fn invoke<'server, 'req>(
+        &self,
+        req: RequestContext<'server, 'req>,
+        req_body: OptionReqBody,
+    ) -> Result<Response<ResponseBody>, Box<dyn Error + Send + Sync>>;
+}
+
 /// a `FnTrait` holder which represents any async Fn
-pub struct FnHandler<F: FnTrait<Args>, Args> {
+pub struct FnHandler<F, Args> {
     f: F,
     _phantom: PhantomData<fn(Args)>,
 }
@@ -25,31 +36,51 @@ where
     }
 }
 
-// TODO 签名还可以精简
-#[async_trait]
-impl<F, Args> Handler<ReqBody> for FnHandler<F, Args>
-where
-    F: FnTrait<Args> + for<'r> FnTrait<<Args as FromRequest>::Output<'r>>,
-    for<'r> <F as FnTrait<<Args as FromRequest>::Output<'r>>>::Output: Responder,
-    Args: FromRequest,
-{
-    type RespBody = ResponseBody;
-    type Error = Box<dyn Error + Send + Sync>;
+// impl<F, Args> From<F> for FnHandler<F, Args>
+// where
+//     Args: FromRequest,
+//     F: for<'r> FnTrait<Args::Output<'r>>,
+//     for<'r> <F as FnTrait<Args::Output<'r>>>::Output: Responder,
+// {
+//     fn from(f: F) -> Self {
+//         Self { f, _phantom: PhantomData }
+//     }
+// }
+//
+// impl<F, Args> From<FnHandler<F, Args>> for Box<dyn RequestHandler>
+// where
+//     Args: FromRequest + 'static,
+//     F: for<'r> FnTrait<Args::Output<'r>> + 'static,
+//     for<'r> <F as FnTrait<Args::Output<'r>>>::Output: Responder,
+// {
+//     fn from(fn_handler: FnHandler<F, Args>) -> Self {
+//         Box::new(fn_handler)
+//     }
+// }
 
-    async fn call(&self, req: Request<ReqBody>) -> Result<Response<Self::RespBody>, Self::Error> {
-        let (parts, body) = req.into_parts();
-        let header = RequestHeader::from(parts);
-        let req_body = OptionReqBody::from(body);
-        let args = Args::from_request(&header, req_body.clone()).await?;
+#[async_trait]
+impl<F, Args> RequestHandler for FnHandler<F, Args>
+where
+    Args: FromRequest,
+    F: for<'r> FnTrait<Args::Output<'r>>,
+    for<'r> <F as FnTrait<Args::Output<'r>>>::Output: Responder,
+{
+    async fn invoke<'server, 'req>(
+        &self,
+        req: RequestContext<'server, 'req>,
+        req_body: OptionReqBody,
+    ) -> Result<Response<ResponseBody>, Box<dyn Error + Send + Sync>> {
+        let args = Args::from_request(&req, req_body.clone()).await?;
         let responder = self.f.call(args).await;
-        Ok(responder.response_to(&header))
+        Ok(responder.response_to(&req))
     }
 }
 
 #[cfg(test)]
 mod test {
     use crate::fn_trait::FnTrait;
-    use crate::handler::FnHandler;
+    use crate::handler::{FnHandler, RequestHandler};
+    use crate::request::PathParams;
     use http::Method;
     use micro_http::handler::Handler;
     use micro_http::protocol::body::ReqBody;
@@ -58,7 +89,7 @@ mod test {
         // no op
     }
 
-    fn assert_is_handler<T: Handler<ReqBody>>(_handler: &T) {
+    fn assert_is_handler<T: RequestHandler>(_handler: &T) {
         // no op
     }
 
