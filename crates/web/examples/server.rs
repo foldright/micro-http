@@ -1,20 +1,20 @@
-use http::{Method, Request, Response, StatusCode};
-use std::error::Error;
+use http::{Method};
 
-use async_trait::async_trait;
-use matchit::{Params, Router};
-use std::sync::Arc;
 
-use tokio::net::TcpListener;
 
-use micro_http::connection::HttpConnection;
 
-use micro_http::handler::{make_handler, Handler};
-use micro_http::protocol::body::ReqBody;
-use micro_http::protocol::{ParseError, RequestHeader};
-use micro_web::{FnHandler, FromRequest, OptionReqBody, PathParams, ResponseBody, Server};
-use tracing::{error, info, warn, Level};
-use tracing_subscriber::FmtSubscriber;
+
+
+
+
+
+
+
+
+
+use micro_web::{FnHandler, Server};
+
+
 
 #[tokio::main]
 async fn main() {
@@ -26,12 +26,12 @@ async fn main() {
         .start().await;
 }
 
-async fn simple_handler(method: Method, str: Option<String>, str2: Option<String>) -> String {
+async fn simple_handler(method: &Method, str: Option<String>, str2: Option<String>) -> String {
     println!("receive body: {}, {}", str.is_some(), str2.is_some());
     format!("1: receive from method: {}\r\n", method)
 }
 
-async fn simple_handler_2(method: Method) -> String {
+async fn simple_handler_2(method: &Method) -> String {
     format!("2: receive from method: {}\r\n", method)
 }
 

@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 use crate::body::OptionReqBody;
-use micro_http::protocol::{ParseError, RequestHeader};
+use micro_http::protocol::ParseError;
 use crate::RequestContext;
 
 #[async_trait]

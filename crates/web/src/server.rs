@@ -1,8 +1,9 @@
 use crate::handler::RequestHandler;
-use crate::{FnHandler, FnTrait, FromRequest, OptionReqBody, PathParams, RequestContext, ResponseBody};
+
+use crate::{OptionReqBody, PathParams, RequestContext, ResponseBody};
 use async_trait::async_trait;
 use http::{Request, Response};
-use matchit::{Match, MatchError, Params, Router};
+use matchit::Router;
 use micro_http::connection::HttpConnection;
 use micro_http::handler::Handler;
 use micro_http::protocol::body::ReqBody;
@@ -102,7 +103,7 @@ impl Handler for Server {
         let path = header.uri().path();
         let matcher = match self.router.at(path) {
             Ok(matcher) => matcher,
-            Err(e) => {
+            Err(_e) => {
                 let request_context = RequestContext::new(&header, PathParams::empty());
                 // todo: do not using unwrap
                 let default_handler = self.default_handler.as_ref().unwrap();
