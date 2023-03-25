@@ -1,6 +1,6 @@
 use crate::RequestContext;
 use http::Method;
-use tracing::Metadata;
+
 
 pub trait Filter {
     fn check(&self, req: &RequestContext) -> bool;

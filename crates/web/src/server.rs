@@ -1,12 +1,12 @@
 use crate::handler::RequestHandler;
 
 use crate::filter::Filter;
-use crate::{FnHandler, FnTrait, handler_fn, OptionReqBody, PathParams, RequestContext, ResponseBody};
+use crate::{OptionReqBody, PathParams, RequestContext, ResponseBody};
 use async_trait::async_trait;
 use http::{Request, Response};
 use matchit::Router;
 use micro_http::connection::HttpConnection;
-use micro_http::handler::{Handler, make_handler};
+use micro_http::handler::{Handler};
 use micro_http::protocol::body::ReqBody;
 use micro_http::protocol::RequestHeader;
 use std::error::Error;
@@ -183,7 +183,7 @@ impl ResourceItemBuilder {
         self
     }
 
-    pub fn to<H: RequestHandler + 'static>(mut self, h: H) -> ResourceBuilder {
+    pub fn to<H: RequestHandler + 'static>(self, h: H) -> ResourceBuilder {
         let item = ResourceItem { filter: self.filter, handler: Box::new(h) };
         self.resource_builder.item(item)
     }
