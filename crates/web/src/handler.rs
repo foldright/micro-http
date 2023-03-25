@@ -28,10 +28,15 @@ impl<F, Args> FnHandler<F, Args>
 where
     F: FnTrait<Args>,
 {
-    pub fn new(f: F) -> Self {
+    fn new(f: F) -> Self {
         Self { f, _phantom: PhantomData }
     }
 }
+
+pub fn handler_fn<F, Args>(f: F) -> FnHandler<F, Args> where F: FnTrait<Args> {
+    FnHandler::new(f)
+}
+
 
 #[async_trait]
 impl<F, Args> RequestHandler for FnHandler<F, Args>

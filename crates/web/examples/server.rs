@@ -12,16 +12,16 @@ use http::{Method};
 
 
 
-use micro_web::{FnHandler, Server};
+use micro_web::{handler_fn, Server};
 
 
 
 #[tokio::main]
 async fn main() {
     Server::builder()
-        .default_handler(FnHandler::new(default_handler))
-        .route("/1", FnHandler::new(simple_handler))
-        .route("/2", FnHandler::new(simple_handler_2))
+        .default_handler(handler_fn(default_handler))
+        .route("/1", handler_fn(simple_handler))
+        .route("/2", handler_fn(simple_handler_2))
         .build()
         .start().await;
 }

@@ -14,12 +14,33 @@ use tokio::net::TcpListener;
 use tracing::{error, info, warn, Level};
 use tracing_subscriber::FmtSubscriber;
 
-pub struct Server {
+pub struct ServerBuilder {
     router: Router<Box<dyn RequestHandler>>,
     default_handler: Option<Box<dyn RequestHandler>>,
 }
 
-pub struct ServerBuilder {
+
+impl ServerBuilder {
+    fn new() -> Self {
+        Self { router: Router::new(), default_handler: None }
+    }
+
+    pub fn route(mut self, path: impl Into<String>, request_handler: impl RequestHandler + 'static) -> Self {
+        self.router.insert(path, Box::new(request_handler)).unwrap();
+        self
+    }
+
+    pub fn default_handler(mut self, request_handler: impl RequestHandler + 'static) -> Self {
+        self.default_handler = Some(Box::new(request_handler));
+        self
+    }
+
+    pub fn build(self) -> Server {
+        Server { router: self.router, default_handler: self.default_handler }
+    }
+}
+
+pub struct Server {
     router: Router<Box<dyn RequestHandler>>,
     default_handler: Option<Box<dyn RequestHandler>>,
 }
@@ -67,26 +88,6 @@ impl Server {
                 }
             });
         }
-    }
-}
-
-impl ServerBuilder {
-    fn new() -> Self {
-        Self { router: Router::new(), default_handler: None }
-    }
-
-    pub fn route(mut self, path: impl Into<String>, request_handler: impl RequestHandler + 'static) -> Self {
-        self.router.insert(path, Box::new(request_handler)).unwrap();
-        self
-    }
-
-    pub fn default_handler(mut self, request_handler: impl RequestHandler + 'static) -> Self {
-        self.default_handler = Some(Box::new(request_handler));
-        self
-    }
-
-    pub fn build(self) -> Server {
-        Server { router: self.router, default_handler: self.default_handler }
     }
 }
 
