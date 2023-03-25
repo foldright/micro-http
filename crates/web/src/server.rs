@@ -1,11 +1,12 @@
 use crate::handler::RequestHandler;
 
-use crate::{OptionReqBody, PathParams, RequestContext, ResponseBody};
+use crate::filter::Filter;
+use crate::{FnHandler, FnTrait, handler_fn, OptionReqBody, PathParams, RequestContext, ResponseBody};
 use async_trait::async_trait;
 use http::{Request, Response};
 use matchit::Router;
 use micro_http::connection::HttpConnection;
-use micro_http::handler::Handler;
+use micro_http::handler::{Handler, make_handler};
 use micro_http::protocol::body::ReqBody;
 use micro_http::protocol::RequestHeader;
 use std::error::Error;
@@ -15,18 +16,17 @@ use tracing::{error, info, warn, Level};
 use tracing_subscriber::FmtSubscriber;
 
 pub struct ServerBuilder {
-    router: Router<Box<dyn RequestHandler>>,
+    router: Router<Box<Resource>>,
     default_handler: Option<Box<dyn RequestHandler>>,
 }
-
 
 impl ServerBuilder {
     fn new() -> Self {
         Self { router: Router::new(), default_handler: None }
     }
 
-    pub fn route(mut self, path: impl Into<String>, request_handler: impl RequestHandler + 'static) -> Self {
-        self.router.insert(path, Box::new(request_handler)).unwrap();
+    pub fn route(mut self, path: impl Into<String>, resource: Resource) -> Self {
+        self.router.insert(path, Box::new(resource)).unwrap();
         self
     }
 
@@ -41,7 +41,7 @@ impl ServerBuilder {
 }
 
 pub struct Server {
-    router: Router<Box<dyn RequestHandler>>,
+    router: Router<Box<Resource>>,
     default_handler: Option<Box<dyn RequestHandler>>,
 }
 
@@ -113,9 +113,78 @@ impl Handler for Server {
         };
 
         let params = matcher.params;
-        let handler = matcher.value;
+        let resource = matcher.value;
         let request_context = RequestContext::new(&header, params.into());
 
-        handler.invoke(request_context, req_body).await
+        for resource_item in &resource.inner {
+            let filter = resource_item.filter.as_ref().map(|f| f.check(&request_context)).unwrap_or(true);
+            if filter {
+                return resource_item.handler.invoke(request_context, req_body).await;
+            }
+        }
+
+        let default_handler = self.default_handler.as_ref().unwrap();
+        default_handler.invoke(request_context, req_body).await
+    }
+}
+
+type ResourceFilter = dyn Filter + Send + Sync;
+type BoxedResourceFilter = Box<dyn Filter + Send + Sync>;
+
+pub fn resource() -> ResourceBuilder {
+    ResourceBuilder::new()
+}
+
+pub struct Resource {
+    inner: Vec<ResourceItem>,
+}
+
+impl ResourceBuilder {
+    fn new() -> Self {
+        Self { inner: vec![] }
+    }
+
+    pub fn when<F: Filter + Send + Sync + 'static>(self, f: F) -> ResourceItemBuilder {
+        ResourceItemBuilder::new(self).when(f)
+    }
+
+    fn item(mut self, item: ResourceItem) -> ResourceBuilder {
+        self.inner.push(item);
+        self
+    }
+
+    pub fn build(self) -> Resource {
+        Resource { inner: self.inner }
+    }
+}
+
+struct ResourceItem {
+    filter: Option<Box<dyn Filter + Send + Sync>>,
+    handler: Box<dyn RequestHandler>,
+}
+
+pub struct ResourceBuilder {
+    inner: Vec<ResourceItem>,
+}
+
+pub struct ResourceItemBuilder {
+    resource_builder: ResourceBuilder,
+    filter: Option<Box<dyn Filter + Send + Sync>>,
+    handler: Option<Box<dyn RequestHandler>>,
+}
+
+impl ResourceItemBuilder {
+    fn new(resource_builder: ResourceBuilder) -> Self {
+        Self { resource_builder, filter: None, handler: None }
+    }
+
+    fn when<F: Filter + Send + Sync + 'static>(mut self, f: F) -> Self {
+        self.filter = Some(Box::new(f));
+        self
+    }
+
+    pub fn to<H: RequestHandler + 'static>(mut self, h: H) -> ResourceBuilder {
+        let item = ResourceItem { filter: self.filter, handler: Box::new(h) };
+        self.resource_builder.item(item)
     }
 }

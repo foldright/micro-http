@@ -16,3 +16,7 @@ pub use handler::FnHandler;
 pub use request::PathParams;
 pub use request::RequestContext;
 pub use server::Server;
+pub use server::resource;
+
+pub use filter::get;
+pub use filter::post;
