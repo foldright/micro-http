@@ -16,7 +16,7 @@ use tracing::{error, info, warn, Level};
 use tracing_subscriber::FmtSubscriber;
 
 pub struct ServerBuilder {
-    router: Router<Box<Resource>>,
+    router: Router<Resource>,
     default_handler: Option<Box<dyn RequestHandler>>,
 }
 
@@ -26,7 +26,7 @@ impl ServerBuilder {
     }
 
     pub fn route(mut self, path: impl Into<String>, resource: Resource) -> Self {
-        self.router.insert(path, Box::new(resource)).unwrap();
+        self.router.insert(path, resource).unwrap();
         self
     }
 
@@ -41,7 +41,7 @@ impl ServerBuilder {
 }
 
 pub struct Server {
-    router: Router<Box<Resource>>,
+    router: Router<Resource>,
     default_handler: Option<Box<dyn RequestHandler>>,
 }
 
