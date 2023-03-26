@@ -6,6 +6,7 @@ mod handler;
 mod request;
 mod responder;
 mod server;
+mod router;
 
 pub use body::OptionReqBody;
 pub use body::ResponseBody;
@@ -16,7 +17,7 @@ pub use handler::FnHandler;
 pub use request::PathParams;
 pub use request::RequestContext;
 pub use server::Server;
-pub use server::resource;
+pub use router::resource;
 
 pub use filter::get;
 pub use filter::post;
