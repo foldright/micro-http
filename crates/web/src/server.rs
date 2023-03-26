@@ -1,11 +1,11 @@
 use crate::handler::RequestHandler;
 
-use crate::{OptionReqBody, PathParams, RequestContext, ResponseBody};
+
+use crate::{OptionReqBody, RequestContext, ResponseBody, Router};
 use async_trait::async_trait;
 use http::{Request, Response};
-use matchit::Router;
 use micro_http::connection::HttpConnection;
-use micro_http::handler::{Handler};
+use micro_http::handler::Handler;
 use micro_http::protocol::body::ReqBody;
 use micro_http::protocol::RequestHeader;
 use std::error::Error;
@@ -13,20 +13,19 @@ use std::sync::Arc;
 use tokio::net::TcpListener;
 use tracing::{error, info, warn, Level};
 use tracing_subscriber::FmtSubscriber;
-use crate::router::Resource;
 
 pub struct ServerBuilder {
-    router: Router<Resource>,
+    router: Option<Router>,
     default_handler: Option<Box<dyn RequestHandler>>,
 }
 
 impl ServerBuilder {
     fn new() -> Self {
-        Self { router: Router::new(), default_handler: None }
+        Self { router: None, default_handler: None }
     }
 
-    pub fn route(mut self, path: impl Into<String>, resource: Resource) -> Self {
-        self.router.insert(path, resource).unwrap();
+    pub fn router(mut self, router: Router) -> Self {
+        self.router = Some(router);
         self
     }
 
@@ -36,12 +35,12 @@ impl ServerBuilder {
     }
 
     pub fn build(self) -> Server {
-        Server { router: self.router, default_handler: self.default_handler }
+        Server { router: self.router.unwrap(), default_handler: self.default_handler }
     }
 }
 
 pub struct Server {
-    router: Router<Resource>,
+    router: Router,
     default_handler: Option<Box<dyn RequestHandler>>,
 }
 
@@ -102,28 +101,27 @@ impl Handler for Server {
         let req_body = OptionReqBody::from(body);
 
         let path = header.uri().path();
-        let matcher = match self.router.at(path) {
-            Ok(matcher) => matcher,
-            Err(_e) => {
-                let request_context = RequestContext::new(&header, PathParams::empty());
+        let route_result = self.router.at(path);
+
+        let request_context = RequestContext::new(&header, route_result.params());
+
+        let handler_option = route_result
+            .router_items()
+            .into_iter()
+            .filter(|item| item.filter().check(&request_context))
+            .map(|item| item.handler())
+            .take(1)
+            .next();
+
+        match handler_option {
+            Some(handler) => {
+                handler.invoke(request_context, req_body).await
+            }
+            None => {
                 // todo: do not using unwrap
                 let default_handler = self.default_handler.as_ref().unwrap();
-                return default_handler.invoke(request_context, req_body).await;
-            }
-        };
-
-        let params = matcher.params;
-        let resource = matcher.value;
-        let request_context = RequestContext::new(&header, params.into());
-
-        for resource_item in resource.resource_items_ref() {
-            let filter = resource_item.filter_ref().map(|f| f.check(&request_context)).unwrap_or(true);
-            if filter {
-                return resource_item.handler_ref().invoke(request_context, req_body).await;
+                default_handler.invoke(request_context, req_body).await
             }
         }
-
-        let default_handler = self.default_handler.as_ref().unwrap();
-        default_handler.invoke(request_context, req_body).await
     }
 }

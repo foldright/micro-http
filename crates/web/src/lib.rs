@@ -1,12 +1,13 @@
 mod body;
 mod extract;
-mod filter;
 mod fn_trait;
 mod handler;
 mod request;
 mod responder;
 mod server;
-mod router;
+
+pub mod router;
+pub mod filter;
 
 pub use body::OptionReqBody;
 pub use body::ResponseBody;
@@ -16,8 +17,5 @@ pub use handler::handler_fn;
 pub use handler::FnHandler;
 pub use request::PathParams;
 pub use request::RequestContext;
+pub use router::Router;
 pub use server::Server;
-pub use router::resource;
-
-pub use filter::get;
-pub use filter::post;

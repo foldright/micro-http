@@ -37,10 +37,12 @@ impl<'server, 'req> RequestContext<'server, 'req> {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct PathParams<'server, 'req> {
     kind: PathParamsKind<'server, 'req>,
 }
 
+#[derive(Debug, Clone)]
 enum PathParamsKind<'server, 'req> {
     None,
     Params(Params<'server, 'req>),
@@ -48,11 +50,29 @@ enum PathParamsKind<'server, 'req> {
 
 impl<'server, 'req> PathParams<'server, 'req> {
     fn new(params: Params<'server, 'req>) -> Self {
-        Self { kind: PathParamsKind::Params(params) }
+        if params.is_empty() {
+            Self::empty()
+        } else {
+            Self { kind: PathParamsKind::Params(params) }
+        }
     }
 
     pub fn empty() -> Self {
         Self { kind: PathParamsKind::None }
+    }
+
+    pub fn is_empty(&self) -> bool {
+        match &self.kind {
+            PathParamsKind::None => true,
+            PathParamsKind::Params(params) => params.is_empty(),
+        }
+    }
+
+    pub fn len(&self) -> usize {
+        match &self.kind {
+            PathParamsKind::None => 0,
+            PathParamsKind::Params(params) => params.len(),
+        }
     }
 
     pub fn get(&self, key: impl AsRef<str>) -> Option<&'req str> {

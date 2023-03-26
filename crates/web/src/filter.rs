@@ -1,21 +1,20 @@
 use crate::RequestContext;
-use http::Method;
+use http::{HeaderName, HeaderValue, Method};
 
-
-pub trait Filter {
+pub trait Filter: Send + Sync {
     fn check(&self, req: &RequestContext) -> bool;
 }
 
 struct FnFilter<F: Fn(&RequestContext) -> bool>(F);
 
-impl<F: Fn(&RequestContext) -> bool> Filter for FnFilter<F> {
+impl<F: Fn(&RequestContext) -> bool + Send + Sync> Filter for FnFilter<F> {
     fn check(&self, req: &RequestContext) -> bool {
         (self.0)(req)
     }
 }
 pub fn fn_filter<F>(f: F) -> impl Filter
 where
-    F: Fn(&RequestContext) -> bool,
+    F: Fn(&RequestContext) -> bool + Send + Sync,
 {
     FnFilter(f)
 }
@@ -56,7 +55,7 @@ impl AnyFilter {
     fn new() -> Self {
         Self { filters: vec![] }
     }
-    pub fn or<F: Filter + 'static>(mut self, filter: F) -> Self {
+    pub fn or<F: Filter + 'static>(&mut self, filter: F) -> &mut Self {
         self.filters.push(Box::new(filter));
         self
     }
@@ -78,6 +77,9 @@ impl Filter for AnyFilter {
     }
 }
 
+pub fn all_filter() -> AllFilter {
+    AllFilter::new()
+}
 /// compose filters with *AND* logic, if any inner filter success, the whole [`AllFilter`] will success
 pub struct AllFilter {
     filters: Vec<Box<dyn Filter>>,
@@ -87,7 +89,7 @@ impl AllFilter {
     fn new() -> Self {
         Self { filters: vec![] }
     }
-    pub fn or<F: Filter + 'static>(mut self, filter: F) -> Self {
+    pub fn and<F: Filter + 'static>(&mut self, filter: F) -> &mut Self {
         self.filters.push(Box::new(filter));
         self
     }
@@ -109,18 +111,41 @@ impl Filter for AllFilter {
     }
 }
 
-pub fn get() -> MethodFilter {
-    MethodFilter(Method::GET)
-}
-
-pub fn post() -> MethodFilter {
-    MethodFilter(Method::POST)
-}
-
 pub struct MethodFilter(Method);
 
 impl Filter for MethodFilter {
     fn check(&self, req: &RequestContext) -> bool {
         self.0.eq(req.method())
+    }
+}
+
+macro_rules! method_filter {
+    ($method:ident, $upper_case_method:ident) => {
+        #[inline]
+        pub fn $method() -> MethodFilter {
+            MethodFilter(Method::$upper_case_method)
+        }
+    };
+}
+
+method_filter!(get_method, GET);
+method_filter!(post_method, POST);
+method_filter!(put_method, PUT);
+method_filter!(delete_method, DELETE);
+method_filter!(head_method, HEAD);
+method_filter!(options_method, OPTIONS);
+method_filter!(connect_method, CONNECT);
+method_filter!(patch_method, PATCH);
+method_filter!(trace_method, TRACE);
+
+#[inline]
+pub fn header(header_name: impl Into<HeaderName>, header_value: impl Into<HeaderValue>) -> HeaderFilter {
+    HeaderFilter(header_name.into(), header_value.into())
+}
+pub struct HeaderFilter(HeaderName, HeaderValue);
+impl Filter for HeaderFilter {
+    fn check(&self, req: &RequestContext) -> bool {
+        let value_option = req.headers().get(&self.0);
+        value_option.map(|value| (&self.1).eq(value)).unwrap_or(false)
     }
 }
