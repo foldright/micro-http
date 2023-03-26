@@ -1,8 +1,8 @@
 use http::{HeaderValue, Method};
 
-use micro_web::{handler_fn, Router, Server};
 use micro_web::filter::header;
 use micro_web::router::{get, post};
+use micro_web::{handler_fn, Router, Server};
 
 async fn simple_handler_1(method: &Method, str: Option<String>, str2: Option<String>) -> String {
     println!("receive body: {}, {}", str.is_some(), str2.is_some());
@@ -23,12 +23,9 @@ async fn simple_handler_4(method: &Method, str: Option<String>, str2: Option<Str
     format!("handler_4: receive from method: {}\r\n", method)
 }
 
-
-
 async fn default_handler() -> &'static str {
     "404 not found"
 }
-
 
 #[tokio::main]
 async fn main() {
@@ -47,8 +44,10 @@ async fn main() {
 
     Server::builder()
         .router(router)
+        .address("127.0.0.1:8080")
         .default_handler(handler_fn(default_handler))
         .build()
+        .unwrap()
         .start()
         .await;
 }
