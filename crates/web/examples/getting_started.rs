@@ -1,4 +1,4 @@
-use http::{HeaderValue, Method};
+use http::Method;
 
 use micro_web::filter::header;
 use micro_web::router::{get, post};
@@ -33,10 +33,8 @@ async fn main() {
         .route("/", get(handler_fn(simple_handler_1)))
         .route(
             "/",
-            post(handler_fn(simple_handler_2)).with(header(
-                http::header::CONTENT_TYPE,
-                HeaderValue::from_str(mime::APPLICATION_WWW_FORM_URLENCODED.as_ref()).unwrap(),
-            )),
+            post(handler_fn(simple_handler_2))
+                .with(header(http::header::CONTENT_TYPE, mime::APPLICATION_WWW_FORM_URLENCODED.as_ref())),
         )
         .route("/", post(handler_fn(simple_handler_3)))
         .route("/4", get(handler_fn(simple_handler_4)))

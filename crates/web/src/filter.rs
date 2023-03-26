@@ -139,9 +139,19 @@ method_filter!(patch_method, PATCH);
 method_filter!(trace_method, TRACE);
 
 #[inline]
-pub fn header(header_name: impl Into<HeaderName>, header_value: impl Into<HeaderValue>) -> HeaderFilter {
-    HeaderFilter(header_name.into(), header_value.into())
+pub fn header<K, V>(header_name: K, header_value: V) -> HeaderFilter
+where
+    HeaderName: TryFrom<K>,
+    <HeaderName as TryFrom<K>>::Error: Into<http::Error>,
+    HeaderValue: TryFrom<V>,
+    <HeaderValue as TryFrom<V>>::Error: Into<http::Error>,
+{
+    // TODO: need to process the unwrap
+    let name = <HeaderName as TryFrom<K>>::try_from(header_name).map_err(Into::into).unwrap();
+    let value = <HeaderValue as TryFrom<V>>::try_from(header_value).map_err(Into::into).unwrap();
+    HeaderFilter(name, value)
 }
+
 pub struct HeaderFilter(HeaderName, HeaderValue);
 impl Filter for HeaderFilter {
     fn check(&self, req: &RequestContext) -> bool {
