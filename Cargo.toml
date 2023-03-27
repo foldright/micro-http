@@ -10,6 +10,7 @@ authors = ["Zava <zava.kid@gmail.com>"]
 edition = "2021"
 homepage = "https://github.com/foldright/micro-http"
 license = "MIT OR Apache-2.0"
+readme = "README.md"
 
 [patch.crates-io]
 micro-http = { path = "crates/http" }
