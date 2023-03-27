@@ -1,14 +1,15 @@
-use std::error::Error;
 use crate::handler::RequestHandler;
+use std::error::Error;
+use std::future::Future;
 
 use crate::{OptionReqBody, RequestContext, ResponseBody, Router};
-use async_trait::async_trait;
 use http::{Request, Response};
 use micro_http::connection::HttpConnection;
 use micro_http::handler::Handler;
 use micro_http::protocol::body::ReqBody;
 use micro_http::protocol::RequestHeader;
 use std::net::{SocketAddr, ToSocketAddrs};
+use std::pin::Pin;
 use std::sync::Arc;
 use thiserror::Error;
 use tokio::net::TcpListener;
@@ -108,36 +109,38 @@ impl Server {
     }
 }
 
-#[async_trait]
 impl Handler for Server {
     type RespBody = ResponseBody;
     type Error = Box<dyn Error + Send + Sync>;
+    type Fut<'fut> = Pin<Box<dyn Future<Output = Result<Response<Self::RespBody>, Self::Error>> + Send + 'fut>> ;
 
-    async fn call(&self, req: Request<ReqBody>) -> Result<Response<Self::RespBody>, Self::Error> {
-        let (parts, body) = req.into_parts();
-        let header = RequestHeader::from(parts);
-        let req_body = OptionReqBody::from(body);
+    fn call(&self, req: Request<ReqBody>) -> Self::Fut<'_> {
+        Box::pin(async {
+            let (parts, body) = req.into_parts();
+            let header = RequestHeader::from(parts);
+            let req_body = OptionReqBody::from(body);
 
-        let path = header.uri().path();
-        let route_result = self.router.at(path);
+            let path = header.uri().path();
+            let route_result = self.router.at(path);
 
-        let request_context = RequestContext::new(&header, route_result.params());
+            let request_context = RequestContext::new(&header, route_result.params());
 
-        let handler_option = route_result
-            .router_items()
-            .into_iter()
-            .filter(|item| item.filter().check(&request_context))
-            .map(|item| item.handler())
-            .take(1)
-            .next();
+            let handler_option = route_result
+                .router_items()
+                .into_iter()
+                .filter(|item| item.filter().check(&request_context))
+                .map(|item| item.handler())
+                .take(1)
+                .next();
 
-        match handler_option {
-            Some(handler) => handler.invoke(request_context, req_body).await,
-            None => {
-                // todo: do not using unwrap
-                let default_handler = self.default_handler.as_ref().unwrap();
-                default_handler.invoke(request_context, req_body).await
+            match handler_option {
+                Some(handler) => handler.invoke(request_context, req_body).await,
+                None => {
+                    // todo: do not using unwrap
+                    let default_handler = self.default_handler.as_ref().unwrap();
+                    default_handler.invoke(request_context, req_body).await
+                }
             }
-        }
+        })
     }
 }

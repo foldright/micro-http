@@ -1,18 +1,17 @@
+use crate::protocol::body::ReqBody;
+use http::{Request, Response};
+use http_body::Body;
 use std::error::Error;
 use std::future::Future;
-use async_trait::async_trait;
 
-use http::{Request, Response};
-
-use http_body::Body;
-use crate::protocol::body::ReqBody;
-
-#[async_trait]
-pub trait Handler : Send + Sync {
+pub trait Handler: Send + Sync {
     type RespBody: Body;
     type Error: Into<Box<dyn Error + Send + Sync>>;
+    type Fut<'fut>: Future<Output = Result<Response<Self::RespBody>, Self::Error>>
+    where
+        Self: 'fut;
 
-    async fn call(&self, req: Request<ReqBody>) -> Result<Response<Self::RespBody>, Self::Error>;
+    fn call(&self, req: Request<ReqBody>) -> Self::Fut<'_>;
 }
 
 #[derive(Debug)]
@@ -20,7 +19,6 @@ pub struct HandlerFn<F> {
     f: F,
 }
 
-#[async_trait]
 impl<RespBody, Err, F, Fut> Handler for HandlerFn<F>
 where
     RespBody: Body,
@@ -30,9 +28,10 @@ where
 {
     type RespBody = RespBody;
     type Error = Err;
+    type Fut<'fut> = Fut where Self: 'fut;
 
-    async fn call(&self, req: Request<ReqBody>) -> Result<Response<Self::RespBody>, Self::Error> {
-        (self.f)(req).await
+    fn call(&self, req: Request<ReqBody>) -> Self::Fut<'_> {
+        (self.f)(req)
     }
 }
 
