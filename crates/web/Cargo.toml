@@ -1,6 +1,6 @@
 [package]
 name = "micro-web"
-version = "0.1.0-alpha.1"
+version = "0.1.0-alpha.2"
 authors.workspace = true
 edition.workspace = true
 homepage.workspace = true
@@ -13,7 +13,7 @@ description = "the async micro web framework"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-micro-http = "0.1.0-alpha.1"
+micro-http = "0.1.0-alpha.2"
 
 http = "0.2.9"
 http-body = "1.0.0-rc.2"
