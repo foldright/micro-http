@@ -2,7 +2,8 @@ use crate::handler::RequestHandler;
 use std::error::Error;
 use std::future::Future;
 
-use crate::{OptionReqBody, RequestContext, ResponseBody, Router};
+use crate::router::Router;
+use crate::{OptionReqBody, RequestContext, ResponseBody};
 use http::{Request, Response};
 use micro_http::connection::HttpConnection;
 use micro_http::handler::Handler;
@@ -112,7 +113,7 @@ impl Server {
 impl Handler for Server {
     type RespBody = ResponseBody;
     type Error = Box<dyn Error + Send + Sync>;
-    type Fut<'fut> = Pin<Box<dyn Future<Output = Result<Response<Self::RespBody>, Self::Error>> + Send + 'fut>> ;
+    type Fut<'fut> = Pin<Box<dyn Future<Output = Result<Response<Self::RespBody>, Self::Error>> + Send + 'fut>>;
 
     fn call(&self, req: Request<ReqBody>) -> Self::Fut<'_> {
         Box::pin(async {

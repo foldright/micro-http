@@ -17,5 +17,4 @@ pub use handler::handler_fn;
 pub use handler::FnHandler;
 pub use request::PathParams;
 pub use request::RequestContext;
-pub use router::Router;
 pub use server::Server;
