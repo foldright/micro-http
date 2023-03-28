@@ -14,7 +14,7 @@ use crate::extract::FromRequest;
 pub trait RequestHandler: Send + Sync {
     async fn invoke<'server, 'req>(
         &self,
-        req: RequestContext<'server, 'req>,
+        req: &mut RequestContext<'server, 'req>,
         req_body: OptionReqBody,
     ) -> Result<Response<ResponseBody>, Box<dyn Error + Send + Sync>>;
 }
@@ -48,7 +48,7 @@ where
 {
     async fn invoke<'server, 'req>(
         &self,
-        req: RequestContext<'server, 'req>,
+        req: &mut RequestContext<'server, 'req>,
         req_body: OptionReqBody,
     ) -> Result<Response<ResponseBody>, Box<dyn Error + Send + Sync>> {
         let args = Args::from_request(&req, req_body.clone()).await?;

@@ -9,6 +9,7 @@ mod server;
 pub mod extract;
 pub mod filter;
 pub mod router;
+pub mod interceptor;
 
 pub use body::OptionReqBody;
 pub use body::ResponseBody;

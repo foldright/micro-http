@@ -5,6 +5,7 @@ use micro_web::router::{get, post, Router};
 use micro_web::{handler_fn, Server};
 use serde::Deserialize;
 
+#[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct User {
     name: String,
@@ -18,12 +19,12 @@ async fn simple_get(method: &Method, str: Option<String>, str2: Option<String>) 
 
 // curl -v  -H "Transfer-Encoding: chunked" -d "name=hello&zip=world&c=abc"  http://127.0.0.1:8080/
 async fn simple_handler_form_data(method: &Method, Form(user): Form<User>) -> String {
-    format!("receive from method: {}, receive use: {:#?}\r\n", method, user)
+    format!("receive from method: {}, receive use: {:?}\r\n", method, user)
 }
 
 // curl -v  -H "Transfer-Encoding: chunked" -H 'Content-Type: application/json' -d '{"name":"hello","zip":"world"}'  http://127.0.0.1:8080/
 async fn simple_handler_json_data(method: &Method, Json(user): Json<User>) -> String {
-    format!("receive from method: {}, receive use: {:#?}\r\n", method, user)
+    format!("receive from method: {}, receive use: {:?}\r\n", method, user)
 }
 
 async fn simple_handler_post(method: &Method, str: Option<String>, str2: Option<String>) -> String {

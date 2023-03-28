@@ -2,6 +2,7 @@ use crate::handler::RequestHandler;
 use std::error::Error;
 use std::future::Future;
 
+use crate::interceptor::{Interceptor, Interceptors};
 use crate::router::Router;
 use crate::{OptionReqBody, RequestContext, ResponseBody};
 use http::{Request, Response};
@@ -21,11 +22,12 @@ pub struct ServerBuilder {
     router: Option<Router>,
     default_handler: Option<Box<dyn RequestHandler>>,
     address: Option<Vec<SocketAddr>>,
+    interceptors: Interceptors,
 }
 
 impl ServerBuilder {
     fn new() -> Self {
-        Self { router: None, default_handler: None, address: None }
+        Self { router: None, default_handler: None, address: None, interceptors: Interceptors::builder().build() }
     }
 
     pub fn address<A: ToSocketAddrs>(mut self, address: A) -> Self {
@@ -43,10 +45,15 @@ impl ServerBuilder {
         self
     }
 
+    pub fn interceptors(mut self, interceptors: Interceptors) -> Self {
+        self.interceptors = interceptors;
+        self
+    }
+
     pub fn build(self) -> Result<Server, ServerBuildError> {
         let router = self.router.ok_or(ServerBuildError::MissingRouter).unwrap();
         let address = self.address.ok_or(ServerBuildError::MissingAddress).unwrap();
-        Ok(Server { router, default_handler: self.default_handler, address })
+        Ok(Server { router, default_handler: self.default_handler, address, interceptors: self.interceptors })
     }
 }
 
@@ -54,6 +61,7 @@ pub struct Server {
     router: Router,
     default_handler: Option<Box<dyn RequestHandler>>,
     address: Vec<SocketAddr>,
+    interceptors: Interceptors,
 }
 
 #[derive(Error, Debug)]
@@ -119,12 +127,12 @@ impl Handler for Server {
         Box::pin(async {
             let (parts, body) = req.into_parts();
             let header = RequestHeader::from(parts);
-            let req_body = OptionReqBody::from(body);
+            let mut req_body = OptionReqBody::from(body);
 
             let path = header.uri().path();
             let route_result = self.router.at(path);
 
-            let request_context = RequestContext::new(&header, route_result.params());
+            let mut request_context = RequestContext::new(&header, route_result.params());
 
             let handler_option = route_result
                 .router_items()
@@ -135,11 +143,20 @@ impl Handler for Server {
                 .next();
 
             match handler_option {
-                Some(handler) => handler.invoke(request_context, req_body).await,
+                Some(handler) => {
+                    self.interceptors.on_request(&mut request_context, &mut req_body).await;
+                    let mut response_result = handler.invoke(&mut request_context, req_body).await;
+                    self.interceptors.on_response(&request_context, &mut response_result).await;
+                    response_result
+                }
                 None => {
                     // todo: do not using unwrap
                     let default_handler = self.default_handler.as_ref().unwrap();
-                    default_handler.invoke(request_context, req_body).await
+
+                    self.interceptors.on_request(&mut request_context, &mut req_body).await;
+                    let mut response_result = default_handler.invoke(&mut request_context, req_body).await;
+                    self.interceptors.on_response(&request_context, &mut response_result).await;
+                    response_result
                 }
             }
         })
