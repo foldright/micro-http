@@ -2,12 +2,13 @@ use crate::body::ResponseBody;
 use crate::fn_trait::FnTrait;
 
 use crate::responder::Responder;
-use crate::{FromRequest, OptionReqBody, RequestContext};
+use crate::{OptionReqBody, RequestContext};
 use async_trait::async_trait;
 use http::Response;
 
 use std::error::Error;
 use std::marker::PhantomData;
+use crate::extract::FromRequest;
 
 #[async_trait]
 pub trait RequestHandler: Send + Sync {
