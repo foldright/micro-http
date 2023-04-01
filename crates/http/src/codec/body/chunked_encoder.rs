@@ -30,7 +30,7 @@ impl <D: Buf> Encoder<PayloadItem<D>> for ChunkedEncoder {
 
         match item {
             PayloadItem::Chunk(bytes) => {
-                write!(helper::Writer(dst), "{:X\r\n}", bytes.remaining())?;
+                write!(helper::Writer(dst), "{:X}\r\n", bytes.remaining())?;
                 dst.reserve(bytes.remaining() + 2);
                 dst.extend_from_slice(bytes.chunk());
                 dst.extend_from_slice(b"\r\n");

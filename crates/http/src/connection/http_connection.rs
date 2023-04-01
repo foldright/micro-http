@@ -31,7 +31,6 @@ impl<R, W> HttpConnection<R, W>
 where
     R: AsyncRead + Unpin,
     W: AsyncWrite + Unpin,
-
 {
     pub fn new(reader: R, writer: W) -> Self {
         Self {
@@ -164,6 +163,7 @@ where
             .send(Message::<_, T::Data>::Header((ResponseHead::from_parts(header_parts, ()), payload_size)))
             .await?;
 
+        let mut has_received_none = false;
         loop {
             match body.frame().await {
                 Some(Ok(frame)) => {
@@ -178,7 +178,16 @@ where
                         .map_err(|_e| SendError::invalid_body("can't send response"))?;
                 }
                 Some(Err(e)) => return Err(SendError::invalid_body(format!("resolve response body error: {e}")).into()),
-                None => return Ok(()),
+                None => {
+                    if !has_received_none {
+                        self.framed_write
+                            .send(Message::Payload(PayloadItem::<T::Data>::Eof))
+                            .await
+                            .map_err(|e| SendError::invalid_body(format!("can't send eof response: {}", e)))?;
+                        has_received_none = true;
+                    }
+                    return Ok(());
+                }
             }
         }
     }

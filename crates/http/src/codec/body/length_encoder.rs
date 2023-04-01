@@ -5,16 +5,17 @@ use tracing::warn;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LengthEncoder {
+    received_eof: bool,
     length: u64,
 }
 
 impl LengthEncoder {
     pub fn new(length: u64) -> Self {
-        Self { length }
+        Self { received_eof: false, length }
     }
 
     pub fn is_finish(&self) -> bool {
-        self.length == 0
+        self.length == 0 && self.received_eof
     }
 }
 
@@ -22,7 +23,7 @@ impl<D: Buf> Encoder<PayloadItem<D>> for LengthEncoder {
     type Error = SendError;
 
     fn encode(&mut self, item: PayloadItem<D>, dst: &mut BytesMut) -> Result<(), Self::Error> {
-        if self.length == 0 {
+        if self.length == 0 && !item.is_eof() {
             warn!("encode payload_item but no need to encode anymore");
             return Ok(());
         }
@@ -36,7 +37,10 @@ impl<D: Buf> Encoder<PayloadItem<D>> for LengthEncoder {
                 self.length -= bytes.remaining() as u64;
                 Ok(())
             }
-            PayloadItem::Eof => Ok(()),
+            PayloadItem::Eof => {
+                self.received_eof = true;
+                Ok(())
+            },
         }
     }
 }

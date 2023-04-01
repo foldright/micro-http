@@ -39,7 +39,6 @@ impl Responder for String {
     fn response_to(self, _req: &RequestContext) -> Response<ResponseBody> {
         Response::builder()
             .status(StatusCode::OK)
-            .header(http::header::CONTENT_LENGTH, self.len())
             .body(ResponseBody::from(self))
             .unwrap()
     }
