@@ -163,7 +163,6 @@ where
             .send(Message::<_, T::Data>::Header((ResponseHead::from_parts(header_parts, ()), payload_size)))
             .await?;
 
-        let mut has_received_none = false;
         loop {
             match body.frame().await {
                 Some(Ok(frame)) => {
@@ -179,13 +178,10 @@ where
                 }
                 Some(Err(e)) => return Err(SendError::invalid_body(format!("resolve response body error: {e}")).into()),
                 None => {
-                    if !has_received_none {
-                        has_received_none = true;
-                        self.framed_write
-                            .send(Message::Payload(PayloadItem::<T::Data>::Eof))
-                            .await
-                            .map_err(|e| SendError::invalid_body(format!("can't send eof response: {}", e)))?;
-                    }
+                    self.framed_write
+                        .send(Message::Payload(PayloadItem::<T::Data>::Eof))
+                        .await
+                        .map_err(|e| SendError::invalid_body(format!("can't send eof response: {}", e)))?;
                     return Ok(());
                 }
             }
