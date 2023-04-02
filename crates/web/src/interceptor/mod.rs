@@ -4,9 +4,6 @@ use crate::{OptionReqBody, RequestContext, ResponseBody};
 use async_trait::async_trait;
 use http::Response;
 
-pub use encoding::encoder::EncodeInterceptor;
-
-
 #[async_trait]
 pub trait Interceptor: Send + Sync {
     async fn on_request(&self, _req: &mut RequestContext, _body: &mut OptionReqBody) {}
@@ -61,4 +58,8 @@ impl InterceptorsBuilder {
     pub fn build(self) -> Interceptors {
         Interceptors { inner: self.inner }
     }
+}
+
+pub fn encode_interceptor() -> impl Interceptor {
+    encoding::encoder::EncodeInterceptor
 }

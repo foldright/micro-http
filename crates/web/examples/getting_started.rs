@@ -1,10 +1,10 @@
 use http::Method;
 use micro_web::extract::{Form, Json};
 use micro_web::filter::header;
+use micro_web::interceptor::{encode_interceptor, Interceptors};
 use micro_web::router::{get, post, Router};
 use micro_web::{handler_fn, Server};
 use serde::Deserialize;
-use micro_web::interceptor::{EncodeInterceptor, Interceptors};
 
 #[allow(dead_code)]
 #[derive(Deserialize, Debug)]
@@ -61,7 +61,7 @@ async fn main() {
         .build();
 
     let interceptors = Interceptors::builder()
-        .add_last(EncodeInterceptor)
+        .add_last(encode_interceptor())
         .build();
 
     Server::builder()

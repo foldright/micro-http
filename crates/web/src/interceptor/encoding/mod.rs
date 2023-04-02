@@ -2,6 +2,7 @@ use bytes::{Bytes, BytesMut};
 use std::io;
 
 pub mod encoder;
+
 // inspired by from actix-http
 pub(crate) struct Writer {
     buf: BytesMut,

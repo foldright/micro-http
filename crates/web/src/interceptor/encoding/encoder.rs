@@ -3,9 +3,9 @@ use crate::interceptor::Interceptor;
 use crate::{RequestContext, ResponseBody};
 use async_trait::async_trait;
 use bytes::{Buf, Bytes};
-use flate2::write::ZlibEncoder;
+use flate2::write::{GzEncoder, ZlibEncoder};
 use flate2::Compression;
-use http::Response;
+use http::{Response, StatusCode};
 use http_body::{Body, Frame};
 use http_body_util::combinators::UnsyncBoxBody;
 use micro_http::protocol::{HttpError, SendError};
@@ -16,16 +16,61 @@ use std::io::Write;
 use std::pin::Pin;
 use std::task::{ready, Context, Poll};
 use tracing::{error, trace};
+use zstd::stream::write::Encoder as ZstdEncoder;
 
 // (almost thanks and) copy from actix-http: https://github.com/actix/actix-web/blob/master/actix-http/src/encoding/encoder.rs
 
 pub(crate) enum Encoder {
-    Gzip(ZlibEncoder<Writer>),
+    Gzip(GzEncoder<Writer>),
+    Deflate(ZlibEncoder<Writer>),
+    Zstd(ZstdEncoder<'static, Writer>),
+    Br(Box<brotli::CompressorWriter<Writer>>),
 }
 
 impl Encoder {
     fn gzip() -> Self {
-        Self::Gzip(ZlibEncoder::new(Writer::new(), Compression::best()))
+        Self::Gzip(GzEncoder::new(Writer::new(), Compression::best()))
+    }
+
+    fn deflate() -> Self {
+        Self::Deflate(ZlibEncoder::new(Writer::new(), Compression::best()))
+    }
+
+    fn zstd() -> Self {
+        // todo: remove the unwrap
+        Self::Zstd(ZstdEncoder::new(Writer::new(), 6).unwrap())
+    }
+
+    fn br() -> Self {
+        Self::Br(Box::new(brotli::CompressorWriter::new(
+            Writer::new(),
+            32 * 1024, // 32 KiB buffer
+            3,         // BROTLI_PARAM_QUALITY
+            22,        // BROTLI_PARAM_LGWIN
+        )))
+    }
+
+    fn select(accept_encodings: &str) -> Option<Self> {
+        if accept_encodings.contains("zstd") {
+            Some(Self::zstd())
+        } else if accept_encodings.contains("br") {
+            Some(Self::br())
+        } else if accept_encodings.contains("gzip") {
+            Some(Self::gzip())
+        } else if accept_encodings.contains("deflate") {
+            Some(Self::deflate())
+        } else {
+            None
+        }
+    }
+
+    fn name(&self) -> &'static str {
+        match self {
+            Encoder::Gzip(_) => "gzip",
+            Encoder::Deflate(_) => "deflate",
+            Encoder::Zstd(_) => "zstd",
+            Encoder::Br(_) => "br",
+        }
     }
 
     fn write(&mut self, data: &[u8]) -> Result<(), io::Error> {
@@ -33,7 +78,31 @@ impl Encoder {
             Self::Gzip(ref mut encoder) => match encoder.write_all(data) {
                 Ok(_) => Ok(()),
                 Err(err) => {
-                    trace!("Error decoding gzip encoding: {}", err);
+                    trace!("Error encoding gzip encoding: {}", err);
+                    Err(err)
+                }
+            },
+
+            Self::Deflate(ref mut encoder) => match encoder.write_all(data) {
+                Ok(_) => Ok(()),
+                Err(err) => {
+                    trace!("Error encoding deflate encoding: {}", err);
+                    Err(err)
+                }
+            },
+
+            Self::Zstd(ref mut encoder) => match encoder.write_all(data) {
+                Ok(_) => Ok(()),
+                Err(err) => {
+                    trace!("Error encoding zstd encoding: {}", err);
+                    Err(err)
+                }
+            },
+
+            Self::Br(ref mut encoder) => match encoder.write_all(data) {
+                Ok(_) => Ok(()),
+                Err(err) => {
+                    trace!("Error encoding br encoding: {}", err);
                     Err(err)
                 }
             },
@@ -43,6 +112,9 @@ impl Encoder {
     fn take(&mut self) -> Bytes {
         match *self {
             Self::Gzip(ref mut encoder) => encoder.get_mut().take(),
+            Self::Deflate(ref mut encoder) => encoder.get_mut().take(),
+            Self::Zstd(ref mut encoder) => encoder.get_mut().take(),
+            Self::Br(ref mut encoder) => encoder.get_mut().take(),
         }
     }
 
@@ -50,6 +122,21 @@ impl Encoder {
         match self {
             Self::Gzip(encoder) => match encoder.finish() {
                 Ok(writer) => Ok(writer.buf.freeze()),
+                Err(err) => Err(err),
+            },
+
+            Self::Deflate(encoder) => match encoder.finish() {
+                Ok(writer) => Ok(writer.buf.freeze()),
+                Err(err) => Err(err),
+            },
+
+            Self::Zstd(encoder) => match encoder.finish() {
+                Ok(writer) => Ok(writer.buf.freeze()),
+                Err(err) => Err(err),
+            },
+
+            Self::Br(mut encoder) => match encoder.flush() {
+                Ok(()) => Ok(encoder.into_inner().buf.freeze()),
                 Err(err) => Err(err),
             },
         }
@@ -152,15 +239,36 @@ pub struct EncodeInterceptor;
 #[async_trait]
 impl Interceptor for EncodeInterceptor {
     async fn on_response(&self, req: &RequestContext, resp: &mut Response<ResponseBody>) {
+        let status_code = resp.status();
+        if status_code == StatusCode::NO_CONTENT || status_code == StatusCode::SWITCHING_PROTOCOLS {
+            return;
+        }
+
+        // response has already encoded
+        if req.headers().contains_key(http::header::CONTENT_ENCODING) {
+            return;
+        }
+
+        // request doesn't have any accept encodings
         let possible_encodings = req.headers().get(http::header::ACCEPT_ENCODING);
         if possible_encodings.is_none() {
             return;
         }
 
-        //todo we need select encoding
-        if !possible_encodings.unwrap().to_str().unwrap().contains("gzip") {
-            return;
-        }
+        // here using unwrap is safe because we has checked
+        let accept_encodings = match possible_encodings.unwrap().to_str() {
+            Ok(s) => s,
+            Err(_) => {
+                return;
+            }
+        };
+
+        let encoder = match Encoder::select(accept_encodings) {
+            Some(encoder) => encoder,
+            None => {
+                return;
+            }
+        };
 
         let body = resp.body_mut();
 
@@ -168,10 +276,19 @@ impl Interceptor for EncodeInterceptor {
             return;
         }
 
-        let encoded_body = EncodedBody::new(body.take(), Encoder::gzip());
+        match body.size_hint().upper() {
+            Some(upper) if upper <= 1024 => {
+                // less then 1k, we needn't compress
+                return;
+            }
+            _ => (),
+        }
+
+        let encoder_name = encoder.name();
+        let encoded_body = EncodedBody::new(body.take(), encoder);
         body.replace(ResponseBody::stream(UnsyncBoxBody::new(encoded_body)));
 
         resp.headers_mut().remove(http::header::CONTENT_LENGTH);
-        resp.headers_mut().append(http::header::CONTENT_ENCODING, "gzip".parse().unwrap());
+        resp.headers_mut().append(http::header::CONTENT_ENCODING, encoder_name.parse().unwrap());
     }
 }
