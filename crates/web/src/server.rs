@@ -145,18 +145,18 @@ impl Handler for Server {
             match handler_option {
                 Some(handler) => {
                     self.interceptors.on_request(&mut request_context, &mut req_body).await;
-                    let mut response_result = handler.invoke(&mut request_context, req_body).await;
-                    self.interceptors.on_response(&request_context, &mut response_result).await;
-                    response_result
+                    let mut response = handler.invoke(&mut request_context, req_body).await;
+                    self.interceptors.on_response(&request_context, &mut response).await;
+                    Ok(response)
                 }
                 None => {
                     // todo: do not using unwrap
                     let default_handler = self.default_handler.as_ref().unwrap();
 
                     self.interceptors.on_request(&mut request_context, &mut req_body).await;
-                    let mut response_result = default_handler.invoke(&mut request_context, req_body).await;
-                    self.interceptors.on_response(&request_context, &mut response_result).await;
-                    response_result
+                    let mut response = default_handler.invoke(&mut request_context, req_body).await;
+                    self.interceptors.on_response(&request_context, &mut response).await;
+                    Ok(response)
                 }
             }
         })

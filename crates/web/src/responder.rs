@@ -1,6 +1,6 @@
 use crate::body::ResponseBody;
-use http::{Response, StatusCode};
 use crate::RequestContext;
+use http::{Response, StatusCode};
 
 pub trait Responder {
     fn response_to(self, req: &RequestContext) -> Response<ResponseBody>;
@@ -8,12 +8,19 @@ pub trait Responder {
 
 // todo: impl for Result & Option
 
-impl<T: Responder> Responder for (T, StatusCode) {
+impl<T: Responder> Responder for (StatusCode, T) {
     fn response_to(self, req: &RequestContext) -> Response<ResponseBody> {
-        let (responder, status) = self;
+        let (status, responder) = self;
         let mut response = responder.response_to(req);
         *response.status_mut() = status;
         response
+    }
+}
+
+impl<T: Responder> Responder for (T, StatusCode) {
+    fn response_to(self, req: &RequestContext) -> Response<ResponseBody> {
+        let (responder, status) = self;
+        (status, responder).response_to(req)
     }
 }
 
@@ -37,9 +44,6 @@ impl Responder for &'static str {
 
 impl Responder for String {
     fn response_to(self, _req: &RequestContext) -> Response<ResponseBody> {
-        Response::builder()
-            .status(StatusCode::OK)
-            .body(ResponseBody::from(self))
-            .unwrap()
+        Response::builder().status(StatusCode::OK).body(ResponseBody::from(self)).unwrap()
     }
 }

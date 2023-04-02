@@ -1,6 +1,7 @@
 mod extract_body;
 mod extract_header;
 mod from_request;
+mod extract_tuple;
 
 pub use from_request::FromRequest;
 

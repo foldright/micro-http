@@ -6,9 +6,8 @@ use crate::{OptionReqBody, RequestContext};
 use async_trait::async_trait;
 use http::Response;
 
-use std::error::Error;
-use std::marker::PhantomData;
 use crate::extract::FromRequest;
+use std::marker::PhantomData;
 
 #[async_trait]
 pub trait RequestHandler: Send + Sync {
@@ -16,7 +15,7 @@ pub trait RequestHandler: Send + Sync {
         &self,
         req: &mut RequestContext<'server, 'req>,
         req_body: OptionReqBody,
-    ) -> Result<Response<ResponseBody>, Box<dyn Error + Send + Sync>>;
+    ) -> Response<ResponseBody>;
 }
 
 /// a `FnTrait` holder which represents any async Fn
@@ -34,10 +33,12 @@ where
     }
 }
 
-pub fn handler_fn<F, Args>(f: F) -> FnHandler<F, Args> where F: FnTrait<Args> {
+pub fn handler_fn<F, Args>(f: F) -> FnHandler<F, Args>
+where
+    F: FnTrait<Args>,
+{
     FnHandler::new(f)
 }
-
 
 #[async_trait]
 impl<F, Args> RequestHandler for FnHandler<F, Args>
@@ -50,10 +51,13 @@ where
         &self,
         req: &mut RequestContext<'server, 'req>,
         req_body: OptionReqBody,
-    ) -> Result<Response<ResponseBody>, Box<dyn Error + Send + Sync>> {
-        let args = Args::from_request(&req, req_body.clone()).await?;
+    ) -> Response<ResponseBody> {
+        let args = match Args::from_request(&req, req_body.clone()).await {
+            Ok(args) => args,
+            Err(responder) => return responder.response_to(&req),
+        };
         let responder = self.f.call(args).await;
-        Ok(responder.response_to(&req))
+        responder.response_to(&req)
     }
 }
 
@@ -61,10 +65,8 @@ where
 mod test {
     use crate::fn_trait::FnTrait;
     use crate::handler::{FnHandler, RequestHandler};
-    
+
     use http::Method;
-    
-    
 
     fn assert_is_fn_handler<H: FnTrait<Args>, Args>(_handler: &FnHandler<H, Args>) {
         // no op
@@ -85,9 +87,7 @@ mod test {
 
     #[test]
     fn assert_fn_is_http_handler_2() {
-        async fn get(_header: &Method, _str: String) {
-            
-        }
+        async fn get(_header: &Method, _str: String) {}
 
         let http_handler = FnHandler::new(get);
         assert_is_fn_handler(&http_handler);

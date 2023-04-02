@@ -67,6 +67,22 @@ impl ResponseBody {
     {
         Self { inner: Kind::Stream(UnsyncBoxBody::new(body)) }
     }
+
+    pub fn is_empty(&self) -> bool {
+        match &self.inner {
+            Kind::Once(None) => false,
+            Kind::Once(Some(bytes)) => bytes.is_empty(),
+            Kind::Stream(body) => body.is_end_stream(),
+        }
+    }
+
+    pub fn take(&mut self) -> Self {
+        self.replace(ResponseBody::empty())
+    }
+
+    pub fn replace(&mut self, body: Self) -> Self {
+        std::mem::replace(self, body)
+    }
 }
 
 impl From<String> for ResponseBody {
@@ -141,8 +157,8 @@ mod tests {
     use futures::TryStreamExt;
     use http_body::{Body as HttpBody, Frame};
     use http_body_util::{BodyExt, StreamBody};
-    use std::io;
     use micro_http::protocol::ParseError;
+    use std::io;
 
     fn check_send<T: Send>() {}
 
@@ -185,7 +201,7 @@ mod tests {
             Ok(Frame::data(Bytes::from(vec![2]))),
             Ok(Frame::data(Bytes::from(vec![3]))),
         ];
-        let stream = futures::stream::iter(chunks).map_err(|err|ParseError::io(err).into());
+        let stream = futures::stream::iter(chunks).map_err(|err| ParseError::io(err).into());
         let stream_body = StreamBody::new(stream);
 
         let mut body = ResponseBody::stream(stream_body);

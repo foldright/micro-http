@@ -10,8 +10,9 @@ use micro_http::protocol::ParseError;
 #[async_trait]
 impl FromRequest for Bytes {
     type Output<'any> = Bytes;
+    type Error = ParseError;
 
-    async fn from_request(_req: &RequestContext, body: OptionReqBody) -> Result<Self::Output<'static>, ParseError> {
+    async fn from_request(_req: &RequestContext, body: OptionReqBody) -> Result<Self::Output<'static>, Self::Error> {
         body.apply(|b| async { b.collect().await.map(|c| c.to_bytes()) }).await
     }
 }
@@ -19,8 +20,9 @@ impl FromRequest for Bytes {
 #[async_trait]
 impl FromRequest for String {
     type Output<'any> = String;
+    type Error = ParseError;
 
-    async fn from_request(req: &RequestContext, body: OptionReqBody) -> Result<Self::Output<'static>, ParseError> {
+    async fn from_request(req: &RequestContext, body: OptionReqBody) -> Result<Self::Output<'static>, Self::Error> {
         let bytes = Bytes::from_request(req, body).await?;
         // todo: using character to decode
         match String::from_utf8(bytes.into()) {
@@ -36,8 +38,9 @@ where
     T: for<'de> Deserialize<'de> + Send,
 {
     type Output<'r> = Form<T>;
+    type Error = ParseError;
 
-    async fn from_request<'r>(req: &'r RequestContext, body: OptionReqBody) -> Result<Self::Output<'r>, ParseError> {
+    async fn from_request<'r>(req: &'r RequestContext, body: OptionReqBody) -> Result<Self::Output<'r>, Self::Error> {
         let bytes = Bytes::from_request(req, body).await?;
         serde_urlencoded::from_bytes::<'_, T>(&bytes)
             .map(|t| Form(t))
@@ -51,8 +54,9 @@ impl<T> FromRequest for Json<T>
         T: for<'de> Deserialize<'de> + Send,
 {
     type Output<'r> = Json<T>;
+    type Error = ParseError;
 
-    async fn from_request<'r>(req: &'r RequestContext, body: OptionReqBody) -> Result<Self::Output<'r>, ParseError> {
+    async fn from_request<'r>(req: &'r RequestContext, body: OptionReqBody) -> Result<Self::Output<'r>, Self::Error> {
         let bytes = Bytes::from_request(req, body).await?;
         serde_json::from_slice::<'_, T>(&bytes)
             .map(|t| Json(t))
