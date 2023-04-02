@@ -156,6 +156,6 @@ pub struct HeaderFilter(HeaderName, HeaderValue);
 impl Filter for HeaderFilter {
     fn check(&self, req: &RequestContext) -> bool {
         let value_option = req.headers().get(&self.0);
-        value_option.map(|value| (&self.1).eq(value)).unwrap_or(false)
+        value_option.map(|value| self.1.eq(value)).unwrap_or(false)
     }
 }

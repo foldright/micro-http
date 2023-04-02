@@ -52,12 +52,12 @@ where
         req: &mut RequestContext<'server, 'req>,
         req_body: OptionReqBody,
     ) -> Response<ResponseBody> {
-        let args = match Args::from_request(&req, req_body.clone()).await {
+        let args = match Args::from_request(req, req_body.clone()).await {
             Ok(args) => args,
-            Err(responder) => return responder.response_to(&req),
+            Err(responder) => return responder.response_to(req),
         };
         let responder = self.f.call(args).await;
-        responder.response_to(&req)
+        responder.response_to(req)
     }
 }
 

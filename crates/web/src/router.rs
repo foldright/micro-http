@@ -77,7 +77,7 @@ impl RouterBuilder {
 }
 impl RouterBuilder {
     pub fn route(mut self, route: impl Into<String>, item_builder: RouterItemBuilder) -> Self {
-        let vec = self.data.entry(route.into()).or_insert_with(|| vec![]);
+        let vec = self.data.entry(route.into()).or_insert_with(std::vec::Vec::new);
         vec.push(item_builder);
         self
     }
