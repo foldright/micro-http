@@ -60,6 +60,9 @@ impl InterceptorsBuilder {
     }
 }
 
+/// create an interceptor that can encoding response body.
+///
+/// currently encoder include: *gzip*, *deflate*, *br*, *zstd*
 pub fn encode_interceptor() -> impl Interceptor {
     encoding::encoder::EncodeInterceptor
 }
