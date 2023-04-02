@@ -4,6 +4,7 @@ use micro_web::filter::header;
 use micro_web::router::{get, post, Router};
 use micro_web::{handler_fn, Server};
 use serde::Deserialize;
+use micro_web::interceptor::{EncodeInterceptor, Interceptors};
 
 #[allow(dead_code)]
 #[derive(Deserialize, Debug)]
@@ -59,10 +60,15 @@ async fn main() {
         .route("/4", get(handler_fn(simple_another_get)))
         .build();
 
+    let interceptors = Interceptors::builder()
+        .add_last(EncodeInterceptor)
+        .build();
+
     Server::builder()
         .router(router)
         .address("127.0.0.1:8080")
         .default_handler(handler_fn(default_handler))
+        .interceptors(interceptors)
         .build()
         .unwrap()
         .start()

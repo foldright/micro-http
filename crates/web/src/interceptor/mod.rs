@@ -1,15 +1,17 @@
+mod encoding;
+
 use crate::{OptionReqBody, RequestContext, ResponseBody};
 use async_trait::async_trait;
 use http::Response;
-use std::error::Error;
 
-pub type ResponseResult = Result<Response<ResponseBody>, Box<dyn Error + Send + Sync>>;
+pub use encoding::encoder::EncodeInterceptor;
+
 
 #[async_trait]
 pub trait Interceptor: Send + Sync {
     async fn on_request(&self, _req: &mut RequestContext, _body: &mut OptionReqBody) {}
 
-    async fn on_response(&self, _req: &RequestContext, _resp: &mut ResponseResult) {}
+    async fn on_response(&self, _req: &RequestContext, _resp: &mut Response<ResponseBody>) {}
 }
 
 pub struct Interceptors {
@@ -24,7 +26,7 @@ impl Interceptor for Interceptors {
         }
     }
 
-    async fn on_response(&self, req: &RequestContext, resp: &mut ResponseResult) {
+    async fn on_response(&self, req: &RequestContext, resp: &mut Response<ResponseBody>) {
         for interceptor in self.inner.iter() {
             interceptor.on_response(req, resp).await;
         }
