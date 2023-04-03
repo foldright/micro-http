@@ -8,6 +8,15 @@ pub trait Responder {
 
 // todo: impl for Result & Option
 
+impl<B> Responder for Response<B>
+where
+    B: Into<ResponseBody>,
+{
+    fn response_to(self, _req: &RequestContext) -> Response<ResponseBody> {
+        self.map(|b| b.into())
+    }
+}
+
 impl<T: Responder> Responder for (StatusCode, T) {
     fn response_to(self, req: &RequestContext) -> Response<ResponseBody> {
         let (status, responder) = self;
