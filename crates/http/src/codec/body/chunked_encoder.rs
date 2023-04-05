@@ -20,7 +20,7 @@ impl ChunkedEncoder {
     }
 }
 
-impl <D: Buf> Encoder<PayloadItem<D>> for ChunkedEncoder {
+impl<D: Buf> Encoder<PayloadItem<D>> for ChunkedEncoder {
     type Error = SendError;
 
     fn encode(&mut self, item: PayloadItem<D>, dst: &mut BytesMut) -> Result<(), Self::Error> {

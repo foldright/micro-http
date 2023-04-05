@@ -5,11 +5,11 @@ use std::sync::Arc;
 
 use tokio::net::TcpListener;
 
-use tracing::{error, info, warn, Level};
-use tracing_subscriber::FmtSubscriber;
 use micro_http::connection::HttpConnection;
 use micro_http::handler::make_handler;
 use micro_http::protocol::body::ReqBody;
+use tracing::{error, info, warn, Level};
+use tracing_subscriber::FmtSubscriber;
 
 #[tokio::main]
 async fn main() {

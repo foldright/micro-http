@@ -40,7 +40,7 @@ impl<D: Buf> Encoder<PayloadItem<D>> for LengthEncoder {
             PayloadItem::Eof => {
                 self.received_eof = true;
                 Ok(())
-            },
+            }
         }
     }
 }

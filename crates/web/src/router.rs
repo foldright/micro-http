@@ -96,7 +96,7 @@ impl RouterBuilder {
 
 macro_rules! method_router_filter {
     ($method:ident, $method_name:ident) => {
-       pub fn $method<H: RequestHandler + 'static>(handler: H) -> RouterItemBuilder {
+        pub fn $method<H: RequestHandler + 'static>(handler: H) -> RouterItemBuilder {
             let mut filters = filter::all_filter();
             filters.and(filter::$method_name());
             RouterItemBuilder { filters, handler: Box::new(handler) }
@@ -138,7 +138,6 @@ mod tests {
     use crate::{handler_fn, PathParams, RequestContext};
     use http::{HeaderValue, Method, Request};
     use micro_http::protocol::RequestHeader;
-    
 
     async fn simple_get_1(_method: &Method) -> String {
         "hello world".into()

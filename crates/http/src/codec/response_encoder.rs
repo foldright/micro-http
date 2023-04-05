@@ -24,7 +24,7 @@ impl Default for ResponseEncoder {
     }
 }
 
-impl <D: Buf> Encoder<Message<(ResponseHead, PayloadSize), D>> for ResponseEncoder {
+impl<D: Buf> Encoder<Message<(ResponseHead, PayloadSize), D>> for ResponseEncoder {
     type Error = SendError;
 
     fn encode(&mut self, item: Message<(ResponseHead, PayloadSize), D>, dst: &mut BytesMut) -> Result<(), Self::Error> {

@@ -60,9 +60,7 @@ async fn main() {
         .route("/4", get(handler_fn(simple_another_get)))
         .build();
 
-    let interceptors = Interceptors::builder()
-        .add_last(encode_interceptor())
-        .build();
+    let interceptors = Interceptors::builder().add_last(encode_interceptor()).build();
 
     Server::builder()
         .router(router)

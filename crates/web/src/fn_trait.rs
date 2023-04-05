@@ -1,7 +1,7 @@
 use std::future::Future;
 
 /// Represents a function
-pub trait FnTrait<Args> : Send + Sync {
+pub trait FnTrait<Args>: Send + Sync {
     type Output;
     type Fut: Future<Output = Self::Output> + Send;
     fn call(&self, args: Args) -> Self::Fut;

@@ -54,10 +54,14 @@ impl FromRequest for () {
 impl Responder for ParseError {
     fn response_to(self, req: &RequestContext) -> Response<ResponseBody> {
         match self {
-            ParseError::TooLargeHeader { .. } => (StatusCode::REQUEST_HEADER_FIELDS_TOO_LARGE, "payload too large").response_to(req),
+            ParseError::TooLargeHeader { .. } => {
+                (StatusCode::REQUEST_HEADER_FIELDS_TOO_LARGE, "payload too large").response_to(req)
+            }
             ParseError::TooManyHeaders { .. } => (StatusCode::BAD_REQUEST, "too many headers").response_to(req),
             ParseError::InvalidHeader { .. } => (StatusCode::BAD_REQUEST, "invalid header").response_to(req),
-            ParseError::InvalidContentLength { .. } => (StatusCode::BAD_REQUEST, "invalid content length").response_to(req),
+            ParseError::InvalidContentLength { .. } => {
+                (StatusCode::BAD_REQUEST, "invalid content length").response_to(req)
+            }
             ParseError::InvalidBody { .. } => (StatusCode::BAD_REQUEST, "invalid body").response_to(req),
             ParseError::Io { .. } => (StatusCode::BAD_REQUEST, "connection error").response_to(req),
         }

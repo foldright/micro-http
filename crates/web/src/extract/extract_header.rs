@@ -1,9 +1,9 @@
-use async_trait::async_trait;
 use crate::body::OptionReqBody;
 use crate::extract::from_request::FromRequest;
+use crate::RequestContext;
+use async_trait::async_trait;
 use http::{HeaderMap, Method};
 use micro_http::protocol::{ParseError, RequestHeader};
-use crate::RequestContext;
 
 #[async_trait]
 impl FromRequest for Method {

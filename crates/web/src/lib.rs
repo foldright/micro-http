@@ -8,8 +8,8 @@ mod server;
 
 pub mod extract;
 pub mod filter;
-pub mod router;
 pub mod interceptor;
+pub mod router;
 
 pub use body::OptionReqBody;
 pub use body::ResponseBody;
