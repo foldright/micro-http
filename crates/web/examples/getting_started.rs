@@ -64,7 +64,7 @@ async fn main() {
 
     Server::builder()
         .router(router)
-        .address("127.0.0.1:8080")
+        .bind("127.0.0.1:8080")
         .default_handler(handler_fn(default_handler))
         .interceptors(interceptors)
         .build()

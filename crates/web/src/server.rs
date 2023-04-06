@@ -30,7 +30,7 @@ impl ServerBuilder {
         Self { router: None, default_handler: None, address: None, interceptors: Interceptors::builder().build() }
     }
 
-    pub fn address<A: ToSocketAddrs>(mut self, address: A) -> Self {
+    pub fn bind<A: ToSocketAddrs>(mut self, address: A) -> Self {
         self.address = Some(address.to_socket_addrs().unwrap().collect::<Vec<_>>());
         self
     }
