@@ -1,6 +1,6 @@
 use crate::handler::RequestHandler;
-use crate::interceptor::encoding::Writer;
-use crate::interceptor::Wrapper;
+use crate::wrapper::encoding::Writer;
+use crate::wrapper::Wrapper;
 use crate::{OptionReqBody, RequestContext, ResponseBody};
 use async_trait::async_trait;
 use bytes::{Buf, Bytes};

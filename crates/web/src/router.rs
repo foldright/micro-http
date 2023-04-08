@@ -4,7 +4,7 @@ use crate::{filter, PathParams};
 
 use std::collections::HashMap;
 
-use crate::interceptor::{IdentityWrapper, IdentityWrappers, Wrapper, Wrappers};
+use crate::wrapper::{IdentityWrapper, IdentityWrappers, Wrapper, Wrappers};
 use tracing::error;
 
 type RouterFilter = dyn Filter + Send + Sync + 'static;
@@ -69,8 +69,8 @@ impl<'router, 'req> RouteResult<'router, 'req> {
 
 pub struct RouterBuilder<HeadW, TailW>
 where
-    HeadW: Wrapper<Box<dyn RequestHandler>>,
-    TailW: Wrapper<HeadW::Out>,
+    HeadW: Wrapper<Box<dyn RequestHandler>> + 'static,
+    TailW: Wrapper<HeadW::Out> + 'static,
     TailW::Out: RequestHandler,
 {
     data: HashMap<String, Vec<RouterItemBuilder>>,
@@ -102,14 +102,15 @@ where
         NewW: Wrapper<TailW::Out>,
         NewW::Out: RequestHandler,
     {
-        RouterBuilder { data: self.data, wrappers: self.wrappers.add(handler_wrapper) }
+        RouterBuilder { data: self.data, wrappers: self.wrappers.and_then(handler_wrapper) }
     }
 
     pub fn build(self) -> Router {
         let mut inner_router = InnerRouter::new();
 
         for (path, items) in self.data.into_iter() {
-            let router_items = items.into_iter()
+            let router_items = items
+                .into_iter()
                 .map(|item_builder| item_builder.build())
                 .map(|item| {
                     let handler = self.wrappers.wrap(item.handler);

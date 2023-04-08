@@ -1,7 +1,7 @@
 use http::Method;
 use micro_web::extract::{Form, Json};
 use micro_web::filter::header;
-use micro_web::interceptor::EncodeWrapper;
+use micro_web::wrapper::EncodeWrapper;
 use micro_web::router::{get, post, Router};
 use micro_web::{handler_fn, Server};
 use serde::Deserialize;
