@@ -89,7 +89,7 @@ where
     TailW::Out: RequestHandler,
 {
     pub fn route(mut self, route: impl Into<String>, item_builder: RouterItemBuilder) -> Self {
-        let vec = self.data.entry(route.into()).or_insert_with(std::vec::Vec::new);
+        let vec = self.data.entry(route.into()).or_insert_with(Vec::new);
         vec.push(item_builder);
         self
     }
@@ -109,14 +109,14 @@ where
         let mut inner_router = InnerRouter::new();
 
         for (path, items) in self.data.into_iter() {
-            let router_items = items.into_iter().map(|item_builder| item_builder.build()).collect::<Vec<_>>();
-            let router_items = router_items
-                .into_iter()
+            let router_items = items.into_iter()
+                .map(|item_builder| item_builder.build())
                 .map(|item| {
                     let handler = self.wrappers.wrap(item.handler);
                     RouterItem { handler: Box::new(handler), ..item }
                 })
-                .collect();
+                .collect::<Vec<_>>();
+
             inner_router.insert(path, router_items).unwrap();
         }
 
