@@ -1,7 +1,7 @@
 use http::Method;
 use micro_web::extract::{Form, Json};
 use micro_web::filter::header;
-use micro_web::interceptor::{encode_interceptor, Interceptors};
+use micro_web::interceptor::EncodeWrapper;
 use micro_web::router::{get, post, Router};
 use micro_web::{handler_fn, Server};
 use serde::Deserialize;
@@ -58,15 +58,13 @@ async fn main() {
         )
         .route("/", post(handler_fn(simple_handler_post)))
         .route("/4", get(handler_fn(simple_another_get)))
+        .wrap(EncodeWrapper)
         .build();
-
-    let interceptors = Interceptors::builder().add_last(encode_interceptor()).build();
 
     Server::builder()
         .router(router)
         .bind("127.0.0.1:8080")
         .default_handler(handler_fn(default_handler))
-        .interceptors(interceptors)
         .build()
         .unwrap()
         .start()

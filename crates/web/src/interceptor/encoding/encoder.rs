@@ -1,6 +1,7 @@
+use crate::handler::RequestHandler;
 use crate::interceptor::encoding::Writer;
-use crate::interceptor::Interceptor;
-use crate::{RequestContext, ResponseBody};
+use crate::interceptor::Wrapper;
+use crate::{OptionReqBody, RequestContext, ResponseBody};
 use async_trait::async_trait;
 use bytes::{Buf, Bytes};
 use flate2::write::{GzEncoder, ZlibEncoder};
@@ -234,61 +235,83 @@ where
     }
 }
 
-pub struct EncodeInterceptor;
+pub struct EncodeRequestHandler<H: RequestHandler> {
+    handler: H,
+}
+
+pub struct EncodeWrapper;
+
+impl<H: RequestHandler> Wrapper<H> for EncodeWrapper {
+    type Out = EncodeRequestHandler<H>;
+
+    fn wrap(&self, handler: H) -> Self::Out {
+        EncodeRequestHandler { handler }
+    }
+}
 
 #[async_trait]
-impl Interceptor for EncodeInterceptor {
-    async fn on_response(&self, req: &RequestContext, resp: &mut Response<ResponseBody>) {
-        let status_code = resp.status();
-        if status_code == StatusCode::NO_CONTENT || status_code == StatusCode::SWITCHING_PROTOCOLS {
-            return;
-        }
-
-        // response has already encoded
-        if req.headers().contains_key(http::header::CONTENT_ENCODING) {
-            return;
-        }
-
-        // request doesn't have any accept encodings
-        let possible_encodings = req.headers().get(http::header::ACCEPT_ENCODING);
-        if possible_encodings.is_none() {
-            return;
-        }
-
-        // here using unwrap is safe because we has checked
-        let accept_encodings = match possible_encodings.unwrap().to_str() {
-            Ok(s) => s,
-            Err(_) => {
-                return;
-            }
-        };
-
-        let encoder = match Encoder::select(accept_encodings) {
-            Some(encoder) => encoder,
-            None => {
-                return;
-            }
-        };
-
-        let body = resp.body_mut();
-
-        if body.is_empty() {
-            return;
-        }
-
-        match body.size_hint().upper() {
-            Some(upper) if upper <= 1024 => {
-                // less then 1k, we needn't compress
-                return;
-            }
-            _ => (),
-        }
-
-        let encoder_name = encoder.name();
-        let encoded_body = EncodedBody::new(body.take(), encoder);
-        body.replace(ResponseBody::stream(UnsyncBoxBody::new(encoded_body)));
-
-        resp.headers_mut().remove(http::header::CONTENT_LENGTH);
-        resp.headers_mut().append(http::header::CONTENT_ENCODING, encoder_name.parse().unwrap());
+impl<H: RequestHandler> RequestHandler for EncodeRequestHandler<H> {
+    async fn invoke<'server, 'req>(
+        &self,
+        req: &mut RequestContext<'server, 'req>,
+        req_body: OptionReqBody,
+    ) -> Response<ResponseBody> {
+        let mut resp = self.handler.invoke(req, req_body).await;
+        encode(req, &mut resp);
+        resp
     }
+}
+
+fn encode(req: &RequestContext, resp: &mut Response<ResponseBody>) {
+    let status_code = resp.status();
+    if status_code == StatusCode::NO_CONTENT || status_code == StatusCode::SWITCHING_PROTOCOLS {
+        return;
+    }
+
+    // response has already encoded
+    if req.headers().contains_key(http::header::CONTENT_ENCODING) {
+        return;
+    }
+
+    // request doesn't have any accept encodings
+    let possible_encodings = req.headers().get(http::header::ACCEPT_ENCODING);
+    if possible_encodings.is_none() {
+        return;
+    }
+
+    // here using unwrap is safe because we has checked
+    let accept_encodings = match possible_encodings.unwrap().to_str() {
+        Ok(s) => s,
+        Err(_) => {
+            return;
+        }
+    };
+
+    let encoder = match Encoder::select(accept_encodings) {
+        Some(encoder) => encoder,
+        None => {
+            return;
+        }
+    };
+
+    let body = resp.body_mut();
+
+    if body.is_empty() {
+        return;
+    }
+
+    match body.size_hint().upper() {
+        Some(upper) if upper <= 1024 => {
+            // less then 1k, we needn't compress
+            return;
+        }
+        _ => (),
+    }
+
+    let encoder_name = encoder.name();
+    let encoded_body = EncodedBody::new(body.take(), encoder);
+    body.replace(ResponseBody::stream(UnsyncBoxBody::new(encoded_body)));
+
+    resp.headers_mut().remove(http::header::CONTENT_LENGTH);
+    resp.headers_mut().append(http::header::CONTENT_ENCODING, encoder_name.parse().unwrap());
 }

@@ -18,6 +18,42 @@ pub trait RequestHandler: Send + Sync {
     ) -> Response<ResponseBody>;
 }
 
+#[async_trait]
+impl<T> RequestHandler for Box<T>
+where
+    T: RequestHandler,
+{
+    async fn invoke<'server, 'req>(
+        &self,
+        req: &mut RequestContext<'server, 'req>,
+        req_body: OptionReqBody,
+    ) -> Response<ResponseBody> {
+        (&**self).invoke(req, req_body).await
+    }
+}
+
+#[async_trait]
+impl RequestHandler for Box<dyn RequestHandler> {
+    async fn invoke<'server, 'req>(
+        &self,
+        req: &mut RequestContext<'server, 'req>,
+        req_body: OptionReqBody,
+    ) -> Response<ResponseBody> {
+        (&**self).invoke(req, req_body).await
+    }
+}
+
+#[async_trait]
+impl RequestHandler for &dyn RequestHandler {
+    async fn invoke<'server, 'req>(
+        &self,
+        req: &mut RequestContext<'server, 'req>,
+        req_body: OptionReqBody,
+    ) -> Response<ResponseBody> {
+        (&**self).invoke(req, req_body).await
+    }
+}
+
 /// a `FnTrait` holder which represents any async Fn
 pub struct FnHandler<F, Args> {
     f: F,

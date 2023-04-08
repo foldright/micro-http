@@ -1,68 +1,73 @@
 mod encoding;
 
-use crate::{OptionReqBody, RequestContext, ResponseBody};
-use async_trait::async_trait;
-use http::Response;
+use std::marker::PhantomData;
 
-#[async_trait]
-pub trait Interceptor: Send + Sync {
-    async fn on_request(&self, _req: &mut RequestContext, _body: &mut OptionReqBody) {}
+pub use encoding::encoder::EncodeWrapper;
 
-    async fn on_response(&self, _req: &RequestContext, _resp: &mut Response<ResponseBody>) {}
+pub struct Wrappers<W, Tail, H> {
+    head: W,
+    tail: Tail,
+    _phantom: PhantomData<H>,
 }
 
-pub struct Interceptors {
-    inner: Vec<Box<dyn Interceptor>>,
-}
+pub struct IdentityWrapper;
+pub type IdentityWrappers<H> = Wrappers<IdentityWrapper, IdentityWrapper, H>;
 
-#[async_trait]
-impl Interceptor for Interceptors {
-    async fn on_request(&self, req: &mut RequestContext, body: &mut OptionReqBody) {
-        for interceptor in self.inner.iter() {
-            interceptor.on_request(req, body).await;
-        }
-    }
-
-    async fn on_response(&self, req: &RequestContext, resp: &mut Response<ResponseBody>) {
-        for interceptor in self.inner.iter() {
-            interceptor.on_response(req, resp).await;
-        }
+impl<H> Wrappers<IdentityWrapper, IdentityWrapper, H> {
+    pub fn new() -> Self {
+        Self { head: IdentityWrapper, tail: IdentityWrapper, _phantom: PhantomData }
     }
 }
 
-impl Interceptors {
-    pub fn builder() -> InterceptorsBuilder {
-        InterceptorsBuilder::new()
+impl<W, Tail, H> Wrappers<W, Tail, H>
+where
+    W: Wrapper<H>,
+    Tail: Wrapper<W::Out>,
+{
+    pub fn add<W2>(self, wrapper: W2) -> Wrappers<Self, W2, H>
+    where
+        W2: Wrapper<Tail::Out>,
+    {
+        Wrappers { head: self, tail: wrapper, _phantom: PhantomData }
     }
 }
 
-pub struct InterceptorsBuilder {
-    inner: Vec<Box<dyn Interceptor>>,
+pub trait Wrapper<H> {
+    type Out;
+    fn wrap(&self, handler: H) -> Self::Out;
 }
 
-impl InterceptorsBuilder {
-    fn new() -> Self {
-        Self { inner: vec![] }
-    }
+impl<H> Wrapper<H> for IdentityWrapper {
+    type Out = H;
 
-    pub fn add_last<I: Interceptor + Send + Sync + 'static>(mut self, interceptor: I) -> Self {
-        self.inner.push(Box::new(interceptor));
-        self
-    }
-
-    pub fn add_first<I: Interceptor + Send + Sync + 'static>(mut self, interceptor: I) -> Self {
-        self.inner.insert(0, Box::new(interceptor));
-        self
-    }
-
-    pub fn build(self) -> Interceptors {
-        Interceptors { inner: self.inner }
+    #[inline]
+    fn wrap(&self, handler: H) -> Self::Out {
+        handler
     }
 }
 
-/// create an interceptor that can encoding response body.
-///
-/// currently encoder include: *gzip*, *deflate*, *br*, *zstd*
-pub fn encode_interceptor() -> impl Interceptor {
-    encoding::encoder::EncodeInterceptor
+impl<H, W, Tail> Wrapper<H> for Wrappers<W, Tail, H>
+where
+    W: Wrapper<H>,
+    Tail: Wrapper<W::Out>,
+{
+    type Out = Tail::Out;
+
+    fn wrap(&self, handler: H) -> Self::Out {
+        let new_handler = self.head.wrap(handler);
+        self.tail.wrap(new_handler)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::handler::RequestHandler;
+    use crate::interceptor::encoding::encoder::EncodeWrapper;
+    use crate::interceptor::{IdentityWrapper, Wrappers};
+
+    #[test]
+    fn test() {
+        let wrapper: Wrappers<IdentityWrapper, IdentityWrapper, Box<dyn RequestHandler>> = Wrappers::new();
+        let wrapper = wrapper.add(EncodeWrapper);
+    }
 }
