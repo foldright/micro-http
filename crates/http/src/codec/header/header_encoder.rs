@@ -8,6 +8,8 @@ use std::io::ErrorKind;
 use tokio_util::codec::Encoder;
 use tracing::error;
 
+const INIT_HEADER_SIZE: usize = 4 * 1024;
+
 pub struct HeaderEncoder;
 
 impl Encoder<(ResponseHead, PayloadSize)> for HeaderEncoder {
@@ -16,6 +18,7 @@ impl Encoder<(ResponseHead, PayloadSize)> for HeaderEncoder {
     fn encode(&mut self, item: (ResponseHead, PayloadSize), dst: &mut BytesMut) -> Result<(), Self::Error> {
         let (mut header, payload_size) = item;
 
+        dst.reserve(INIT_HEADER_SIZE);
         match header.version() {
             Version::HTTP_11 => {
                 dst.put_slice(b"HTTP/1.1 ");

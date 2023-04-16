@@ -14,3 +14,6 @@ readme = "README.md"
 
 [patch.crates-io]
 micro-http = { path = "crates/http" }
+
+[profile.release]
+debug = true
