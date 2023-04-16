@@ -21,6 +21,24 @@ pub enum PayloadSize {
     Empty,
 }
 
+impl PayloadSize {
+    #[inline]
+    pub fn is_chunked(&self) -> bool {
+        match self {
+            PayloadSize::Chunked => true,
+            _ => false,
+        }
+    }
+
+    #[inline]
+    pub fn is_empty(&self) -> bool {
+        match self {
+            PayloadSize::Empty => true,
+            _ => false,
+        }
+    }
+}
+
 impl<T> Message<T> {
     pub fn is_payload(&self) -> bool {
         match self {

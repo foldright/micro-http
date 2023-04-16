@@ -159,9 +159,16 @@ where
             }
         };
 
-        self.framed_write
-            .send(Message::<_, T::Data>::Header((ResponseHead::from_parts(header_parts, ()), payload_size)))
-            .await?;
+        let header = Message::<_, T::Data>::Header((ResponseHead::from_parts(header_parts, ()), payload_size));
+        if payload_size.is_empty() {
+            // using send instead of feed, because we want to flush the underlying IO
+            // when response only has header, we need to send header,
+            // otherwise, we just feed header to the buffer
+            self.framed_write.send(header).await?;
+        } else {
+            self.framed_write.feed(header).await?;
+        }
+
 
         loop {
             match body.frame().await {
@@ -171,6 +178,7 @@ where
                         .map(PayloadItem::Chunk)
                         .map_err(|_e| SendError::invalid_body("resolve body response error"))?;
 
+
                     self.framed_write
                         .send(Message::Payload(payload_item))
                         .await
@@ -179,7 +187,8 @@ where
                 Some(Err(e)) => return Err(SendError::invalid_body(format!("resolve response body error: {e}")).into()),
                 None => {
                     self.framed_write
-                        .send(Message::Payload(PayloadItem::<T::Data>::Eof))
+                        // using feed instead of send, because we don't want to flush the underlying IO
+                        .feed(Message::Payload(PayloadItem::<T::Data>::Eof))
                         .await
                         .map_err(|e| SendError::invalid_body(format!("can't send eof response: {}", e)))?;
                     return Ok(());
