@@ -1,8 +1,10 @@
 mod encoding;
+mod date;
 
 use std::marker::PhantomData;
 
 pub use encoding::encoder::EncodeWrapper;
+pub use date::DateWrapper;
 
 /// A wrapper that can wrap a handler to another
 pub trait Wrapper<H> {

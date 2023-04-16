@@ -1,10 +1,6 @@
-use http::Method;
-use micro_web::extract::{Form, Json};
-use micro_web::filter::header;
-use micro_web::wrapper::EncodeWrapper;
-use micro_web::router::{get, post, Router};
+use micro_web::wrapper::DateWrapper;
+use micro_web::router::{get, Router};
 use micro_web::{handler_fn, Server};
-use serde::Deserialize;
 
 
 async fn hello_world() -> &'static str {
@@ -19,6 +15,7 @@ async fn default_handler() -> &'static str {
 async fn main() {
     let router = Router::builder()
         .route("/", get(handler_fn(hello_world)))
+        .wrap(DateWrapper)
         .build();
 
     Server::builder()
