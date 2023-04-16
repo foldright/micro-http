@@ -63,6 +63,7 @@ impl<'headers, 'buf> From<httparse::Request<'headers, 'buf>> for RequestHeader {
             .uri(req.path.unwrap())
             .version(U8Wrapper(req.version.unwrap()).into());
 
+        builder.headers_mut().unwrap().reserve(req.headers.len());
         for header in req.headers.iter() {
             builder = builder.header(header.name, header.value)
         }
