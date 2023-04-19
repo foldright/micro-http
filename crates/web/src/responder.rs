@@ -1,12 +1,29 @@
 use crate::body::ResponseBody;
 use crate::RequestContext;
 use http::{Response, StatusCode};
+use mime::Mime;
 
 pub trait Responder {
     fn response_to(self, req: &RequestContext) -> Response<ResponseBody>;
 }
 
-// todo: impl for Result & Option
+impl<T: Responder, E: Responder> Responder for Result<T, E> {
+    fn response_to(self, req: &RequestContext) -> Response<ResponseBody> {
+        match self {
+            Ok(t) => t.response_to(req),
+            Err(e) => e.response_to(req),
+        }
+    }
+}
+
+impl<T: Responder> Responder for Option<T> {
+    fn response_to(self, req: &RequestContext) -> Response<ResponseBody> {
+        match self {
+            Some(t) => t.response_to(req),
+            None => Response::new(ResponseBody::empty()),
+        }
+    }
+}
 
 impl<B> Responder for Response<B>
 where
@@ -47,12 +64,22 @@ impl Responder for () {
 
 impl Responder for &'static str {
     fn response_to(self, _req: &RequestContext) -> Response<ResponseBody> {
-        Response::builder().body(ResponseBody::from(self)).unwrap()
+        let mut builder = Response::builder();
+        let headers = builder.headers_mut().unwrap();
+        headers.reserve(8);
+        headers.insert(http::header::CONTENT_TYPE, mime::TEXT_PLAIN_UTF_8.as_ref().parse().unwrap());
+
+        builder.status(StatusCode::OK).body(ResponseBody::from(self)).unwrap()
     }
 }
 
 impl Responder for String {
     fn response_to(self, _req: &RequestContext) -> Response<ResponseBody> {
-        Response::builder().status(StatusCode::OK).body(ResponseBody::from(self)).unwrap()
+        let mut builder = Response::builder();
+        let headers = builder.headers_mut().unwrap();
+        headers.reserve(8);
+        headers.insert(http::header::CONTENT_TYPE, mime::TEXT_PLAIN_UTF_8.as_ref().parse().unwrap());
+
+        builder.status(StatusCode::OK).body(ResponseBody::from(self)).unwrap()
     }
 }
