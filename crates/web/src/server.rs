@@ -43,8 +43,8 @@ impl ServerBuilder {
     }
 
     pub fn build(self) -> Result<Server, ServerBuildError> {
-        let router = self.router.ok_or(ServerBuildError::MissingRouter).unwrap();
-        let address = self.address.ok_or(ServerBuildError::MissingAddress).unwrap();
+        let router = self.router.ok_or(ServerBuildError::MissingRouter)?;
+        let address = self.address.ok_or(ServerBuildError::MissingAddress)?;
         Ok(Server { router, default_handler: self.default_handler, address })
     }
 }
