@@ -1,7 +1,6 @@
 use crate::body::ResponseBody;
 use crate::RequestContext;
 use http::{Response, StatusCode};
-use mime::Mime;
 
 pub trait Responder {
     fn response_to(self, req: &RequestContext) -> Response<ResponseBody>;

@@ -55,9 +55,9 @@ impl Encoder<(ResponseHead, PayloadSize)> for HeaderEncoder {
         }
 
         for (header_name, header_value) in header.headers().iter() {
-            dst.put_slice(header_name.as_str().as_bytes());
+            dst.put_slice(header_name.as_ref());
             dst.put_slice(b": ");
-            dst.put_slice(header_value.as_bytes());
+            dst.put_slice(header_value.as_ref());
             dst.put_slice(b"\r\n");
         }
         dst.put_slice(b"\r\n");
