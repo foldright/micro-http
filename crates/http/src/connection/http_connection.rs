@@ -160,15 +160,14 @@ where
         };
 
         let header = Message::<_, T::Data>::Header((ResponseHead::from_parts(header_parts, ()), payload_size));
-        if payload_size.is_empty() {
+        if !payload_size.is_empty() {
+            self.framed_write.feed(header).await?;
+        } else {
             // using send instead of feed, because we want to flush the underlying IO
             // when response only has header, we need to send header,
             // otherwise, we just feed header to the buffer
             self.framed_write.send(header).await?;
-        } else {
-            self.framed_write.feed(header).await?;
         }
-
 
         loop {
             match body.frame().await {
@@ -177,7 +176,6 @@ where
                         .into_data()
                         .map(PayloadItem::Chunk)
                         .map_err(|_e| SendError::invalid_body("resolve body response error"))?;
-
 
                     self.framed_write
                         .send(Message::Payload(payload_item))
