@@ -4,7 +4,7 @@ use bytes::{BufMut, BytesMut};
 
 use http::{header, Version};
 use std::io;
-use std::io::ErrorKind;
+use std::io::{ErrorKind, Write};
 use tokio_util::codec::Encoder;
 use tracing::error;
 
@@ -21,11 +21,12 @@ impl Encoder<(ResponseHead, PayloadSize)> for HeaderEncoder {
         dst.reserve(INIT_HEADER_SIZE);
         match header.version() {
             Version::HTTP_11 => {
-                dst.put_slice(b"HTTP/1.1 ");
-                dst.put_slice(header.status().as_str().as_bytes());
-                dst.put_slice(b" ");
-                dst.put_slice(header.status().canonical_reason().unwrap().as_bytes());
-                dst.put_slice(b"\r\n");
+                write!(
+                    FastWrite(dst),
+                    "HTTP/1.1 {} {}\r\n",
+                    header.status().as_str(),
+                    header.status().canonical_reason().unwrap()
+                )?;
             }
             v => {
                 error!(http_version = ?v, "unsupported http version");
@@ -61,6 +62,19 @@ impl Encoder<(ResponseHead, PayloadSize)> for HeaderEncoder {
             dst.put_slice(b"\r\n");
         }
         dst.put_slice(b"\r\n");
+        Ok(())
+    }
+}
+
+struct FastWrite<'a>(&'a mut BytesMut);
+
+impl<'a> Write for FastWrite<'a> {
+    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+        self.0.put_slice(buf);
+        Ok(buf.len())
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
         Ok(())
     }
 }
