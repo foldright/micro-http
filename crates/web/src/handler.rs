@@ -28,7 +28,7 @@ where
         req: &mut RequestContext<'server, 'req>,
         req_body: OptionReqBody,
     ) -> Response<ResponseBody> {
-        (&**self).invoke(req, req_body).await
+        (**self).invoke(req, req_body).await
     }
 }
 
@@ -39,7 +39,7 @@ impl RequestHandler for Box<dyn RequestHandler> {
         req: &mut RequestContext<'server, 'req>,
         req_body: OptionReqBody,
     ) -> Response<ResponseBody> {
-        (&**self).invoke(req, req_body).await
+        (**self).invoke(req, req_body).await
     }
 }
 
@@ -50,7 +50,7 @@ impl RequestHandler for &dyn RequestHandler {
         req: &mut RequestContext<'server, 'req>,
         req_body: OptionReqBody,
     ) -> Response<ResponseBody> {
-        (&**self).invoke(req, req_body).await
+        (**self).invoke(req, req_body).await
     }
 }
 

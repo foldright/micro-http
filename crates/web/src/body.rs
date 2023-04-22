@@ -175,12 +175,12 @@ mod tests {
         let mut body = ResponseBody::from(s);
 
         assert_eq!(body.size_hint().exact(), Some(len));
-        assert_eq!(body.is_end_stream(), false);
+        assert!(!body.is_end_stream());
 
         let bytes = body.frame().await.unwrap().unwrap().into_data().unwrap();
         assert_eq!(bytes, Bytes::from("Hello world"));
 
-        assert_eq!(body.is_end_stream(), true);
+        assert!(body.is_end_stream());
         assert!(body.frame().await.is_none());
     }
 
@@ -188,7 +188,7 @@ mod tests {
     async fn test_empty_body() {
         let mut body = ResponseBody::from("");
 
-        assert_eq!(body.is_end_stream(), true);
+        assert!(body.is_end_stream());
         assert_eq!(body.size_hint().exact(), Some(0));
 
         assert!(body.frame().await.is_none());
@@ -207,15 +207,15 @@ mod tests {
         let mut body = ResponseBody::stream(stream_body);
 
         assert!(body.size_hint().exact().is_none());
-        assert_eq!(body.is_end_stream(), false);
+        assert!(!body.is_end_stream());
         assert_eq!(body.frame().await.unwrap().unwrap().into_data().unwrap().as_ref(), [1]);
         assert_eq!(body.frame().await.unwrap().unwrap().into_data().unwrap().as_ref(), [2]);
         assert_eq!(body.frame().await.unwrap().unwrap().into_data().unwrap().as_ref(), [3]);
 
-        assert_eq!(body.is_end_stream(), false);
+        assert!(!body.is_end_stream());
 
         assert!(body.frame().await.is_none());
 
-        assert_eq!(body.is_end_stream(), false);
+        assert!(!body.is_end_stream());
     }
 }
