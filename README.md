@@ -1,4 +1,7 @@
 # Micro Http
+![Crates.io](https://img.shields.io/crates/l/micro-web) 
+![Crates.io](https://img.shields.io/crates/v/micro-web)
+
 the async micro http server
 
 tbc...
