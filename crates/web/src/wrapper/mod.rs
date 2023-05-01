@@ -1,10 +1,10 @@
-mod encoding;
 mod date;
+mod encoding;
 
 use std::marker::PhantomData;
 
-pub use encoding::encoder::EncodeWrapper;
 pub use date::DateWrapper;
+pub use encoding::encoder::EncodeWrapper;
 
 /// A wrapper that can wrap a handler to another
 pub trait Wrapper<H> {
@@ -26,8 +26,14 @@ pub struct Wrappers<Head, Tail, H> {
 pub type IdentityWrappers<H> = Wrappers<IdentityWrapper, IdentityWrapper, H>;
 
 impl<H> IdentityWrappers<H> {
-    pub fn new() -> Self {
+    fn new() -> Self {
         Self { head: IdentityWrapper, tail: IdentityWrapper, _phantom: PhantomData }
+    }
+}
+
+impl<H> Default for IdentityWrappers<H> {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -122,7 +128,7 @@ mod tests {
 
     #[test]
     fn test_and_then() {
-        let wrappers: Wrappers<IdentityWrapper, IdentityWrapper, Service0> = Wrappers::new();
+        let wrappers: Wrappers<IdentityWrapper, IdentityWrapper, Service0> = Wrappers::default();
 
         let wrappers = wrappers.and_then(Service1Wrapper).and_then(Service2Wrapper);
 

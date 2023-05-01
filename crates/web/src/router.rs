@@ -79,7 +79,7 @@ where
 
 impl RouterBuilder<IdentityWrapper, IdentityWrapper> {
     fn new() -> Self {
-        Self { data: HashMap::new(), wrappers: IdentityWrappers::new() }
+        Self { data: HashMap::new(), wrappers: IdentityWrappers::default() }
     }
 }
 impl<HeadW, TailW> RouterBuilder<HeadW, TailW>

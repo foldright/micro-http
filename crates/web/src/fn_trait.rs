@@ -72,8 +72,11 @@ mod tests {
     async fn foo5(_a1: (), _a2: &HeaderMap, _a3: (), _a4: (), _a5: ()) {}
     async fn foo6(_a1: (), _a2: &HeaderMap, _a3: (), _a4: (), _a5: (), _a6: ()) {}
     async fn foo7(_a1: &Method, _a2: (), _a3: (), _a4: (), _a5: (), _a6: (), _a7: ()) {}
+    #[allow(clippy::too_many_arguments)]
     async fn foo8(_a1: &Method, _a2: &HeaderMap, _a3: (), _a4: (), _a5: (), _a6: (), _a7: (), _a8: ()) {}
+    #[allow(clippy::too_many_arguments)]
     async fn foo9(_a1: &Method, _a2: (), _a3: (), _a4: (), _a5: (), _a6: (), _a7: (), _a8: (), _a9: ()) {}
+    #[allow(clippy::too_many_arguments)]
     async fn foo10(
         _a1: &Method,
         _a2: &HeaderMap,
@@ -87,6 +90,7 @@ mod tests {
         _a10: (),
     ) {
     }
+    #[allow(clippy::too_many_arguments)]
     async fn foo11(
         _a1: &Method,
         _a2: &HeaderMap,
@@ -101,6 +105,7 @@ mod tests {
         _a11: (),
     ) {
     }
+    #[allow(clippy::too_many_arguments)]
     async fn foo12(
         _a1: &Method,
         _a2: &HeaderMap,

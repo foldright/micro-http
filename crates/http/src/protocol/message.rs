@@ -24,18 +24,12 @@ pub enum PayloadSize {
 impl PayloadSize {
     #[inline]
     pub fn is_chunked(&self) -> bool {
-        match self {
-            PayloadSize::Chunked => true,
-            _ => false,
-        }
+        matches!(self, PayloadSize::Chunked)
     }
 
     #[inline]
     pub fn is_empty(&self) -> bool {
-        match self {
-            PayloadSize::Empty => true,
-            _ => false,
-        }
+        matches!(self, PayloadSize::Empty)
     }
 }
 
