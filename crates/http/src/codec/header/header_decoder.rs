@@ -1,8 +1,8 @@
 use std::mem::MaybeUninit;
 
 use crate::codec::body::PayloadDecoder;
-use bytes::{Buf, BytesMut};
-use http::HeaderValue;
+use bytes::{BytesMut};
+use http::{HeaderName, HeaderValue, Request};
 use httparse::{Error, Status};
 use tokio_util::codec::Decoder;
 use tracing::trace;
@@ -25,7 +25,7 @@ impl Decoder for HeaderDecoder {
         let mut headers: [MaybeUninit<httparse::Header>; MAX_HEADER_NUM] =
             unsafe { MaybeUninit::uninit().assume_init() };
 
-        let parsed_result = req.parse_with_uninit_headers(src.as_ref(), &mut headers).map_err(|e| match e {
+        let parsed_result = req.parse_with_uninit_headers(src, &mut headers).map_err(|e| match e {
             Error::TooManyHeaders => ParseError::too_many_headers(MAX_HEADER_NUM),
             e => ParseError::invalid_header(e.to_string()),
         });
@@ -35,16 +35,87 @@ impl Decoder for HeaderDecoder {
                 trace!(body_size = body_offset, "parsed body size");
                 ensure!(body_offset <= MAX_HEADER_BYTES, ParseError::too_large_header(body_offset, MAX_HEADER_BYTES));
 
-                let header = req.into();
+                // compute the header bytes index
+                let mut header_index: [HeaderIndex; MAX_HEADER_NUM] = EMPTY_HEADER_INDEX_ARRAY;
+                HeaderIndex::record(src, req.headers, &mut header_index);
+
+                let version = match req.version {
+                    Some(0) => http::Version::HTTP_10,
+                    Some(1) => http::Version::HTTP_11,
+                    // currently not support http2/3
+                    _ => return Err(ParseError::InvalidVersion(req.version)),
+                };
+
+                let mut header_builder = Request::builder()
+                    .method(req.method.ok_or_else(|| ParseError::InvalidMethod)?)
+                    .uri(req.path.ok_or_else(|| ParseError::InvalidUri)?)
+                    .version(version);
+
+                // build headers
+
+                let header_count = req.headers.len();
+                let headers = header_builder.headers_mut().unwrap();
+                headers.reserve(header_count);
+
+                let header_bytes = src.split_to(body_offset).freeze();
+                for index in &header_index[..header_count] {
+                    // it's safe to use unwrap here because httparse has checked the header name is valid ASCII
+                    let name = HeaderName::from_bytes(&header_bytes[index.name.0..index.name.1]).unwrap();
+
+                    // inspired by active-web:
+                    // SAFETY: httparse already checks header value is only visible ASCII bytes
+                    // from_maybe_shared_unchecked contains debug assertions so they are omitted here
+                    let value = unsafe {
+                        HeaderValue::from_maybe_shared_unchecked(
+                            header_bytes.slice(index.value.0..index.value.1),
+                        )
+                    };
+
+                    headers.append(name, value);
+                }
+
+                // build header and parse payload decoder
+                let header = RequestHeader::from(header_builder.body(()).unwrap());
                 let payload_decoder = parse_payload(&header)?;
 
-                src.advance(body_offset);
                 Ok(Some((header, payload_decoder)))
             }
             Status::Partial => {
                 ensure!(src.len() <= MAX_HEADER_BYTES, ParseError::too_large_header(src.len(), MAX_HEADER_BYTES));
                 Ok(None)
             }
+        }
+    }
+}
+
+#[derive(Clone, Copy)]
+struct HeaderIndex {
+    pub(crate) name: (usize, usize),
+    pub(crate) value: (usize, usize),
+}
+
+const EMPTY_HEADER_INDEX: HeaderIndex = HeaderIndex {
+    name: (0, 0),
+    value: (0, 0),
+};
+
+const EMPTY_HEADER_INDEX_ARRAY: [HeaderIndex; MAX_HEADER_NUM] =
+    [EMPTY_HEADER_INDEX; MAX_HEADER_NUM];
+
+impl HeaderIndex {
+    fn record(
+        bytes: &[u8],
+        headers: &[httparse::Header<'_>],
+        indices: &mut [HeaderIndex],
+    ) {
+        let bytes_ptr = bytes.as_ptr() as usize;
+        for (header, indices) in headers.iter().zip(indices.iter_mut()) {
+            let name_start = header.name.as_ptr() as usize - bytes_ptr;
+            let name_end = name_start + header.name.len();
+            indices.name = (name_start, name_end);
+            let value_start = header.value.as_ptr() as usize - bytes_ptr;
+            let value_end = value_start + header.value.len();
+            indices.value = (value_start, value_end);
         }
     }
 }

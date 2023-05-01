@@ -27,6 +27,15 @@ pub enum ParseError {
     #[error("invalid header: {reason}")]
     InvalidHeader { reason: String },
 
+    #[error("invalid http version: {0:?}")]
+    InvalidVersion(Option<u8>),
+
+    #[error("invalid http method")]
+    InvalidMethod,
+
+    #[error("invalid http uri")]
+    InvalidUri,
+
     #[error("invalid content-length header: {reason}")]
     InvalidContentLength { reason: String },
 

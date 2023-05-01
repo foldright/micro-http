@@ -59,11 +59,15 @@ impl Responder for ParseError {
             }
             ParseError::TooManyHeaders { .. } => (StatusCode::BAD_REQUEST, "too many headers").response_to(req),
             ParseError::InvalidHeader { .. } => (StatusCode::BAD_REQUEST, "invalid header").response_to(req),
+            ParseError::InvalidVersion(_) => (StatusCode::BAD_REQUEST, "invalid version").response_to(req),
+            ParseError::InvalidMethod => (StatusCode::BAD_REQUEST, "invalid method").response_to(req),
+            ParseError::InvalidUri => (StatusCode::BAD_REQUEST, "invalid uri").response_to(req),
             ParseError::InvalidContentLength { .. } => {
                 (StatusCode::BAD_REQUEST, "invalid content length").response_to(req)
             }
             ParseError::InvalidBody { .. } => (StatusCode::BAD_REQUEST, "invalid body").response_to(req),
             ParseError::Io { .. } => (StatusCode::BAD_REQUEST, "connection error").response_to(req),
+
         }
     }
 }

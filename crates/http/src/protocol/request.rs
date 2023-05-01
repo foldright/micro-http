@@ -1,3 +1,4 @@
+
 use std::convert::Into;
 
 use http::request::Parts;
@@ -51,8 +52,16 @@ impl RequestHeader {
 }
 
 impl From<Parts> for RequestHeader {
+    #[inline]
     fn from(parts: Parts) -> Self {
         Self { inner: Request::from_parts(parts, ()) }
+    }
+}
+
+impl From<Request<()>> for RequestHeader {
+    #[inline]
+    fn from(inner: Request<()>) -> Self {
+        Self { inner }
     }
 }
 
