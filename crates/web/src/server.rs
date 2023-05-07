@@ -1,7 +1,7 @@
 use crate::handler::RequestHandler;
 use crate::router::Router;
-use crate::{OptionReqBody, RequestContext, ResponseBody};
-use http::{Request, Response};
+use crate::{handler_fn, OptionReqBody, RequestContext, ResponseBody};
+use http::{Request, Response, StatusCode};
 use micro_http::connection::HttpConnection;
 use micro_http::handler::Handler;
 use micro_http::protocol::body::ReqBody;
@@ -43,15 +43,23 @@ impl ServerBuilder {
     }
 
     pub fn build(self) -> Result<Server, ServerBuildError> {
-        let router = self.router.ok_or(ServerBuildError::MissingRouter)?;
-        let address = self.address.ok_or(ServerBuildError::MissingAddress)?;
-        Ok(Server { router, default_handler: self.default_handler, address })
+        let new_builder =
+            if let None = self.default_handler { self.default_handler(handler_fn(default_handler)) } else { self };
+        let router = new_builder.router.ok_or(ServerBuildError::MissingRouter)?;
+        let address = new_builder.address.ok_or(ServerBuildError::MissingAddress)?;
+
+        // unwrap is safe here because we set it in the new_builder
+        Ok(Server { router, default_handler: new_builder.default_handler.unwrap(), address })
     }
+}
+
+async fn default_handler() -> (StatusCode, &'static str) {
+    (StatusCode::NOT_FOUND, "404 Not Found")
 }
 
 pub struct Server {
     router: Router,
-    default_handler: Option<Box<dyn RequestHandler>>,
+    default_handler: Box<dyn RequestHandler>,
     address: Vec<SocketAddr>,
 }
 
@@ -139,8 +147,7 @@ impl Handler for Server {
                     Ok(response)
                 }
                 None => {
-                    // todo: do not using unwrap
-                    let default_handler = self.default_handler.as_ref().unwrap();
+                    let default_handler = self.default_handler.as_ref();
                     let response = default_handler.invoke(&mut request_context, req_body).await;
                     Ok(response)
                 }
