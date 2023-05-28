@@ -1,6 +1,8 @@
 # Micro Http
 ![Crates.io](https://img.shields.io/crates/l/micro-web) 
 ![Crates.io](https://img.shields.io/crates/v/micro-web)
+[![Actions Status](https://github.com/foldright/micro-http/actions/workflows/ci.yml/badge.svg)](https://github.com/foldright/micro-http/actions)
+
 
 the async micro http server
 
