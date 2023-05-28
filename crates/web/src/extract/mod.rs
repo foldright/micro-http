@@ -16,7 +16,7 @@ pub use from_request::FromRequest;
 /// # use serde::Deserialize;
 /// # use micro_web::extract::Form;
 /// # #[allow(dead_code)]
-/// #[derive(Deserialize)]
+/// #[derive(Deserialize, Debug)]
 /// struct Params {
 ///     name: String,
 ///     zip: String,
@@ -38,7 +38,7 @@ pub struct Form<T>(pub T);
 /// # use serde::Deserialize;
 /// # use micro_web::extract::Json;
 /// # #[allow(dead_code)]
-/// #[derive(Deserialize)]
+/// #[derive(Deserialize, Debug)]
 /// struct Params {
 ///     name: String,
 ///     zip: String,
@@ -60,7 +60,7 @@ pub struct Json<T>(pub T);
 /// # use serde::Deserialize;
 /// # use micro_web::extract::Query;
 /// # #[allow(dead_code)]
-/// #[derive(Deserialize)]
+/// #[derive(Deserialize, Debug)]
 /// struct Params {
 ///     name: String,
 ///     zip: String,
