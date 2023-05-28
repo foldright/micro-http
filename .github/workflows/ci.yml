@@ -44,6 +44,7 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@master
         with:
+          toolchain: stable
           components: clippy
       - name: Clippy
         run: cargo clippy
