@@ -15,3 +15,6 @@ tbc...
 
 ## MSRV
 The Minimum Supported Rust Version is 1.65.0.
+
+## P.S.
+- [Web Frameworks Benchmark](https://web-frameworks-benchmark.netlify.app/result?l=rust)

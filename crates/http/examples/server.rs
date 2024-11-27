@@ -38,6 +38,7 @@ async fn main() {
 
         let handler = handler.clone();
 
+        // one connection per task
         tokio::spawn(async move {
             let (reader, writer) = tcp_stream.into_split();
             let connection = HttpConnection::new(reader, writer);

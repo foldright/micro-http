@@ -3,6 +3,7 @@ members = [
     "crates/http",
     "crates/web",
 ]
+resolver = "2"
 
 # see: https://doc.rust-lang.org/cargo/reference/workspaces.html
 [workspace.package]
@@ -11,6 +12,41 @@ edition = "2021"
 homepage = "https://github.com/foldright/micro-http"
 license = "MIT OR Apache-2.0"
 readme = "README.md"
+
+[workspace.dependencies]
+http = "1.1.0"
+http-body = "1.0.1"
+http-body-util = "0.1.2"
+httpdate = "1.0.3"
+mime = "0.3.17"
+
+httparse = "1.8.0"
+
+tracing = "0.1.40"
+tracing-subscriber = "0.3.18"
+
+tokio = {version = "1", features = ["rt-multi-thread", "net", "io-util", "macros", "sync", "signal", "test-util"] }
+async-trait = "0.1.83"
+futures = "0.3.31"
+bytes = "1.8.0"
+pin-project-lite = "0.2.15"
+
+serde = { version = "1.0.215", features = ["derive"] }
+serde_urlencoded = "0.7.1"
+serde_json = "1.0.133"
+serde_qs = "0.13.0"
+
+flate2 = "1.0.35"
+zstd = "0.13.2"
+brotli = "7.0.0"
+
+thiserror = "2"
+
+arc-swap = "1.7.1"
+
+matchit = "0.8.5"
+
+mockall = "0.13.1"
 
 [patch.crates-io]
 micro-http = { path = "crates/http" }
