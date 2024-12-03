@@ -136,7 +136,7 @@ impl Handler for Server {
             let handler_option = route_result
                 .router_items()
                 .iter()
-                .filter(|item| item.filter().check(&request_context))
+                .filter(|item| item.filter().matches(&request_context))
                 .map(|item| item.handler())
                 .take(1)
                 .next();

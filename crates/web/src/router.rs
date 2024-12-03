@@ -206,9 +206,9 @@ mod tests {
         let header: RequestHeader = Request::builder().method(Method::GET).body(()).unwrap().into_parts().0.into();
         let req_ctx = RequestContext::new(&header, PathParams::empty());
 
-        assert!(items[0].filter.check(&req_ctx));
-        assert!(!items[1].filter.check(&req_ctx));
-        assert!(!items[2].filter.check(&req_ctx));
+        assert!(items[0].filter.matches(&req_ctx));
+        assert!(!items[1].filter.matches(&req_ctx));
+        assert!(!items[2].filter.matches(&req_ctx));
     }
 
     #[test]
@@ -224,9 +224,9 @@ mod tests {
         let header: RequestHeader = Request::builder().method(Method::POST).body(()).unwrap().into_parts().0.into();
         let req_ctx = RequestContext::new(&header, PathParams::empty());
 
-        assert!(!items[0].filter.check(&req_ctx));
-        assert!(!items[1].filter.check(&req_ctx));
-        assert!(items[2].filter.check(&req_ctx));
+        assert!(!items[0].filter.matches(&req_ctx));
+        assert!(!items[1].filter.matches(&req_ctx));
+        assert!(items[2].filter.matches(&req_ctx));
     }
 
     #[test]
@@ -249,8 +249,8 @@ mod tests {
             .into();
         let req_ctx = RequestContext::new(&header, PathParams::empty());
 
-        assert!(!items[0].filter.check(&req_ctx));
-        assert!(items[1].filter.check(&req_ctx));
-        assert!(items[2].filter.check(&req_ctx));
+        assert!(!items[0].filter.matches(&req_ctx));
+        assert!(items[1].filter.matches(&req_ctx));
+        assert!(items[2].filter.matches(&req_ctx));
     }
 }
