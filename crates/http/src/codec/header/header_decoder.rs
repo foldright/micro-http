@@ -1,7 +1,7 @@
 use std::mem::MaybeUninit;
 
 use crate::codec::body::PayloadDecoder;
-use bytes::{BytesMut};
+use bytes::BytesMut;
 use http::{HeaderName, HeaderValue, Request};
 use httparse::{Error, Status};
 use tokio_util::codec::Decoder;

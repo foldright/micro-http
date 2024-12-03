@@ -1,3 +1,22 @@
+//! Router module for HTTP request routing and handling.
+//! 
+//! This module provides functionality for routing HTTP requests to appropriate handlers based on paths and filters.
+//! It supports method-based routing, path parameters, and middleware-style wrappers.
+//!
+//! # Examples
+//! 
+//! ```rust
+//! use micro_web::{Router, handler_fn};
+//! 
+//! async fn hello() -> &'static str {
+//!     "Hello, World!"
+//! }
+//! 
+//! let router = Router::builder()
+//!     .route("/hello", get(handler_fn(hello)))
+//!     .build();
+//! ```
+
 use crate::filter::{AllFilter, Filter};
 use crate::handler::RequestHandler;
 use crate::{filter, PathParams};
@@ -10,39 +29,54 @@ use tracing::error;
 type RouterFilter = dyn Filter + Send + Sync + 'static;
 type InnerRouter<T> = matchit::Router<T>;
 
+/// Main router structure that handles HTTP request routing
 pub struct Router {
     inner_router: InnerRouter<Vec<RouterItem>>,
 }
 
+/// A router item containing a filter and handler
 pub struct RouterItem {
     filter: Box<RouterFilter>,
     handler: Box<dyn RequestHandler>,
 }
 
+/// Result of matching a route, containing matched items and path parameters
 pub struct RouteResult<'router, 'req> {
     router_item: &'router [RouterItem],
     params: PathParams<'router, 'req>,
 }
 
 impl Router {
+    /// Creates a new router builder with default wrappers
     pub fn builder() -> RouterBuilder<IdentityWrapper, IdentityWrapper> {
         RouterBuilder::new()
     }
 
+    /// Matches a path against the router's routes
+    /// 
+    /// Returns a `RouteResult` containing matched handlers and path parameters
+    ///
+    /// # Arguments
+    /// * `path` - The path to match against
     pub fn at<'router, 'req>(&'router self, path: &'req str) -> RouteResult<'router, 'req> {
         self.inner_router
             .at(path)
-            .map(|matched| RouteResult { router_item: matched.value.as_slice(), params: matched.params.into() })
+            .map(|matched| RouteResult { 
+                router_item: matched.value.as_slice(), 
+                params: matched.params.into() 
+            })
             .map_err(|e| error!("match {} error: {}", path, e))
             .unwrap_or(RouteResult::empty())
     }
 }
 
 impl RouterItem {
+    /// Gets the filter for this router item
     pub fn filter(&self) -> &RouterFilter {
         self.filter.as_ref()
     }
 
+    /// Gets the request handler for this router item 
     pub fn handler(&self) -> &dyn RequestHandler {
         self.handler.as_ref()
     }
@@ -53,20 +87,24 @@ impl<'router, 'req> RouteResult<'router, 'req> {
         Self { router_item: &[], params: PathParams::empty() }
     }
 
+    /// Returns true if no routes were matched
     #[inline]
     pub fn is_empty(&self) -> bool {
         self.router_item.is_empty()
     }
 
+    /// Gets the path parameters from the matched route
     pub fn params(&self) -> PathParams<'router, 'req> {
         self.params.clone()
     }
 
+    /// Gets the matched router items
     pub fn router_items(&self) -> &'router [RouterItem] {
         self.router_item
     }
 }
 
+/// Builder for constructing a router with routes and wrappers
 pub struct RouterBuilder<HeadW, TailW>
 where
     HeadW: Wrapper<Box<dyn RequestHandler>> + 'static,
@@ -88,12 +126,20 @@ where
     TailW: Wrapper<HeadW::Out> + 'static,
     TailW::Out: RequestHandler,
 {
+    /// Adds a route to the router builder
+    ///
+    /// # Arguments
+    /// * `route` - The path pattern to match
+    /// * `item_builder` - The router item builder containing filters and handler
     pub fn route(mut self, route: impl Into<String>, item_builder: RouterItemBuilder) -> Self {
         let vec = self.data.entry(route.into()).or_insert_with(Vec::new);
         vec.push(item_builder);
         self
     }
 
+    /// Adds a wrapper to the router builder
+    ///
+    /// Wrappers can modify or enhance the behavior of handlers
     pub fn wrap<NewW>(
         self,
         handler_wrapper: NewW,
@@ -105,6 +151,7 @@ where
         RouterBuilder { data: self.data, wrappers: self.wrappers.and_then(handler_wrapper) }
     }
 
+    /// Builds the router from the accumulated routes and wrappers
     pub fn build(self) -> Router {
         let mut inner_router = InnerRouter::new();
 
