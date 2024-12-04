@@ -133,25 +133,18 @@ impl Handler for Server {
 
             let mut request_context = RequestContext::new(&header, route_result.params());
 
-            let handler_option = route_result
+            let handler = route_result
                 .router_items()
                 .iter()
                 .filter(|item| item.filter().matches(&request_context))
                 .map(|item| item.handler())
                 .take(1)
-                .next();
+                .next()
+                .unwrap_or(self.default_handler.as_ref());
 
-            match handler_option {
-                Some(handler) => {
-                    let response = handler.invoke(&mut request_context, req_body).await;
-                    Ok(response)
-                }
-                None => {
-                    let default_handler = self.default_handler.as_ref();
-                    let response = default_handler.invoke(&mut request_context, req_body).await;
-                    Ok(response)
-                }
-            }
+            let response = handler.invoke(&mut request_context, req_body).await;
+            Ok(response) 
+            
         })
     }
 }
