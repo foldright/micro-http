@@ -71,7 +71,7 @@ async fn simple_handler_json_data(method: &Method, Json(user): Json<User>) -> St
 /// curl -X POST http://127.0.0.1:8080/
 /// ```
 async fn simple_handler_post(method: &Method, str: Option<String>, str2: Option<String>) -> String {
-    println!("receive body: {}, {}", str.is_some(), str2.is_some());
+    println!("receive body: {:?}, {:?}", str, str2);
     format!("receive from method: {}\r\n", method)
 }
 
@@ -82,7 +82,7 @@ async fn simple_handler_post(method: &Method, str: Option<String>, str2: Option<
 /// curl http://127.0.0.1:8080/4
 /// ```
 async fn simple_another_get(method: &Method, str: Option<String>, str2: Option<String>) -> String {
-    println!("receive body: {}, {}", str.is_some(), str2.is_some());
+    println!("receive body: {:?}, {:?}", str, str2);
     format!("receive from method: {}\r\n", method)
 }
 
