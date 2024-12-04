@@ -17,7 +17,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        rust: [nightly, beta, stable, 1.65.0] #1.65.0 is the MSRV
+        rust: [nightly, beta, stable, 1.74] #1.74 is the MSRV
     timeout-minutes: 90
     steps:
       - name: Checkout
