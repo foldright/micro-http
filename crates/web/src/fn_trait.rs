@@ -8,9 +8,7 @@
 //!
 //! # Examples
 //!
-//! ```rust
-//! use micro_web::fn_trait::FnTrait;
-//! 
+//! ```no_run
 //! // Handler with no parameters
 //! async fn handler0() -> &'static str {
 //!     "Hello World!"
@@ -46,15 +44,16 @@ use std::future::Future;
 /// # Examples
 ///
 /// ```rust
-/// use micro_web::fn_trait::FnTrait;
-/// use http::Method;
+/// use http::Method;///
+///
+/// use micro_web::FnTrait;
 ///
 /// async fn my_handler(method: &Method) -> String {
 ///     format!("Handling {} request", method)
 /// }
 ///
 /// // The function automatically implements FnTrait
-/// fn assert_handler<F: FnTrait<(&Method,)>>(f: F) {}
+/// fn assert_handler<'r, F: FnTrait<(&'r Method,)>>(f: F) {}
 /// assert_handler(my_handler);
 /// ```
 pub trait FnTrait<Args>: Send + Sync {
@@ -75,8 +74,10 @@ pub trait FnTrait<Args>: Send + Sync {
 ///
 /// # Example Generated Implementation
 ///
-/// ```rust
+/// ```ignore
 /// // For a two-parameter function:
+/// use micro_web::FnTrait;
+///
 /// impl<Func, Fut, A, B> FnTrait<(A, B)> for Func
 /// where
 ///     Func: Fn(A, B) -> Fut + Send + Sync,

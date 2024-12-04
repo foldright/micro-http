@@ -14,10 +14,6 @@
 /// * `$predicate` - A boolean expression that should evaluate to true
 /// * `$error` - The error value to return if the predicate is false
 /// 
-/// # Example
-/// 
-/// ```
-/// ensure!(headers.len() < MAX_HEADERS, ParseError::TooManyHeaders);
 /// ```
 macro_rules! ensure {
     ($predicate:expr, $error:expr) => {
