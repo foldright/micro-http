@@ -1,30 +1,95 @@
-use std::future::Future;
 
-/// Represents a function
+
+//! Function trait implementation for handling async request handlers
+//! 
+//! This module provides the [`FnTrait`] trait which is used to abstract over different types
+//! of async functions that can serve as request handlers. It supports functions with varying
+//! numbers of parameters (from 0 to 12) and ensures they can be used in an async context.
+//!
+//! # Examples
+//!
+//! ```rust
+//! use micro_web::fn_trait::FnTrait;
+//! 
+//! // Handler with no parameters
+//! async fn handler0() -> &'static str {
+//!     "Hello World!"
+//! }
+//!
+//! // Handler with two parameters
+//! async fn handler2(param1: &str, param2: i32) -> String {
+//!     format!("Hello {}, number: {}", param1, param2)
+//! }
+//! ```
+//!
+//! The trait is automatically implemented for functions that:
+//! - Are async functions
+//! - Return a Future
+//! - Are Send + Sync
+//! - Have 0-12 parameters
+
+use std::future::Future;
+/// A trait for abstracting over async functions with varying numbers of parameters.
+///
+/// This trait allows the web framework to work with different types of handler functions
+/// in a uniform way, regardless of their parameter count or types.
+///
+/// # Type Parameters
+///
+/// * `Args`: The tuple type containing all function parameters
+///
+/// # Associated Types
+///
+/// * `Output`: The type that the function returns when resolved
+/// * `Fut`: The specific Future type that the function returns
+///
+/// # Examples
+///
+/// ```rust
+/// use micro_web::fn_trait::FnTrait;
+/// use http::Method;
+///
+/// async fn my_handler(method: &Method) -> String {
+///     format!("Handling {} request", method)
+/// }
+///
+/// // The function automatically implements FnTrait
+/// fn assert_handler<F: FnTrait<(&Method,)>>(f: F) {}
+/// assert_handler(my_handler);
+/// ```
 pub trait FnTrait<Args>: Send + Sync {
     type Output;
     type Fut: Future<Output = Self::Output> + Send;
     fn call(&self, args: Args) -> Self::Fut;
 }
 
-/// impl `Fn` for `FnTrait`, From 0 parameters to 12 parameters
+/// Implements `FnTrait` for functions with varying numbers of parameters.
 ///
-/// for example, it will impl Fn(A, B) like this:
-///```ignore
+/// This macro generates implementations for functions with 0 to 12 parameters,
+/// allowing them to be used as request handlers in the web framework.
+///
+/// The generated implementations ensure that:
+/// - The function is Send + Sync
+/// - The returned Future is Send
+/// - Parameters are properly passed through to the function
+///
+/// # Example Generated Implementation
+///
+/// ```rust
+/// // For a two-parameter function:
 /// impl<Func, Fut, A, B> FnTrait<(A, B)> for Func
-///    where
-///        Func: Fn(A, B) -> Fut,
-///        Fut: std::future::Future,
+/// where
+///     Func: Fn(A, B) -> Fut + Send + Sync,
+///     Fut: std::future::Future + Send,
 /// {
-///    type Output = Fut::Output;
+///     type Output = Fut::Output;
+///     type Fut = Fut;
 ///
-///    #[inline]
-///    #[allow(non_snake_case)]
-///    async fn call(&self, (A, B): (A, B)) -> Self::Output {
-///        (self)(A, B)
-///    }
+///     fn call(&self, (a, b): (A, B)) -> Self::Fut {
+///         (self)(a, b)
+///     }
 /// }
-///```
+/// ```
 macro_rules! impl_fn_trait_for_fn ({ $($param:ident)* } => {
     impl<Func, Fut, $($param,)*> FnTrait<($($param,)*)> for Func
     where
