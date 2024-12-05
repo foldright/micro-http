@@ -1,3 +1,26 @@
+//! HTTP response encoder module
+//! 
+//! This module provides functionality for encoding HTTP responses using a streaming approach.
+//! It handles both header encoding and payload encoding through a state machine pattern.
+//! 
+//! # Components
+//! 
+//! - [`ResponseEncoder`]: Main encoder that coordinates header and payload encoding
+//! - Header encoding: Uses [`HeaderEncoder`] for encoding response headers
+//! - Payload handling: Uses [`PayloadEncoder`] for encoding response bodies
+//! 
+//! # Example
+//! 
+//! ```no_run
+//! use micro_http::codec::ResponseEncoder;
+//! use tokio_util::codec::Encoder;
+//! use bytes::BytesMut;
+//! 
+//! let mut encoder = ResponseEncoder::new();
+//! let mut buffer = BytesMut::new();
+//! // ... encode response data to buffer ...
+//! ```
+
 use crate::codec::body::PayloadEncoder;
 use crate::codec::header::HeaderEncoder;
 use crate::protocol::{Message, PayloadSize, ResponseHead, SendError};
@@ -7,12 +30,18 @@ use std::io::ErrorKind;
 use tokio_util::codec::Encoder;
 use tracing::error;
 
+/// A encoder for HTTP responses that handles both headers and payload
+/// 
+/// The encoder operates in two phases:
+/// 1. Header encoding: Encodes the response headers using [`HeaderEncoder`]
+/// 2. Payload encoding: If present, encodes the response body using [`PayloadEncoder`]
 pub struct ResponseEncoder {
     header_encoder: HeaderEncoder,
     payload_encoder: Option<PayloadEncoder>,
 }
 
 impl ResponseEncoder {
+    /// Creates a new `ResponseEncoder` instance
     pub fn new() -> Self {
         Default::default()
     }
@@ -27,6 +56,17 @@ impl Default for ResponseEncoder {
 impl<D: Buf> Encoder<Message<(ResponseHead, PayloadSize), D>> for ResponseEncoder {
     type Error = SendError;
 
+    /// Attempts to encode an HTTP response to the provided buffer
+    /// 
+    /// # Arguments
+    /// 
+    /// * `item` - The message to encode, either headers or payload
+    /// * `dst` - The buffer to write the encoded data to
+    /// 
+    /// # Returns
+    /// 
+    /// - `Ok(())`: Successfully encoded the message
+    /// - `Err(_)`: Encountered an encoding error
     fn encode(&mut self, item: Message<(ResponseHead, PayloadSize), D>, dst: &mut BytesMut) -> Result<(), Self::Error> {
         match item {
             Message::Header((head, payload_size)) => {
@@ -61,6 +101,15 @@ impl<D: Buf> Encoder<Message<(ResponseHead, PayloadSize), D>> for ResponseEncode
     }
 }
 
+/// Creates a payload encoder based on the payload size
+/// 
+/// # Arguments
+/// 
+/// * `payload_size` - The size specification for the payload
+/// 
+/// # Returns
+/// 
+/// Returns a [`PayloadEncoder`] configured according to the payload size
 fn parse_payload_encoder(payload_size: PayloadSize) -> PayloadEncoder {
     match payload_size {
         PayloadSize::Length(size) => PayloadEncoder::fix_length(size),

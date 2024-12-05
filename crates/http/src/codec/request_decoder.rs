@@ -1,4 +1,4 @@
-//! HTTP request decoder
+//! HTTP request decoder module
 //! 
 //! This module provides functionality for decoding HTTP requests using a streaming approach.
 //! It handles both header parsing and payload decoding through a state machine pattern.
