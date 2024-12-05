@@ -92,13 +92,16 @@ where
         H::RespBody: Body<Data = Bytes> + Unpin,
         <H::RespBody as Body>::Error: Display,
     {
-        // process expect: 100-continue
+        // Check if the request header contains the "Expect: 100-continue" field.
         if let Some(value) = header.headers().get(EXPECT) {
             let slice = value.as_bytes();
+            // Verify if the value of the "Expect" field is "100-continue".
             if slice.len() >= 4 && &slice[0..4] == b"100-" {
                 let writer = self.framed_write.get_mut();
+                // Send a "100 Continue" response to the client.
                 let _ = writer.write(b"HTTP/1.1 100 Continue\r\n\r\n").await.map_err(SendError::io)?;
                 writer.flush().await.map_err(SendError::io)?;
+                // Log the event of sending a "100 Continue" response.
                 info!("receive expect request header, sent continue response");
             }
         }
@@ -107,28 +110,41 @@ where
 
         let request = header.body(req_body);
 
-        // concurrent compute the request handler and the body sender
+        // This block handles concurrent processing of the request handler and request body streaming.
+        // We need this concurrent processing because:
+        // 1. The request handler may not read the entire body, but we still need to drain the body
+        //    from the underlying TCP stream to maintain protocol correctness
+        // 2. The request handler and body streaming need to happen simultaneously to avoid deadlocks,
+        //    since the handler may be waiting for body data while the body sender is waiting to send
         let response_result = {
-            // both are lazy, and need to pin in the stack while using select!
+            // Pin both futures to the stack since they are used in select! macro
+            // The futures are lazy and won't start executing until polled
             tokio::pin! {
                 let request_handle_future = handler.call(request);
                 let body_sender_future = body_sender.send_body();
             }
 
+            // Store the handler result to return after body is fully processed
             #[allow(unused_assignments)]
             let mut result = Option::<Result<_, _>>::None;
+            
+            // Keep processing until handler completes
             loop {
                 select! {
+                    // biased ensures we prioritize handling the response
                     biased;
+                    // When handler completes, store result and break
                     response = &mut request_handle_future => {
                         result = Some(response);
                         break;
                     }
+                    // Keep processing body chunks in background
                     _ = &mut body_sender_future => {
-                        //no op
+                        // No action needed - just keep streaming body
                     }
                 }
             }
+            // Safe: result is Some if handler completed
             result.unwrap()
         };
 
