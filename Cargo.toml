@@ -47,6 +47,7 @@ arc-swap = "1.7.1"
 matchit = "0.8.5"
 
 mockall = "0.13.1"
+criterion ="0.5"
 
 [patch.crates-io]
 micro-http = { path = "crates/http" }
