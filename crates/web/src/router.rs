@@ -5,9 +5,9 @@
 //!
 //! # Examples
 //! 
-//! ```rust
-//! use micro_web::{Router, handler_fn};
-//! 
+//! ```no_run
+//! use micro_web::router::{get, Router};
+//! use micro_web::handler_fn;
 //! async fn hello() -> &'static str {
 //!     "Hello, World!"
 //! }

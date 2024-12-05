@@ -7,7 +7,7 @@
 //! 
 //! - [`RequestDecoder`]: Main decoder that coordinates header and payload parsing
 //! - Header parsing: Uses [`HeaderDecoder`] for parsing request headers
-//! - Payload handling: Uses [`PayloadDecoder`] for handling request bodies
+//! - Payload handling: Uses [`PayloadDecoder`] for handling request bodies if any
 //! 
 //! # Example
 //! 
