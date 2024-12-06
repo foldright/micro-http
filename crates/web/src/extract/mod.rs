@@ -5,11 +5,12 @@ mod extract_url;
 mod from_request;
 
 pub use from_request::FromRequest;
+use serde::Deserialize;
 
 /// Represented as form data
 ///
 /// when `post` as a `application/x-www-form-urlencoded`, we can using this struct to inject data,
-/// note: the struct must impl [`de::Deserialize`] and [`Send`]
+/// note: the struct must impl [`serde::Deserialize`] and [`Send`]
 ///
 /// # Example
 /// ```
@@ -26,12 +27,12 @@ pub use from_request::FromRequest;
 ///     format!("received params: {:?}", params)
 /// }
 /// ```
-pub struct Form<T>(pub T);
+pub struct Form<T>(pub T) where T: for<'de> Deserialize<'de> + Send;
 
 /// Represented as json data
 ///
 /// when `post` as a `application/json`, we can using this struct to inject data,
-/// note: the struct must impl [`de::Deserialize`] and [`Send`]
+/// note: the struct must impl [`serde::Deserialize`] and [`Send`]
 ///
 /// # Example
 /// ```
@@ -48,12 +49,12 @@ pub struct Form<T>(pub T);
 ///     format!("received params: {:?}", params)
 /// }
 /// ```
-pub struct Json<T>(pub T);
+pub struct Json<T>(pub T) where T: for<'de> Deserialize<'de> + Send;
 
 /// Represented as url query data
 ///
 /// when request with url query, we can using this struct to inject data,
-/// note: the struct must impl [`de::Deserialize`] and [`Send`]
+/// note: the struct must impl [`serde::Deserialize`] and [`Send`]
 ///
 /// # Example
 /// ```
@@ -70,4 +71,4 @@ pub struct Json<T>(pub T);
 ///     format!("received params: {:?}", params)
 /// }
 /// ```
-pub struct Query<T>(pub T);
+pub struct Query<T>(pub T) where T: for<'de> Deserialize<'de> + Send;
