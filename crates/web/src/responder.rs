@@ -15,22 +15,6 @@ use http::{Response, StatusCode};
 ///
 /// Types implementing this trait can be returned directly from request handlers
 /// and will be automatically converted into HTTP responses.
-///
-/// # Examples
-///
-/// ```no_run
-/// # use http::Response;
-/// # use crate::web::{Responder, ResponseBody, RequestContext};
-/// 
-/// // Implementing Responder for a custom type
-/// struct CustomResponse(String);
-///
-/// impl Responder for CustomResponse {
-///     fn response_to(self, _req: &RequestContext) -> Response<ResponseBody> {
-///         Response::new(ResponseBody::from(self.0))
-///     }
-/// }
-/// ```
 pub trait Responder {
     fn response_to(self, req: &RequestContext) -> Response<ResponseBody>;
 }

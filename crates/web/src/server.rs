@@ -1,3 +1,36 @@
+//! Server module for handling HTTP requests and managing web server lifecycle.
+//! 
+//! This module provides the core server functionality including:
+//! - Server builder pattern for configuration
+//! - HTTP request routing and handling
+//! - Connection management and error handling
+//! - Default request handling
+//! 
+//! # Examples
+//! 
+//! ```no_run
+//! use micro_web::{Server, router::{Router, get}, handler_fn};
+//! 
+//! async fn hello_world() -> &'static str {
+//!     "Hello, World!"
+//! }
+//! 
+//! #[tokio::main]
+//! async fn main() {
+//!     let router = Router::builder()
+//!         .route("/", get(handler_fn(hello_world)))
+//!         .build();
+//!         
+//!     Server::builder()
+//!         .router(router)
+//!         .bind("127.0.0.1:3000")
+//!         .build()
+//!         .unwrap()
+//!         .start()
+//!         .await;
+//! }
+//! ```
+
 use crate::handler::RequestHandler;
 use crate::router::Router;
 use crate::{handler_fn, OptionReqBody, RequestContext, ResponseBody};
@@ -16,6 +49,12 @@ use tokio::net::TcpListener;
 use tracing::{error, info, warn, Level};
 use tracing_subscriber::FmtSubscriber;
 
+/// Builder for configuring and constructing a [`Server`] instance.
+/// 
+/// The builder provides a fluent API for setting server options including:
+/// - Binding address
+/// - Request router
+/// - Default request handler
 pub struct ServerBuilder {
     router: Option<Router>,
     default_handler: Option<Box<dyn RequestHandler>>,
@@ -57,16 +96,28 @@ async fn default_handler() -> (StatusCode, &'static str) {
     (StatusCode::NOT_FOUND, "404 Not Found")
 }
 
+/// Core server implementation that processes HTTP requests.
+/// 
+/// The server is responsible for:
+/// - Listening for incoming connections
+/// - Routing requests to appropriate handlers
+/// - Managing connection lifecycle
+/// - Error handling and logging
+/// 
 pub struct Server {
     router: Router,
     default_handler: Box<dyn RequestHandler>,
     address: Vec<SocketAddr>,
 }
 
+/// Errors that can occur during server construction.
 #[derive(Error, Debug)]
 pub enum ServerBuildError {
+    /// Router was not configured
     #[error("router must be set")]
     MissingRouter,
+    
+    /// Bind address was not configured
     #[error("address must be set")]
     MissingAddress,
 }
