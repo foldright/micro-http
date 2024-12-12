@@ -70,7 +70,7 @@ impl AsyncWrite for MockIO {
 }
 
 // Test handler
-async fn test_handler(req: Request<ReqBody>) -> Result<Response<String>, Box<dyn Error + Send + Sync>> {
+async fn test_handler(_req: Request<ReqBody>) -> Result<Response<String>, Box<dyn Error + Send + Sync>> {
     let response = Response::builder()
         .status(StatusCode::OK)
         .body("Hello World!".to_string())
