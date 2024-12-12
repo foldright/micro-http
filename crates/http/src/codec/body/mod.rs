@@ -7,14 +7,14 @@
 //! # Components
 //! 
 //! ## Decoders
-//! - [`ChunkedDecoder`]: Handles chunked transfer encoded payloads
-//! - [`LengthDecoder`]: Processes fixed-length payloads
-//! - [`PayloadDecoder`]: Main decoder that coordinates different decoding strategies
+//! - [`chunked_decoder::ChunkedDecoder`]: Handles chunked transfer encoded payloads
+//! - [`length_decoder::LengthDecoder`]: Processes fixed-length payloads
+//! - [`payload_decoder::PayloadDecoder`]: Main decoder that coordinates different decoding strategies
 //! 
 //! ## Encoders
-//! - [`ChunkedEncoder`]: Implements chunked transfer encoding
-//! - [`LengthEncoder`]: Handles fixed-length payload encoding
-//! - [`PayloadEncoder`]: Main encoder that manages different encoding strategies
+//! - [`chunked_encoder::ChunkedEncoder`]: Implements chunked transfer encoding
+//! - [`length_encoder::LengthEncoder`]: Handles fixed-length payload encoding
+//! - [`payload_encoder::PayloadEncoder`]: Main encoder that manages different encoding strategies
 //! 
 //! # Features
 //! 
