@@ -13,6 +13,10 @@ tbc...
 ## Example
 - [using async fn as handler](crates/web/examples/getting_started.rs)
 
+
+## Develop
+- [deploy new version](deploy.md)
+
 ## MSRV
 The Minimum Supported Rust Version is 1.74
 
