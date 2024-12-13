@@ -1,3 +1,31 @@
+//! Body data extraction implementations
+//! 
+//! This module provides implementations for extracting typed data from request bodies.
+//! It supports extracting raw bytes, strings, JSON data and form data.
+//! 
+//! # Examples
+//! 
+//! ```no_run
+//! # use micro_web::extract::{Json, Form};
+//! # use serde::Deserialize;
+//! 
+//! #[derive(Deserialize)]
+//! struct User {
+//!     name: String,
+//!     age: u32
+//! }
+//! 
+//! // Extract JSON data
+//! async fn handle_json(Json(user): Json<User>) {
+//!     println!("Got user: {}", user.name);
+//! }
+//! 
+//! // Extract form data
+//! async fn handle_form(Form(user): Form<User>) {
+//!     println!("Got user: {}", user.name); 
+//! }
+//! ```
+
 use crate::body::OptionReqBody;
 use crate::extract::{Form, FromRequest, Json};
 use crate::RequestContext;
@@ -7,6 +35,7 @@ use http_body_util::BodyExt;
 use micro_http::protocol::ParseError;
 use serde::Deserialize;
 
+/// Extracts raw bytes from request body
 #[async_trait]
 impl FromRequest for Bytes {
     type Output<'any> = Bytes;
@@ -17,6 +46,7 @@ impl FromRequest for Bytes {
     }
 }
 
+/// Extracts UTF-8 string from request body
 #[async_trait]
 impl FromRequest for String {
     type Output<'any> = String;
@@ -32,6 +62,10 @@ impl FromRequest for String {
     }
 }
 
+/// Extracts form data from request body
+/// 
+/// This implementation expects the request body to be URL-encoded form data
+/// and deserializes it into the target type using `serde_urlencoded`.
 #[async_trait]
 impl<T> FromRequest for Form<T>
 where
@@ -48,6 +82,10 @@ where
     }
 }
 
+/// Extracts JSON data from request body
+/// 
+/// This implementation expects the request body to be valid JSON
+/// and deserializes it into the target type using `serde_json`.
 #[async_trait]
 impl<T> FromRequest for Json<T>
 where
