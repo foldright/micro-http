@@ -1,3 +1,36 @@
+//! HTTP header decoder implementation for parsing HTTP request headers
+//! 
+//! This module provides functionality for decoding HTTP request headers from raw bytes into
+//! structured header representations. It handles parsing of HTTP method, URI, version and
+//! header fields according to HTTP/1.1 specification.
+//!
+//! # Features
+//!
+//! - Efficient zero-copy header parsing using `httparse`
+//! - Support for HTTP/1.0 and HTTP/1.1
+//! - Memory safety through `MaybeUninit` for header allocation
+//! - Built-in protection against oversized headers
+//! - Automatic payload decoder selection based on headers
+//!
+//! # Limits
+//!
+//! - Maximum number of headers: 64 
+//! - Maximum header size: 8KB
+//! - Only supports HTTP/1.0 and HTTP/1.1 (HTTP/2 and HTTP/3 currently not supported)
+//!
+//! # Implementation Details
+//!
+//! The decoder works in multiple stages:
+//! 
+//! 1. Parse raw bytes using `httparse`
+//! 2. Record header name/value byte ranges
+//! 3. Convert to typed `http::Request` structure
+//! 4. Determine payload decoder based on headers
+//!
+//! The implementation uses an index-based approach to avoid copying header data,
+//! recording the byte ranges of header names and values for efficient conversion
+//! to the final header structure.
+
 use std::mem::MaybeUninit;
 
 use crate::codec::body::PayloadDecoder;
@@ -11,60 +44,93 @@ use crate::ensure;
 
 use crate::protocol::{ParseError, RequestHeader};
 
+/// Maximum number of headers allowed in a request
 const MAX_HEADER_NUM: usize = 64;
+
+/// Maximum size in bytes allowed for the entire header section
 const MAX_HEADER_BYTES: usize = 8 * 1024;
 
+/// Decoder for HTTP request headers implementing the [`Decoder`] trait.
+/// 
+/// This decoder parses raw bytes into a structured [`RequestHeader`] and determines the 
+/// appropriate [`PayloadDecoder`] based on the Content-Length and Transfer-Encoding headers.
 pub struct HeaderDecoder;
 
 impl Decoder for HeaderDecoder {
     type Item = (RequestHeader, PayloadDecoder);
     type Error = ParseError;
 
+    /// Attempts to decode HTTP headers from the provided bytes buffer.
+    ///
+    /// # Arguments
+    ///
+    /// * `src` - Mutable reference to the source bytes buffer
+    ///
+    /// # Returns
+    ///
+    /// - `Ok(Some((header, decoder)))` if a complete header was successfully parsed
+    /// - `Ok(None)` if more data is needed
+    /// - `Err(ParseError)` if parsing failed
+    ///
+    /// # Errors
+    ///
+    /// Returns `ParseError` if:
+    /// - The number of headers exceeds `MAX_HEADER_NUM`
+    /// - The total header size exceeds `MAX_HEADER_BYTES`
+    /// - The HTTP version is not supported
+    /// - Headers contain invalid characters
     fn decode(&mut self, src: &mut BytesMut) -> Result<Option<Self::Item>, Self::Error> {
+        // Create an empty HTTP request parser and uninitialized headers array
         let mut req = httparse::Request::new(&mut []);
         let mut headers: [MaybeUninit<httparse::Header>; MAX_HEADER_NUM] =
             unsafe { MaybeUninit::uninit().assume_init() };
 
+        // Parse request headers using httparse, return error if exceeds max headers or invalid format
         let parsed_result = req.parse_with_uninit_headers(src, &mut headers).map_err(|e| match e {
             Error::TooManyHeaders => ParseError::too_many_headers(MAX_HEADER_NUM),
             e => ParseError::invalid_header(e.to_string()),
         });
 
         match parsed_result? {
+            // If parsing is complete, get the body offset
             Status::Complete(body_offset) => {
                 trace!(body_size = body_offset, "parsed body size");
+                // Ensure request headers size does not exceed limit
                 ensure!(body_offset <= MAX_HEADER_BYTES, ParseError::too_large_header(body_offset, MAX_HEADER_BYTES));
 
-                // compute the header bytes index
+                // Calculate and record byte range indices for each header
                 let mut header_index: [HeaderIndex; MAX_HEADER_NUM] = EMPTY_HEADER_INDEX_ARRAY;
                 HeaderIndex::record(src, req.headers, &mut header_index);
 
+                // Build HTTP version based on version number
                 let version = match req.version {
                     Some(0) => http::Version::HTTP_10,
                     Some(1) => http::Version::HTTP_11,
-                    // currently not support http2/3
+                    // Currently HTTP/2 and HTTP/3 not supported
                     _ => return Err(ParseError::InvalidVersion(req.version)),
                 };
 
+                // Build request header using parsed method, URI and version
                 let mut header_builder = Request::builder()
                     .method(req.method.ok_or_else(|| ParseError::InvalidMethod)?)
                     .uri(req.path.ok_or_else(|| ParseError::InvalidUri)?)
                     .version(version);
 
-                // build headers
-
+                // Build headers
                 let header_count = req.headers.len();
                 let headers = header_builder.headers_mut().unwrap();
                 headers.reserve(header_count);
 
+                // Split header portion from source buffer
                 let header_bytes = src.split_to(body_offset).freeze();
+                // Iterate header indices and build each header
                 for index in &header_index[..header_count] {
-                    // it's safe to use unwrap here because httparse has checked the header name is valid ASCII
+                    // Safe to unwrap since httparse verified header name is valid ASCII
                     let name = HeaderName::from_bytes(&header_bytes[index.name.0..index.name.1]).unwrap();
 
                     // inspired by active-web:
-                    // SAFETY: httparse already checks header value is only visible ASCII bytes
-                    // from_maybe_shared_unchecked contains debug assertions so they are omitted here
+                    // Safe to use from_maybe_shared_unchecked since httparse verified 
+                    // header value contains only visible ASCII chars
                     let value = unsafe {
                         HeaderValue::from_maybe_shared_unchecked(
                             header_bytes.slice(index.value.0..index.value.1),
@@ -74,12 +140,13 @@ impl Decoder for HeaderDecoder {
                     headers.append(name, value);
                 }
 
-                // build header and parse payload decoder
+                // Build final request header and payload decoder
                 let header = RequestHeader::from(header_builder.body(()).unwrap());
                 let payload_decoder = parse_payload(&header)?;
 
                 Ok(Some((header, payload_decoder)))
             }
+            // If parsing incomplete, ensure current buffer size does not exceed limit
             Status::Partial => {
                 ensure!(src.len() <= MAX_HEADER_BYTES, ParseError::too_large_header(src.len(), MAX_HEADER_BYTES));
                 Ok(None)
@@ -88,9 +155,15 @@ impl Decoder for HeaderDecoder {
     }
 }
 
+/// Stores the byte range positions of a header's name and value within the original buffer.
+/// 
+/// This struct is used internally by the decoder to perform zero-copy parsing of headers
+/// by recording the positions of header names and values rather than copying the data.
 #[derive(Clone, Copy)]
 struct HeaderIndex {
+    /// Start and end byte positions of the header name
     pub(crate) name: (usize, usize),
+    /// Start and end byte positions of the header value 
     pub(crate) value: (usize, usize),
 }
 
@@ -103,6 +176,13 @@ const EMPTY_HEADER_INDEX_ARRAY: [HeaderIndex; MAX_HEADER_NUM] =
     [EMPTY_HEADER_INDEX; MAX_HEADER_NUM];
 
 impl HeaderIndex {
+    /// Records the byte positions of header names and values from the parsed headers.
+    ///
+    /// # Arguments
+    ///
+    /// * `bytes` - The original bytes containing the headers
+    /// * `headers` - Slice of parsed header references from httparse
+    /// * `indices` - Mutable slice to store the recorded positions
     fn record(
         bytes: &[u8],
         headers: &[httparse::Header<'_>],
@@ -120,6 +200,27 @@ impl HeaderIndex {
     }
 }
 
+/// Determines the appropriate payload decoder based on the request headers.
+///
+/// This function examines the Content-Length and Transfer-Encoding headers
+/// to select the correct decoder according to RFC 7230 section 3.3.
+///
+/// # Arguments
+///
+/// * `header` - The parsed request header
+///
+/// # Returns
+///
+/// Returns a `PayloadDecoder` configured based on the headers:
+/// - Empty decoder if no body is expected
+/// - Chunked decoder if Transfer-Encoding: chunked is present
+/// - Fixed-length decoder if Content-Length is present
+///
+/// # Errors
+///
+/// Returns `ParseError` if:
+/// - Both Content-Length and Transfer-Encoding headers are present
+/// - Content-Length value is invalid
 fn parse_payload(header: &RequestHeader) -> Result<PayloadDecoder, ParseError> {
     if !header.need_body() {
         return Ok(PayloadDecoder::empty());
@@ -157,6 +258,17 @@ fn parse_payload(header: &RequestHeader) -> Result<PayloadDecoder, ParseError> {
     }
 }
 
+/// Checks if the Transfer-Encoding header indicates chunked encoding.
+///
+/// According to RFC 7230, chunked must be the last encoding if present.
+///
+/// # Arguments
+///
+/// * `header_value` - Optional reference to the Transfer-Encoding header value
+///
+/// # Returns
+///
+/// Returns true if chunked is the final encoding in the Transfer-Encoding header.
 fn is_chunked(header_value: Option<&HeaderValue>) -> bool {
     header_value
         .and_then(|value| value.to_str().ok())
