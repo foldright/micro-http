@@ -1,9 +1,21 @@
+//! HTTP request header handling implementation.
+//! 
+//! This module provides the core abstractions for handling HTTP request headers.
+//! It wraps the standard `http::Request` type to provide additional functionality
+//! specific to our HTTP server implementation.
 
 use std::convert::Into;
 
 use http::request::Parts;
 use http::{HeaderMap, Method, Request, Uri, Version};
 
+/// Represents an HTTP request header.
+/// 
+/// This struct wraps a `http::Request<()>` to provide:
+/// - Access to standard HTTP header fields
+/// - Conversion from different request formats
+/// - Body attachment capabilities
+/// - Request metadata inspection
 #[derive(Debug)]
 pub struct RequestHeader {
     inner: Request<()>,
@@ -22,35 +34,52 @@ impl AsMut<Request<()>> for RequestHeader {
 }
 
 impl RequestHeader {
+    /// Consumes the header and returns the inner `Request<()>`.
     pub fn into_inner(self) -> Request<()> {
         self.inner
     }
 
+    /// Attaches a body to this header, converting it into a full `Request<T>`.
+    /// 
+    /// This is typically used after header parsing to attach the parsed body.
     pub fn body<T>(self, body: T) -> Request<T> {
         self.inner.map(|_| body)
     }
 
+    /// Returns a reference to the request's HTTP method.
     pub fn method(&self) -> &Method {
         self.inner.method()
     }
 
+    /// Returns a reference to the request's URI.
     pub fn uri(&self) -> &Uri {
         self.inner.uri()
     }
 
+    /// Returns the request's HTTP version.
     pub fn version(&self) -> Version {
         self.inner.version()
     }
 
+    /// Returns a reference to the request's headers.
     pub fn headers(&self) -> &HeaderMap {
         self.inner.headers()
     }
 
+    /// Determines if this request requires a body based on its HTTP method.
+    /// 
+    /// Returns false for methods that typically don't have bodies:
+    /// - GET
+    /// - HEAD 
+    /// - DELETE
+    /// - OPTIONS
+    /// - CONNECT
     pub fn need_body(&self) -> bool {
         !matches!(self.method(), &Method::GET | &Method::HEAD | &Method::DELETE | &Method::OPTIONS | &Method::CONNECT)
     }
 }
 
+/// Converts request parts into a RequestHeader.
 impl From<Parts> for RequestHeader {
     #[inline]
     fn from(parts: Parts) -> Self {
@@ -58,6 +87,7 @@ impl From<Parts> for RequestHeader {
     }
 }
 
+/// Converts a bodyless request into a RequestHeader.
 impl From<Request<()>> for RequestHeader {
     #[inline]
     fn from(inner: Request<()>) -> Self {
@@ -65,6 +95,14 @@ impl From<Request<()>> for RequestHeader {
     }
 }
 
+/// Converts a parsed HTTP request into a RequestHeader.
+/// 
+/// This implementation handles the conversion from the low-level parsed request
+/// format into our RequestHeader type, setting up:
+/// - HTTP method
+/// - URI/path
+/// - HTTP version
+/// - Headers
 impl<'headers, 'buf> From<httparse::Request<'headers, 'buf>> for RequestHeader {
     fn from(req: httparse::Request<'headers, 'buf>) -> Self {
         let mut builder = Request::builder()
@@ -81,6 +119,7 @@ impl<'headers, 'buf> From<httparse::Request<'headers, 'buf>> for RequestHeader {
     }
 }
 
+/// Helper struct for HTTP version conversion.
 struct U8Wrapper(u8);
 
 impl From<U8Wrapper> for Version {
