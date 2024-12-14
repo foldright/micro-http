@@ -20,38 +20,79 @@
 //! 
 //! ```no_run
 //! use http::{Request, Response, StatusCode};
+//! use http_body_util::BodyExt;
 //! use std::error::Error;
 //! use std::sync::Arc;
 //! use tokio::net::TcpListener;
+//! use tracing::{error, info, warn, Level};
+//! use tracing_subscriber::FmtSubscriber;
 //! use micro_http::connection::HttpConnection;
 //! use micro_http::handler::make_handler;
 //! use micro_http::protocol::body::ReqBody;
 //! 
 //! #[tokio::main]
 //! async fn main() {
-//!     // Create TCP listener
-//!     let listener = TcpListener::bind("127.0.0.1:8080").await.unwrap();
+//!     // Initialize logging
+//!     let subscriber = FmtSubscriber::builder()
+//!         .with_max_level(Level::INFO)
+//!         .finish();
+//!     tracing::subscriber::set_global_default(subscriber)
+//!         .expect("setting default subscriber failed");
 //!     
-//!     // Create handler
+//!     info!(port = 8080, "start listening");
+//!     let tcp_listener = match TcpListener::bind("127.0.0.1:8080").await {
+//!         Ok(tcp_listener) => tcp_listener,
+//!         Err(e) => {
+//!             error!(cause = %e, "bind server error");
+//!             return;
+//!         }
+//!     };
+//!     
 //!     let handler = Arc::new(make_handler(hello_world));
 //!     
-//!     // Accept connections
 //!     loop {
-//!         let (stream, _) = listener.accept().await.unwrap();
+//!         let (tcp_stream, _remote_addr) = match tcp_listener.accept().await {
+//!             Ok(stream_and_addr) => stream_and_addr,
+//!             Err(e) => {
+//!                 warn!(cause = %e, "failed to accept");
+//!                 continue;
+//!             }
+//!         };
+//!         
 //!         let handler = handler.clone();
 //!         
-//!         // Spawn connection handler
 //!         tokio::spawn(async move {
-//!             let (reader, writer) = stream.into_split();
+//!             let (reader, writer) = tcp_stream.into_split();
 //!             let connection = HttpConnection::new(reader, writer);
-//!             connection.process(handler).await.unwrap();
+//!             match connection.process(handler).await {
+//!                 Ok(_) => {
+//!                     info!("finished process, connection shutdown");
+//!                 }
+//!                 Err(e) => {
+//!                     error!("service has error, cause {}, connection shutdown", e);
+//!                 }
+//!             }
 //!         });
 //!     }
 //! }
 //! 
-//! // Request handler
-//! async fn hello_world(req: Request<ReqBody>) -> Result<Response<String>, Box<dyn Error + Send + Sync>> {
-//!     Ok(Response::new("Hello World!".to_string()))
+//! async fn hello_world(request: Request<ReqBody>) -> Result<Response<String>, Box<dyn Error + Send + Sync>> {
+//!     let path = request.uri().path().to_string();
+//!     info!("request path {}", path);
+//!     
+//!     let (_header, body) = request.into_parts();
+//!     
+//!     let body_bytes = body.collect().await?.to_bytes();
+//!     info!(body = std::str::from_utf8(&body_bytes[..]).unwrap(), "receiving request body");
+//!     
+//!     let response_body = "Hello World!\r\n";
+//!     let response = Response::builder()
+//!         .status(StatusCode::OK)
+//!         .header(http::header::CONTENT_LENGTH, response_body.len())
+//!         .body(response_body.to_string())
+//!         .unwrap();
+//!     
+//!     Ok(response)
 //! }
 //! ```
 //! 
