@@ -31,12 +31,14 @@ use tokio_util::codec::Encoder;
 use tracing::error;
 
 /// A encoder for HTTP responses that handles both headers and payload
-/// 
+///
 /// The encoder operates in two phases:
 /// 1. Header encoding: Encodes the response headers using [`HeaderEncoder`]
 /// 2. Payload encoding: If present, encodes the response body using [`PayloadEncoder`]
 pub struct ResponseEncoder {
+    /// Encoder for HTTP response headers
     header_encoder: HeaderEncoder,
+    /// Encoder for HTTP response payload (body)
     payload_encoder: Option<PayloadEncoder>,
 }
 
@@ -57,30 +59,34 @@ impl<D: Buf> Encoder<Message<(ResponseHead, PayloadSize), D>> for ResponseEncode
     type Error = SendError;
 
     /// Attempts to encode an HTTP response to the provided buffer
-    /// 
+    ///
     /// # Arguments
-    /// 
+    ///
     /// * `item` - The message to encode, either headers or payload
     /// * `dst` - The buffer to write the encoded data to
-    /// 
+    ///
     /// # Returns
-    /// 
+    ///
     /// - `Ok(())`: Successfully encoded the message
     /// - `Err(_)`: Encountered an encoding error
     fn encode(&mut self, item: Message<(ResponseHead, PayloadSize), D>, dst: &mut BytesMut) -> Result<(), Self::Error> {
         match item {
             Message::Header((head, payload_size)) => {
+                // If a payload encoder already exists, it's an error
                 if self.payload_encoder.is_some() {
                     error!("expect payload item but receive response head");
                     return Err(io::Error::from(ErrorKind::InvalidInput).into());
                 }
 
+                // Create a payload encoder based on the payload size
                 let payload_encoder = parse_payload_encoder(payload_size);
                 self.payload_encoder = Some(payload_encoder);
+                // Encode the response headers
                 self.header_encoder.encode((head, payload_size), dst)
             }
 
             Message::Payload(payload_item) => {
+                // Get the payload encoder, return error if it doesn't exist
                 let payload_encoder = if let Some(encoder) = &mut self.payload_encoder {
                     encoder
                 } else {
@@ -88,9 +94,12 @@ impl<D: Buf> Encoder<Message<(ResponseHead, PayloadSize), D>> for ResponseEncode
                     return Err(io::Error::from(ErrorKind::InvalidInput).into());
                 };
 
+                // Encode the payload
                 let result = payload_encoder.encode(payload_item, dst);
 
+                // Check if the payload encoder is finished
                 let is_eof = payload_encoder.is_finish();
+                // If finished, remove the payload encoder
                 if is_eof {
                     self.payload_encoder.take();
                 }
@@ -102,13 +111,13 @@ impl<D: Buf> Encoder<Message<(ResponseHead, PayloadSize), D>> for ResponseEncode
 }
 
 /// Creates a payload encoder based on the payload size
-/// 
+///
 /// # Arguments
-/// 
+///
 /// * `payload_size` - The size specification for the payload
-/// 
+///
 /// # Returns
-/// 
+///
 /// Returns a [`PayloadEncoder`] configured according to the payload size
 fn parse_payload_encoder(payload_size: PayloadSize) -> PayloadEncoder {
     match payload_size {

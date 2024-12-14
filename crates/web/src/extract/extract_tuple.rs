@@ -1,3 +1,8 @@
+//! Tuple data extraction implementations
+//! 
+//! This module provides implementations for extracting typed data from HTTP requests into tuples.
+//! It supports extracting multiple parameters from a single request and combining them into a tuple.
+
 use crate::body::OptionReqBody;
 use crate::extract::FromRequest;
 use crate::responder::Responder;

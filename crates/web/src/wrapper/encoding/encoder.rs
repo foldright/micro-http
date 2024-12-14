@@ -1,3 +1,9 @@
+//! This module provides functionality for encoding HTTP response bodies.
+//!
+//! It includes an `Encoder` enum for different encoding types (gzip, deflate, zstd, br),
+//! an `EncodedBody` struct for wrapping response bodies with encoding,
+//! and an `EncodeRequestHandler` for handling encoding during request processing.
+
 use crate::handler::RequestHandler;
 use crate::wrapper::encoding::Writer;
 use crate::wrapper::Wrapper;
@@ -21,27 +27,36 @@ use zstd::stream::write::Encoder as ZstdEncoder;
 
 // (almost thanks and) copy from actix-http: https://github.com/actix/actix-web/blob/master/actix-http/src/encoding/encoder.rs
 
+/// Represents different types of content encoding.
 pub(crate) enum Encoder {
+    /// Gzip encoding.
     Gzip(GzEncoder<Writer>),
+    /// Deflate encoding.
     Deflate(ZlibEncoder<Writer>),
+    /// Zstd encoding.
     Zstd(ZstdEncoder<'static, Writer>),
+    /// Brotli encoding.
     Br(Box<brotli::CompressorWriter<Writer>>),
 }
 
 impl Encoder {
+    /// Creates a new Gzip encoder.
     fn gzip() -> Self {
         Self::Gzip(GzEncoder::new(Writer::new(), Compression::best()))
     }
 
+    /// Creates a new Deflate encoder.
     fn deflate() -> Self {
         Self::Deflate(ZlibEncoder::new(Writer::new(), Compression::best()))
     }
 
+    /// Creates a new Zstd encoder.
     fn zstd() -> Self {
         // todo: remove the unwrap
         Self::Zstd(ZstdEncoder::new(Writer::new(), 6).unwrap())
     }
 
+    /// Creates a new Brotli encoder.
     fn br() -> Self {
         Self::Br(Box::new(brotli::CompressorWriter::new(
             Writer::new(),
@@ -51,6 +66,7 @@ impl Encoder {
         )))
     }
 
+    /// Selects an encoder based on the `Accept-Encoding` header.
     fn select(accept_encodings: &str) -> Option<Self> {
         if accept_encodings.contains("zstd") {
             Some(Self::zstd())
@@ -65,6 +81,7 @@ impl Encoder {
         }
     }
 
+    /// Returns the name of the encoding.
     fn name(&self) -> &'static str {
         match self {
             Encoder::Gzip(_) => "gzip",
@@ -74,6 +91,7 @@ impl Encoder {
         }
     }
 
+    /// Writes data to the encoder.
     fn write(&mut self, data: &[u8]) -> Result<(), io::Error> {
         match self {
             Self::Gzip(ref mut encoder) => match encoder.write_all(data) {
@@ -110,6 +128,7 @@ impl Encoder {
         }
     }
 
+    /// Takes the encoded data from the encoder.
     fn take(&mut self) -> Bytes {
         match *self {
             Self::Gzip(ref mut encoder) => encoder.get_mut().take(),
@@ -119,6 +138,7 @@ impl Encoder {
         }
     }
 
+    /// Finishes the encoding process and returns the encoded data.
     fn finish(self) -> Result<Bytes, io::Error> {
         match self {
             Self::Gzip(encoder) => match encoder.finish() {
@@ -144,6 +164,7 @@ impl Encoder {
     }
 }
 
+/// A wrapper around a `Body` that encodes the data.
 pin_project! {
     struct EncodedBody<B: Body> {
         #[pin]
@@ -154,6 +175,7 @@ pin_project! {
 }
 
 impl<B: Body> EncodedBody<B> {
+    /// Creates a new `EncodedBody`.
     fn new(b: B, encoder: Encoder) -> Self {
         Self { inner: b, encoder: Some(encoder), state: Some(true) }
     }
@@ -235,10 +257,12 @@ where
     }
 }
 
+/// A request handler that encodes the response body.
 pub struct EncodeRequestHandler<H: RequestHandler> {
     handler: H,
 }
 
+/// A wrapper that creates `EncodeRequestHandler`.
 pub struct EncodeWrapper;
 
 impl<H: RequestHandler> Wrapper<H> for EncodeWrapper {
@@ -262,6 +286,7 @@ impl<H: RequestHandler> RequestHandler for EncodeRequestHandler<H> {
     }
 }
 
+/// Encodes the response body based on the `Accept-Encoding` header.
 fn encode(req: &RequestContext, resp: &mut Response<ResponseBody>) {
     let status_code = resp.status();
     if status_code == StatusCode::NO_CONTENT || status_code == StatusCode::SWITCHING_PROTOCOLS {
