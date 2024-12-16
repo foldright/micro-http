@@ -6,7 +6,7 @@ This guide details the process of publishing the micro-http workspace packages t
 
 ### 1. Install cargo-workspaces
 
-`cargo-workspaces` is a powerful tool for managing Rust workspace. Install it using:
+`cargo-workspaces` is a powerful tool for managing Rust workspace versioning. Install it using:
 
 ```bash
 cargo install cargo-workspaces
@@ -16,10 +16,6 @@ Verify installation:
 ```bash
 cargo ws --version
 ```
-
-Resources:
-- [cargo-workspaces on GitHub](https://github.com/pksunkara/cargo-workspaces)
-- [cargo-workspaces on crates.io](https://crates.io/crates/cargo-workspaces)
 
 ### 2. Crates.io Authentication
 
@@ -58,37 +54,58 @@ cargo login
 
 ### 1. Version Management
 
-Choose your versioning strategy:
+Use cargo-workspaces to manage versions:
 ```bash
 # List current versions
 cargo ws list
 
 # Bump versions (replace <TYPE> with major/minor/patch)
-cargo ws version <TYPE>
+cargo ws version <TYPE> --no-git-push
 ```
 
-### 2. Dry Run
+### 2. Review Publishing Order
 
-Always perform a dry run first:
-
+Check the publishing order of crates:
 ```bash
-cargo ws publish \
-    --exact \                    
-    --registry crates-io \       # Publish to crates.io
-    --dry-run \                 # Perform dry run
-    custom <NEW_VERSION>        # e.g., 0.1.0
+cargo ws plan
 ```
 
-### 3. Actual Release
+This will show you the dependency order for publishing. Note this order for the next step.
 
-If dry run succeeds, proceed with the actual release:
+### 3. Dry Run Publishing
+
+For each crate in the correct order (from cargo ws plan), perform a dry run:
 
 ```bash
-cargo ws publish \
-    --exact \                   # Use exact version numbers
-    --registry crates-io \      # Publish to crates.io
-    --no-individual-tags \      # Create single tag instead of per-crate tags
-    custom <NEW_VERSION>        # e.g., 0.1.0 / 0.1.0-alpha.6
+# Replace ${crate} with the crate name
+cargo publish --dry-run -p ${crate}
+```
+
+### 4. Actual Publishing
+
+If all dry runs succeed, publish each crate in order:
+
+```bash
+# Replace ${crate} with each crate name in order
+cargo publish -p ${crate}
+```
+
+Example publishing sequence (adjust according to your plan output):
+```bash
+cargo publish -p micro-http
+cargo publish -p micro-web
+# ... other crates in order
+```
+
+### 5. Git Management
+
+After successful publishing:
+```bash
+# Push version changes
+git push origin main
+
+# Push tags
+git push origin --tags
 ```
 
 ## Post-release Verification
@@ -98,13 +115,10 @@ cargo ws publish \
    - Check documentation generation on [docs.rs](https://docs.rs)
    - Ensure all published versions are accessible
 
-2. **Git Management**
+2. **Version Verification**
    ```bash
-   # Verify tags are created
-   git tag -l
-   
-   # Push changes if --no-git-push was used
-   git push origin main --tags
+   # Verify current versions
+   cargo ws list
    ```
 
 ## Troubleshooting
@@ -133,19 +147,16 @@ cargo ws publish \
 
 ### Getting Help
 
-- Review [cargo-workspaces documentation](https://github.com/pksunkara/cargo-workspaces)
-- Check [crates.io documentation](https://doc.rust-lang.org/cargo/reference/publishing.html)
+- [cargo-workspaces documentation](https://github.com/pksunkara/cargo-workspaces)
+- [crates.io documentation](https://doc.rust-lang.org/cargo/reference/publishing.html)
 - File issues on the project's GitHub repository
 
 ## Additional Commands
 
-Useful cargo-workspaces commands:
+Useful cargo-workspaces commands for version management:
 ```bash
 # List all workspace crates
 cargo ws list
-
-# Execute command in all crates
-cargo ws exec -- <command>
 
 # View changed crates
 cargo ws changed
