@@ -1,3 +1,14 @@
+//! Module for request/response transformation wrappers.
+//!
+//! This module provides a composable wrapper system that allows transformation of request handlers.
+//! Wrappers can be chained together to build a processing pipeline that modifies requests or responses.
+//! Common use cases include adding headers, encoding responses, or performing cross-cutting concerns
+//! like logging or metrics.
+//!
+//! # Key Components
+//! - [`Wrapper`]: Core trait for implementing wrappers
+//! - [`Wrappers`]: A composable list of wrappers that can be chained together
+//! - [`IdentityWrapper`]: A no-op wrapper that passes through the handler unchanged
 mod date;
 mod encoding;
 
@@ -6,23 +17,33 @@ use std::marker::PhantomData;
 pub use date::DateWrapper;
 pub use encoding::encoder::EncodeWrapper;
 
-/// A wrapper that can wrap a handler to another
+/// A trait for transforming request handlers.
+///
+/// Implementors of this trait can wrap a handler to add additional processing
+/// before or after the handler's execution. Multiple wrappers can be composed
+/// together using the [`Wrappers`] type.
 pub trait Wrapper<H> {
-    /// the wrapper's output
+    /// The type of the wrapped handler
     type Out;
 
-    /// wrap the handler to another
+    /// Wraps the given handler with additional processing
     fn wrap(&self, handler: H) -> Self::Out;
 }
 
-/// A list of [`Wrapper`], which will wrap a handler to another
+/// A composable list of wrappers that can transform a handler.
+///
+/// `Wrappers` allows multiple [`Wrapper`]s to be chained together using [`and_then`](Wrappers::and_then).
+/// The wrappers are applied in the order they are added, with each wrapper potentially transforming
+/// both the request and response.
 pub struct Wrappers<Head, Tail, H> {
     head: Head,
     tail: Tail,
     _phantom: PhantomData<H>,
 }
 
-/// An identity wrappers, which does not do any wrapping
+/// An identity wrapper chain that performs no transformations.
+///
+/// This is the default starting point for building a wrapper chain.
 pub type IdentityWrappers<H> = Wrappers<IdentityWrapper, IdentityWrapper, H>;
 
 impl<H> IdentityWrappers<H> {
@@ -37,8 +58,11 @@ impl<H> Default for IdentityWrappers<H> {
     }
 }
 
-/// An identity wrapper, which does not do any wrapping
+/// A wrapper that performs no transformation on the handler.
+///
+/// This is used as the default wrapper when creating a new [`Wrappers`] chain.
 pub struct IdentityWrapper;
+
 impl<H> Wrapper<H> for IdentityWrapper {
     type Out = H;
 
@@ -53,7 +77,10 @@ where
     Head: Wrapper<H>,
     Tail: Wrapper<Head::Out>,
 {
-    /// add a [`Wrapper`] to the end of the [`Wrappers`], the argument [`Wrapper`] will wrap at last
+    /// Adds a new wrapper to the end of this wrapper chain.
+    ///
+    /// The new wrapper will be applied after all existing wrappers in the chain.
+    /// This allows building up a processing pipeline step by step.
     pub fn and_then<NewW>(self, wrapper: NewW) -> Wrappers<Self, NewW, H>
     where
         NewW: Wrapper<Tail::Out>,
