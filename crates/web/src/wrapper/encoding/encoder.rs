@@ -1,9 +1,3 @@
-//! This module provides functionality for encoding HTTP response bodies.
-//!
-//! It includes an `Encoder` enum for different encoding types (gzip, deflate, zstd, br),
-//! an `EncodedBody` struct for wrapping response bodies with encoding,
-//! and an `EncodeRequestHandler` for handling encoding during request processing.
-
 use crate::handler::RequestHandler;
 use crate::wrapper::encoding::Writer;
 use crate::wrapper::Wrapper;
