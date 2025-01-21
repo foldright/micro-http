@@ -158,8 +158,8 @@ impl Encoder {
     }
 }
 
-/// A wrapper around a `Body` that encodes the data.
 pin_project! {
+    /// A wrapper around a `Body` that encodes the data.
     struct EncodedBody<B: Body> {
         #[pin]
         inner: B,
