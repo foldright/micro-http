@@ -226,7 +226,7 @@ fn parse_payload(header: &RequestHeader) -> Result<PayloadDecoder, ParseError> {
         return Ok(PayloadDecoder::empty());
     }
 
-    // refer: https://www.rfc-editor.org/rfc/rfc7230#section-3.3
+    // refer: https://www.rfc-editor.org/rfc/rfc9112.html#name-transfer-encoding
     let te_header = header.headers().get(http::header::TRANSFER_ENCODING);
     let cl_header = header.headers().get(http::header::CONTENT_LENGTH);
 
