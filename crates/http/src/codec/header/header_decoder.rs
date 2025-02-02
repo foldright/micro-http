@@ -1,5 +1,5 @@
 //! HTTP header decoder implementation for parsing HTTP request headers
-//! 
+//!
 //! This module provides functionality for decoding HTTP request headers from raw bytes into
 //! structured header representations. It handles parsing of HTTP method, URI, version and
 //! header fields according to HTTP/1.1 specification.
@@ -14,14 +14,14 @@
 //!
 //! # Limits
 //!
-//! - Maximum number of headers: 64 
+//! - Maximum number of headers: 64
 //! - Maximum header size: 8KB
 //! - Only supports HTTP/1.0 and HTTP/1.1 (HTTP/2 and HTTP/3 currently not supported)
 //!
 //! # Implementation Details
 //!
 //! The decoder works in multiple stages:
-//! 
+//!
 //! 1. Parse raw bytes using `httparse`
 //! 2. Record header name/value byte ranges
 //! 3. Convert to typed `http::Request` structure
@@ -51,8 +51,8 @@ const MAX_HEADER_NUM: usize = 64;
 const MAX_HEADER_BYTES: usize = 8 * 1024;
 
 /// Decoder for HTTP request headers implementing the [`Decoder`] trait.
-/// 
-/// This decoder parses raw bytes into a structured [`RequestHeader`] and determines the 
+///
+/// This decoder parses raw bytes into a structured [`RequestHeader`] and determines the
 /// appropriate [`PayloadDecoder`] based on the Content-Length and Transfer-Encoding headers.
 pub struct HeaderDecoder;
 
@@ -112,8 +112,8 @@ impl Decoder for HeaderDecoder {
 
                 // Build request header using parsed method, URI and version
                 let mut header_builder = Request::builder()
-                    .method(req.method.ok_or_else(|| ParseError::InvalidMethod)?)
-                    .uri(req.path.ok_or_else(|| ParseError::InvalidUri)?)
+                    .method(req.method.ok_or(ParseError::InvalidMethod)?)
+                    .uri(req.path.ok_or(ParseError::InvalidUri)?)
                     .version(version);
 
                 // Build headers
@@ -129,12 +129,10 @@ impl Decoder for HeaderDecoder {
                     let name = HeaderName::from_bytes(&header_bytes[index.name.0..index.name.1]).unwrap();
 
                     // inspired by active-web:
-                    // Safe to use from_maybe_shared_unchecked since httparse verified 
+                    // Safe to use from_maybe_shared_unchecked since httparse verified
                     // header value contains only visible ASCII chars
                     let value = unsafe {
-                        HeaderValue::from_maybe_shared_unchecked(
-                            header_bytes.slice(index.value.0..index.value.1),
-                        )
+                        HeaderValue::from_maybe_shared_unchecked(header_bytes.slice(index.value.0..index.value.1))
                     };
 
                     headers.append(name, value);
@@ -156,24 +154,20 @@ impl Decoder for HeaderDecoder {
 }
 
 /// Stores the byte range positions of a header's name and value within the original buffer.
-/// 
+///
 /// This struct is used internally by the decoder to perform zero-copy parsing of headers
 /// by recording the positions of header names and values rather than copying the data.
 #[derive(Clone, Copy)]
 struct HeaderIndex {
     /// Start and end byte positions of the header name
     pub(crate) name: (usize, usize),
-    /// Start and end byte positions of the header value 
+    /// Start and end byte positions of the header value
     pub(crate) value: (usize, usize),
 }
 
-const EMPTY_HEADER_INDEX: HeaderIndex = HeaderIndex {
-    name: (0, 0),
-    value: (0, 0),
-};
+const EMPTY_HEADER_INDEX: HeaderIndex = HeaderIndex { name: (0, 0), value: (0, 0) };
 
-const EMPTY_HEADER_INDEX_ARRAY: [HeaderIndex; MAX_HEADER_NUM] =
-    [EMPTY_HEADER_INDEX; MAX_HEADER_NUM];
+const EMPTY_HEADER_INDEX_ARRAY: [HeaderIndex; MAX_HEADER_NUM] = [EMPTY_HEADER_INDEX; MAX_HEADER_NUM];
 
 impl HeaderIndex {
     /// Records the byte positions of header names and values from the parsed headers.
@@ -183,11 +177,7 @@ impl HeaderIndex {
     /// * `bytes` - The original bytes containing the headers
     /// * `headers` - Slice of parsed header references from httparse
     /// * `indices` - Mutable slice to store the recorded positions
-    fn record(
-        bytes: &[u8],
-        headers: &[httparse::Header<'_>],
-        indices: &mut [HeaderIndex],
-    ) {
+    fn record(bytes: &[u8], headers: &[httparse::Header<'_>], indices: &mut [HeaderIndex]) {
         let bytes_ptr = bytes.as_ptr() as usize;
         for (header, indices) in headers.iter().zip(indices.iter_mut()) {
             let name_start = header.name.as_ptr() as usize - bytes_ptr;

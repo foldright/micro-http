@@ -1,5 +1,5 @@
 //! Core HTTP protocol abstractions and implementations.
-//! 
+//!
 //! This module provides the fundamental building blocks for HTTP protocol handling,
 //! including request/response processing, body streaming, and error handling.
 //! The design focuses on providing clean abstractions while maintaining high performance

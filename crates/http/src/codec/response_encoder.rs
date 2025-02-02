@@ -1,21 +1,21 @@
 //! HTTP response encoder module
-//! 
+//!
 //! This module provides functionality for encoding HTTP responses using a streaming approach.
 //! It handles both header encoding and payload encoding through a state machine pattern.
-//! 
+//!
 //! # Components
-//! 
+//!
 //! - [`ResponseEncoder`]: Main encoder that coordinates header and payload encoding
 //! - Header encoding: Uses [`HeaderEncoder`] for encoding response headers
 //! - Payload handling: Uses [`PayloadEncoder`] for encoding response bodies
-//! 
+//!
 //! # Example
-//! 
+//!
 //! ```no_run
 //! use micro_http::codec::ResponseEncoder;
 //! use tokio_util::codec::Encoder;
 //! use bytes::BytesMut;
-//! 
+//!
 //! let mut encoder = ResponseEncoder::new();
 //! let mut buffer = BytesMut::new();
 //! // ... encode response data to buffer ...

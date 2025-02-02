@@ -99,18 +99,18 @@
 
 // Internal modules
 mod body;
+mod date;
 mod fn_trait;
 mod handler;
 mod request;
 mod responder;
 mod server;
-mod date;
 
 // Public modules
 pub mod extract;
 pub mod filter;
-pub mod wrapper;
 pub mod router;
+pub mod wrapper;
 
 // Public re-exports
 pub use body::OptionReqBody;

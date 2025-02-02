@@ -1,22 +1,22 @@
 //! HTTP request handler module
-//! 
+//!
 //! This module provides traits and utilities for handling HTTP requests. It defines
 //! the core abstraction for request processing through the [`Handler`] trait and
 //! provides utilities for creating handlers from async functions.
-//! 
+//!
 //! # Examples
-//! 
+//!
 //! ```no_run
 //! use micro_http::handler::{Handler, make_handler};
 //! use micro_http::protocol::body::ReqBody;
 //! use http::{Request, Response};
 //! use std::error::Error;
-//! 
+//!
 //! // Define an async handler function
 //! async fn hello_handler(req: Request<ReqBody>) -> Result<Response<String>, Box<dyn Error + Send + Sync>> {
 //!     Ok(Response::new("Hello World!".to_string()))
 //! }
-//! 
+//!
 //! // Create a handler from the function
 //! let handler = make_handler(hello_handler);
 //! ```
@@ -28,37 +28,37 @@ use std::error::Error;
 use std::future::Future;
 
 /// A trait for handling HTTP requests
-/// 
+///
 /// This trait defines the core interface for processing HTTP requests and generating responses.
 /// Implementors of this trait can be used to handle requests in the HTTP server.
-/// 
+///
 /// # Type Parameters
-/// 
+///
 /// * `RespBody`: The response body type that implements [`Body`]
 /// * `Error`: The error type that can be converted into a boxed error
 /// * `Fut`: The future type returned by the handler
 pub trait Handler: Send + Sync {
     /// The type of the response body
     type RespBody: Body;
-    
+
     /// The error type returned by the handler
     type Error: Into<Box<dyn Error + Send + Sync>>;
-    
+
     /// The future type returned by the handler
     type Fut<'fut>: Future<Output = Result<Response<Self::RespBody>, Self::Error>>
     where
         Self: 'fut;
 
     /// Process an HTTP request and return a future that resolves to a response
-    /// 
+    ///
     /// # Arguments
-    /// 
+    ///
     /// * `req` - The HTTP [`Request`] to process
     fn call(&self, req: Request<ReqBody>) -> Self::Fut<'_>;
 }
 
 /// A wrapper type for function-based handlers
-/// 
+///
 /// This type implements [`Handler`] for functions that take a [`Request`] and
 /// return a [`Future`] resolving to a [`Response`].
 #[derive(Debug)]
@@ -75,7 +75,10 @@ where
 {
     type RespBody = RespBody;
     type Error = Err;
-    type Fut<'fut> = Fut where Self: 'fut;
+    type Fut<'fut>
+        = Fut
+    where
+        Self: 'fut;
 
     fn call(&self, req: Request<ReqBody>) -> Self::Fut<'_> {
         (self.f)(req)
@@ -83,27 +86,27 @@ where
 }
 
 /// Creates a new handler from an async function
-/// 
+///
 /// This function wraps an async function in a [`HandlerFn`] type that implements
 /// the [`Handler`] trait.
-/// 
+///
 /// # Arguments
-/// 
+///
 /// * `f` - An async function that takes a [`Request`] and returns a [`Future`]
 ///         resolving to a [`Response`]
-/// 
+///
 /// # Examples
-/// 
+///
 /// ```no_run
 /// use micro_http::handler::make_handler;
 /// use http::{Request, Response};
 /// use micro_http::protocol::body::ReqBody;
 /// use std::error::Error;
-/// 
+///
 /// async fn my_handler(req: Request<ReqBody>) -> Result<Response<String>, Box<dyn Error + Send + Sync>> {
 ///     Ok(Response::new("Hello".to_string()))
 /// }
-/// 
+///
 /// let handler = make_handler(my_handler);
 /// ```
 pub fn make_handler<F, RespBody, Err, Ret>(f: F) -> HandlerFn<F>

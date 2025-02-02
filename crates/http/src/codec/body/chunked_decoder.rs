@@ -1,5 +1,5 @@
 //! Decoder implementation for HTTP chunked transfer encoding.
-//! 
+//!
 //! This module provides functionality to decode HTTP messages that use chunked transfer encoding
 //! as specified in [RFC 7230 Section 4.1](https://tools.ietf.org/html/rfc7230#section-4.1).
 //!
@@ -42,7 +42,7 @@ impl ChunkedDecoder {
 enum ChunkedState {
     /// Read the chunk size in hex
     Size,
-    /// Handle whitespace after size 
+    /// Handle whitespace after size
     SizeLws,
     /// Skip chunk extensions
     Extension,
@@ -116,10 +116,9 @@ macro_rules! try_next_byte {
 }
 
 impl ChunkedState {
-    
     /// Processes the next step in the chunked decoding state machine.
     ///
-    /// Takes the current buffer of bytes and updates internal state based on the 
+    /// Takes the current buffer of bytes and updates internal state based on the
     /// chunked transfer encoding format rules.
     ///
     /// # Arguments
@@ -224,7 +223,7 @@ impl ChunkedState {
         match try_next_byte!(src) {
             // LWS can follow the chunk size, but no more digits can come
             b'\t' | b' ' => Poll::Ready(Ok(SizeLws)),
-            b';' => Poll::Ready(Ok(Extension)), 
+            b';' => Poll::Ready(Ok(Extension)),
             b'\r' => Poll::Ready(Ok(SizeLf)),
             _ => Poll::Ready(Err(io::Error::new(ErrorKind::InvalidInput, "invalid chunk size linear white space"))),
         }
@@ -455,19 +454,17 @@ mod tests {
 
     #[test]
     fn test_multiple_chunks() {
-        let mut buffer: BytesMut = BytesMut::from(
-            &b"5\r\nhello\r\n7\r\n, world\r\n0\r\n\r\n"[..]
-        );
+        let mut buffer: BytesMut = BytesMut::from(&b"5\r\nhello\r\n7\r\n, world\r\n0\r\n\r\n"[..]);
         let mut decoder = ChunkedDecoder::new();
-        
+
         // First chunk
         let chunk = decoder.decode(&mut buffer).unwrap().unwrap();
         assert_eq!(chunk.as_bytes().unwrap(), &Bytes::copy_from_slice(b"hello"));
-        
+
         // Second chunk
         let chunk = decoder.decode(&mut buffer).unwrap().unwrap();
         assert_eq!(chunk.as_bytes().unwrap(), &Bytes::copy_from_slice(b", world"));
-        
+
         // EOF
         let eof = decoder.decode(&mut buffer).unwrap().unwrap();
         assert!(eof.is_eof());
@@ -475,28 +472,24 @@ mod tests {
 
     #[test]
     fn test_chunks_with_extensions() {
-        let mut buffer: BytesMut = BytesMut::from(
-            &b"5;chunk-ext=value\r\nhello\r\n0\r\n\r\n"[..]
-        );
+        let mut buffer: BytesMut = BytesMut::from(&b"5;chunk-ext=value\r\nhello\r\n0\r\n\r\n"[..]);
         let mut decoder = ChunkedDecoder::new();
-        
+
         let chunk = decoder.decode(&mut buffer).unwrap().unwrap();
         assert_eq!(chunk.as_bytes().unwrap(), &Bytes::copy_from_slice(b"hello"));
-        
+
         let eof = decoder.decode(&mut buffer).unwrap().unwrap();
         assert!(eof.is_eof());
     }
 
     #[test]
     fn test_chunks_with_trailers() {
-        let mut buffer: BytesMut = BytesMut::from(
-            &b"5\r\nhello\r\n0\r\nTrailer: value\r\n\r\n"[..]
-        );
+        let mut buffer: BytesMut = BytesMut::from(&b"5\r\nhello\r\n0\r\nTrailer: value\r\n\r\n"[..]);
         let mut decoder = ChunkedDecoder::new();
-        
+
         let chunk = decoder.decode(&mut buffer).unwrap().unwrap();
         assert_eq!(chunk.as_bytes().unwrap(), &Bytes::copy_from_slice(b"hello"));
-        
+
         let eof = decoder.decode(&mut buffer).unwrap().unwrap();
         assert!(eof.is_eof());
     }
@@ -505,18 +498,18 @@ mod tests {
     fn test_incomplete_chunk() {
         let mut buffer: BytesMut = BytesMut::from(&b"5\r\nhel"[..]);
         let mut decoder = ChunkedDecoder::new();
-        
+
         // Should return Some when received partial chunk
         let chunk = decoder.decode(&mut buffer).unwrap();
         assert!(chunk.is_some());
         assert_eq!(chunk.unwrap().as_bytes().unwrap(), &Bytes::copy_from_slice(b"hel"));
-        
+
         // Add the rest of the chunk
         buffer.extend_from_slice(b"lo\r\n0\r\n\r\n");
-        
+
         let chunk = decoder.decode(&mut buffer).unwrap().unwrap();
         assert_eq!(chunk.as_bytes().unwrap(), &Bytes::copy_from_slice(b"lo"));
-        
+
         let eof = decoder.decode(&mut buffer).unwrap().unwrap();
         assert!(eof.is_eof());
     }
@@ -525,7 +518,7 @@ mod tests {
     fn test_invalid_chunk_size() {
         let mut buffer: BytesMut = BytesMut::from(&b"xyz\r\n"[..]);
         let mut decoder = ChunkedDecoder::new();
-        
+
         let result = decoder.decode(&mut buffer);
         assert!(result.is_err());
     }
@@ -534,10 +527,10 @@ mod tests {
     fn test_missing_crlf() {
         let mut buffer: BytesMut = BytesMut::from(&b"5\r\nhelloBad"[..]);
         let mut decoder = ChunkedDecoder::new();
-        
+
         let chunk = decoder.decode(&mut buffer).unwrap().unwrap();
         assert_eq!(chunk.as_bytes().unwrap(), &Bytes::copy_from_slice(b"hello"));
-        
+
         let result = decoder.decode(&mut buffer);
         assert!(result.is_err());
     }
@@ -551,14 +544,14 @@ mod tests {
         data.extend(headers);
         data.extend(vec![b'A'; size]);
         data.extend(b"\r\n0\r\n\r\n");
-        
+
         let mut buffer = BytesMut::from(&data[..]);
         let mut decoder = ChunkedDecoder::new();
-        
+
         let chunk = decoder.decode(&mut buffer).unwrap().unwrap();
         assert_eq!(chunk.as_bytes().unwrap().len(), size);
         assert!(chunk.as_bytes().unwrap().iter().all(|&b| b == b'A'));
-        
+
         let eof = decoder.decode(&mut buffer).unwrap().unwrap();
         assert!(eof.is_eof());
     }
@@ -567,7 +560,7 @@ mod tests {
     fn test_zero_size_chunk() {
         let mut buffer: BytesMut = BytesMut::from(&b"0\r\n\r\n"[..]);
         let mut decoder = ChunkedDecoder::new();
-        
+
         let eof = decoder.decode(&mut buffer).unwrap().unwrap();
         assert!(eof.is_eof());
     }

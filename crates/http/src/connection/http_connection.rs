@@ -23,18 +23,18 @@ use tokio_util::codec::{FramedRead, FramedWrite};
 use tracing::{error, info};
 
 /// An HTTP connection that manages request processing and response streaming
-/// 
+///
 /// `HttpConnection` handles the full lifecycle of an HTTP connection, including:
 /// - Reading and decoding requests
 /// - Processing request headers and bodies
 /// - Handling expect-continue mechanism
 /// - Streaming responses back to clients
-/// 
+///
 /// # Type Parameters
-/// 
+///
 /// * `R`: The async readable stream type
 /// * `W`: The async writable stream type
-/// 
+///
 pub struct HttpConnection<R, W> {
     framed_read: FramedRead<R, RequestDecoder>,
     framed_write: FramedWrite<W, ResponseEncoder>,
@@ -127,7 +127,7 @@ where
             // Store the handler result to return after body is fully processed
             #[allow(unused_assignments)]
             let mut result = Option::<Result<_, _>>::None;
-            
+
             // Keep processing until handler completes
             loop {
                 select! {

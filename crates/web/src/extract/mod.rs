@@ -1,22 +1,22 @@
 //! Request data extraction module
-//! 
+//!
 //! This module provides functionality for extracting typed data from HTTP requests.
 //! It includes extractors for common data formats and patterns:
-//! 
+//!
 //! - Form data (`Form<T>`) - For `application/x-www-form-urlencoded` request bodies
 //! - JSON data (`Json<T>`) - For `application/json` request bodies  
 //! - Query parameters (`Query<T>`) - For URL query strings
 //! - Headers and other request metadata
 //! - Raw request body as bytes or string
-//! 
+//!
 //! # Core Concepts
-//! 
+//!
 //! The module is built around the [`FromRequest`] trait, which defines how to extract
 //! typed data from requests. Types implementing this trait can be used as parameters
 //! in request handlers.
-//! 
+//!
 //! # Common Extractors
-//! 
+//!
 //! ## Form Data
 //! ```no_run
 //! # use serde::Deserialize;
@@ -26,12 +26,12 @@
 //!     username: String,
 //!     password: String,
 //! }
-//! 
+//!
 //! async fn handle_login(Form(form): Form<LoginForm>) {
 //!     println!("Login attempt from: {}", form.username);
 //! }
 //! ```
-//! 
+//!
 //! ## JSON Data
 //! ```no_run
 //! # use serde::Deserialize;
@@ -41,12 +41,12 @@
 //!     name: String,
 //!     email: String,
 //! }
-//! 
+//!
 //! async fn create_user(Json(user): Json<User>) {
 //!     println!("Creating user: {}", user.name);
 //! }
 //! ```
-//! 
+//!
 //! ## Query Parameters
 //! ```no_run
 //! # use serde::Deserialize;
@@ -56,16 +56,16 @@
 //!     page: u32,
 //!     per_page: u32,
 //! }
-//! 
+//!
 //! async fn list_items(Query(params): Query<Pagination>) {
 //!     println!("Listing page {} with {} items", params.page, params.per_page);
 //! }
 //! ```
-//! 
+//!
 //! # Optional Extraction
-//! 
+//!
 //! All extractors can be made optional by wrapping them in `Option<T>`:
-//! 
+//!
 //! ```
 //! # use serde::Deserialize;
 //! # use micro_web::extract::Json;
@@ -74,18 +74,18 @@
 //!     name: Option<String>,
 //!     email: Option<String>,
 //! }
-//! 
+//!
 //! async fn update_user(Json(update): Json<UpdateUser>) {
 //!     if let Some(name) = update.name {
 //!         println!("Updating name to: {}", name);
 //!     }
 //! }
 //! ```
-//! 
+//!
 //! # Multiple Extractors
-//! 
+//!
 //! Multiple extractors can be combined using tuples:
-//! 
+//!
 //! ```
 //! # use serde::Deserialize;
 //! # use micro_web::extract::{Json, Query};
@@ -94,12 +94,12 @@
 //! struct SearchParams {
 //!     q: String,
 //! }
-//! 
+//!
 //! #[derive(Deserialize)]
 //! struct Payload {
 //!     data: String,
 //! }
-//! 
+//!
 //! async fn handler(
 //!     method: Method,
 //!     Query(params): Query<SearchParams>,
@@ -138,7 +138,9 @@ use serde::Deserialize;
 ///     format!("received params: {:?}", params)
 /// }
 /// ```
-pub struct Form<T>(pub T) where T: for<'de> Deserialize<'de> + Send;
+pub struct Form<T>(pub T)
+where
+    T: for<'de> Deserialize<'de> + Send;
 
 /// Represented as json data
 ///
@@ -160,7 +162,9 @@ pub struct Form<T>(pub T) where T: for<'de> Deserialize<'de> + Send;
 ///     format!("received params: {:?}", params)
 /// }
 /// ```
-pub struct Json<T>(pub T) where T: for<'de> Deserialize<'de> + Send;
+pub struct Json<T>(pub T)
+where
+    T: for<'de> Deserialize<'de> + Send;
 
 /// Represented as url query data
 ///
@@ -182,4 +186,6 @@ pub struct Json<T>(pub T) where T: for<'de> Deserialize<'de> + Send;
 ///     format!("received params: {:?}", params)
 /// }
 /// ```
-pub struct Query<T>(pub T) where T: for<'de> Deserialize<'de> + Send;
+pub struct Query<T>(pub T)
+where
+    T: for<'de> Deserialize<'de> + Send;

@@ -1,7 +1,7 @@
 //! HTTP header encoder implementation for serializing HTTP response headers
-//! 
+//!
 //! This module provides functionality for encoding HTTP response headers into raw bytes.
-//! It handles serialization of status line, headers and manages content length or 
+//! It handles serialization of status line, headers and manages content length or
 //! transfer encoding headers according to HTTP/1.1 specification.
 //!
 //! # Features
@@ -25,7 +25,7 @@ use tracing::error;
 const INIT_HEADER_SIZE: usize = 4 * 1024;
 
 /// Encoder for HTTP response headers implementing the [`Encoder`] trait.
-/// 
+///
 /// This encoder serializes a [`ResponseHead`] and [`PayloadSize`] into raw bytes,
 /// automatically handling Content-Length or Transfer-Encoding headers based on the
 /// payload size.
@@ -109,7 +109,7 @@ impl Encoder<(ResponseHead, PayloadSize)> for HeaderEncoder {
 /// to the bytes buffer, since we've already reserved enough space.
 struct FastWrite<'a>(&'a mut BytesMut);
 
-impl<'a> Write for FastWrite<'a> {
+impl Write for FastWrite<'_> {
     /// Writes a buffer into this writer, returning how many bytes were written.
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
         self.0.put_slice(buf);

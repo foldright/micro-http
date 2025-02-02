@@ -1,12 +1,12 @@
 //! Getting Started Example
-//! 
+//!
 //! This example demonstrates the basic usage of the micro_web framework, including:
 //! - Route handling with different HTTP methods
 //! - Form and JSON data extraction
 //! - Request filtering
 //! - Response encoding
 //! - Default handler setup
-//! 
+//!
 //! To run this example:
 //! ```bash
 //! cargo run --example getting_started
@@ -15,8 +15,8 @@
 use http::Method;
 use micro_web::extract::{Form, Json};
 use micro_web::filter::header;
-use micro_web::wrapper::EncodeWrapper;
 use micro_web::router::{get, post, Router};
+use micro_web::wrapper::EncodeWrapper;
 use micro_web::{handler_fn, Server};
 use serde::Deserialize;
 

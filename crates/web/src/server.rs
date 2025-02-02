@@ -1,20 +1,20 @@
 //! Server module for handling HTTP requests and managing web server lifecycle.
-//! 
+//!
 //! This module provides the core server functionality including:
 //! - Server builder pattern for configuration
 //! - HTTP request routing and handling
 //! - Connection management and error handling
 //! - Default request handling
-//! 
+//!
 //! # Examples
-//! 
+//!
 //! ```no_run
 //! use micro_web::{Server, router::{Router, get}, handler_fn};
-//! 
+//!
 //! async fn hello_world() -> &'static str {
 //!     "Hello, World!"
 //! }
-//! 
+//!
 //! #[tokio::main]
 //! async fn main() {
 //!     let router = Router::builder()
@@ -50,7 +50,7 @@ use tracing::{error, info, warn, Level};
 use tracing_subscriber::FmtSubscriber;
 
 /// Builder for configuring and constructing a [`Server`] instance.
-/// 
+///
 /// The builder provides a fluent API for setting server options including:
 /// - Binding address
 /// - Request router
@@ -83,7 +83,7 @@ impl ServerBuilder {
 
     pub fn build(self) -> Result<Server, ServerBuildError> {
         let new_builder =
-            if let None = self.default_handler { self.default_handler(handler_fn(default_handler)) } else { self };
+            if self.default_handler.is_none() { self.default_handler(handler_fn(default_handler)) } else { self };
         let router = new_builder.router.ok_or(ServerBuildError::MissingRouter)?;
         let address = new_builder.address.ok_or(ServerBuildError::MissingAddress)?;
 
@@ -97,13 +97,13 @@ async fn default_handler() -> (StatusCode, &'static str) {
 }
 
 /// Core server implementation that processes HTTP requests.
-/// 
+///
 /// The server is responsible for:
 /// - Listening for incoming connections
 /// - Routing requests to appropriate handlers
 /// - Managing connection lifecycle
 /// - Error handling and logging
-/// 
+///
 pub struct Server {
     router: Router,
     default_handler: Box<dyn RequestHandler>,
@@ -116,7 +116,7 @@ pub enum ServerBuildError {
     /// Router was not configured
     #[error("router must be set")]
     MissingRouter,
-    
+
     /// Bind address was not configured
     #[error("address must be set")]
     MissingAddress,
@@ -194,8 +194,7 @@ impl Handler for Server {
                 .unwrap_or(self.default_handler.as_ref());
 
             let response = handler.invoke(&mut request_context, req_body).await;
-            Ok(response) 
-            
+            Ok(response)
         })
     }
 }

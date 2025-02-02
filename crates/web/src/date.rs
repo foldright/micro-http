@@ -1,5 +1,5 @@
 //! HTTP date header value management service.
-//! 
+//!
 //! This module provides a service for efficiently managing and updating HTTP date header values
 //! in a concurrent environment. It updates the date string periodically to avoid repeated
 //! date string formatting operations in high-concurrency scenarios.
@@ -50,7 +50,10 @@ impl DateService {
     ///
     /// This method allows safe access to the current date string without exposing
     /// the internal synchronization mechanisms.
-    pub(crate) fn with_http_date<F>(&self, mut f: F) where F: FnMut(&str) {
+    pub(crate) fn with_http_date<F>(&self, mut f: F)
+    where
+        F: FnMut(&str),
+    {
         let date = &self.current.load().1;
         f(date)
     }

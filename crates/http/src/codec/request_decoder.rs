@@ -1,21 +1,21 @@
 //! HTTP request decoder module
-//! 
+//!
 //! This module provides functionality for decoding HTTP requests using a streaming approach.
 //! It handles both header parsing and payload decoding through a state machine pattern.
-//! 
+//!
 //! # Components
-//! 
+//!
 //! - [`RequestDecoder`]: Main decoder that coordinates header and payload parsing
 //! - Header parsing: Uses [`HeaderDecoder`] for parsing request headers
 //! - Payload handling: Uses [`PayloadDecoder`] for handling request bodies if any
-//! 
+//!
 //! # Example
-//! 
+//!
 //! ```no_run
 //! use micro_http::codec::RequestDecoder;
 //! use tokio_util::codec::Decoder;
 //! use bytes::BytesMut;
-//! 
+//!
 //! let mut decoder = RequestDecoder::new();
 //! let mut buffer = BytesMut::new();
 //! // ... add request data to buffer ...
@@ -29,13 +29,13 @@ use bytes::BytesMut;
 use tokio_util::codec::Decoder;
 
 /// A decoder for HTTP requests that handles both headers and payload
-/// 
+///
 /// The decoder operates in two phases:
 /// 1. Header parsing: Decodes the request headers using [`HeaderDecoder`]
 /// 2. Payload parsing: If present, decodes the request body using [`PayloadDecoder`]
-/// 
+///
 /// # State Machine
-/// 
+///
 /// The decoder maintains its state through the `payload_decoder` field:
 /// - `None`: Currently parsing headers
 /// - `Some(PayloadDecoder)`: Currently parsing payload
@@ -62,9 +62,9 @@ impl Decoder for RequestDecoder {
     type Error = ParseError;
 
     /// Attempts to decode an HTTP request from the provided buffer
-    /// 
+    ///
     /// # Returns
-    /// 
+    ///
     /// - `Ok(Some(Message::Header(_)))`: Successfully decoded request headers
     /// - `Ok(Some(Message::Payload(_)))`: Successfully decoded a payload chunk
     /// - `Ok(None)`: Need more data to proceed

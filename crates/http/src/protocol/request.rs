@@ -1,5 +1,5 @@
 //! HTTP request header handling implementation.
-//! 
+//!
 //! This module provides the core abstractions for handling HTTP request headers.
 //! It wraps the standard `http::Request` type to provide additional functionality
 //! specific to our HTTP server implementation.
@@ -10,7 +10,7 @@ use http::request::Parts;
 use http::{HeaderMap, Method, Request, Uri, Version};
 
 /// Represents an HTTP request header.
-/// 
+///
 /// This struct wraps a `http::Request<()>` to provide:
 /// - Access to standard HTTP header fields
 /// - Conversion from different request formats
@@ -40,7 +40,7 @@ impl RequestHeader {
     }
 
     /// Attaches a body to this header, converting it into a full `Request<T>`.
-    /// 
+    ///
     /// This is typically used after header parsing to attach the parsed body.
     pub fn body<T>(self, body: T) -> Request<T> {
         self.inner.map(|_| body)
@@ -67,10 +67,10 @@ impl RequestHeader {
     }
 
     /// Determines if this request requires a body based on its HTTP method.
-    /// 
+    ///
     /// Returns false for methods that typically don't have bodies:
     /// - GET
-    /// - HEAD 
+    /// - HEAD
     /// - DELETE
     /// - OPTIONS
     /// - CONNECT
@@ -96,7 +96,7 @@ impl From<Request<()>> for RequestHeader {
 }
 
 /// Converts a parsed HTTP request into a RequestHeader.
-/// 
+///
 /// This implementation handles the conversion from the low-level parsed request
 /// format into our RequestHeader type, setting up:
 /// - HTTP method

@@ -4,8 +4,8 @@
 //! - How to set up a router with middleware
 //! - How to configure and start a server
 
-use micro_web::wrapper::DateWrapper;
 use micro_web::router::{get, Router};
+use micro_web::wrapper::DateWrapper;
 use micro_web::{handler_fn, Server};
 
 /// A simple handler that returns "hello world"
@@ -14,7 +14,7 @@ async fn hello_world() -> &'static str {
 }
 
 /// Default handler for unmatched handlers (404 responses)
-/// 
+///
 /// This handler is called when no other handlers match the incoming request
 async fn default_handler() -> &'static str {
     "404 not found"

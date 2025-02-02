@@ -1,5 +1,5 @@
 //! Encoder implementation for HTTP chunked transfer encoding.
-//! 
+//!
 //! This module provides functionality to encode HTTP messages using chunked transfer encoding
 //! as specified in [RFC 7230 Section 4.1](https://tools.ietf.org/html/rfc7230#section-4.1).
 //!
@@ -95,7 +95,7 @@ mod helper {
 
     pub struct Writer<'a>(pub &'a mut BytesMut);
 
-    impl<'a> io::Write for Writer<'a> {
+    impl io::Write for Writer<'_> {
         fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
             self.0.put_slice(buf);
             Ok(buf.len())

@@ -1,5 +1,5 @@
 //! Encoder implementation for HTTP messages with Content-Length header.
-//! 
+//!
 //! This module provides functionality to encode HTTP messages where the payload size
 //! is specified by the Content-Length header, ensuring the total bytes sent matches
 //! the declared content length.

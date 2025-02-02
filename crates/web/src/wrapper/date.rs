@@ -1,7 +1,7 @@
 //! Module for handling HTTP response date headers.
 //!
-//! This module provides functionality for automatically adding RFC 7231 compliant 
-//! date headers to HTTP responses. It implements a wrapper pattern that can be 
+//! This module provides functionality for automatically adding RFC 7231 compliant
+//! date headers to HTTP responses. It implements a wrapper pattern that can be
 //! composed with other wrappers in the request handling pipeline.
 //!
 //! The main components are:
@@ -52,10 +52,7 @@ impl<H: RequestHandler> RequestHandler for DateResponseHandler<H> {
         let mut resp = self.handler.invoke(req, req_body).await;
 
         self.date_service.with_http_date(|date_str| {
-            resp.headers_mut().insert(
-                http::header::DATE,
-                HeaderValue::try_from(date_str).unwrap(),
-            );
+            resp.headers_mut().insert(http::header::DATE, HeaderValue::try_from(date_str).unwrap());
         });
 
         resp

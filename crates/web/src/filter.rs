@@ -1,28 +1,28 @@
 //! Request filtering module that provides composable request filters.
-//! 
+//!
 //! This module implements a filter system that allows you to:
 //! - Filter requests based on HTTP methods
 //! - Filter requests based on headers
 //! - Combine multiple filters using AND/OR logic
 //! - Create custom filters using closures
-//! 
+//!
 //! ## Thread Safety
-//! 
+//!
 //! All filters must implement the `Filter` trait, which requires `Send + Sync`.
-//! This ensures that filters can be safely shared and used across threads, 
+//! This ensures that filters can be safely shared and used across threads,
 //! which is essential for concurrent request handling in a web server environment.
 //!
 //! # Examples
 //!
 //! ```
 //! use micro_web::filter::{all_filter, any_filter, get_method, header};
-//! 
+//!
 //! // Create a filter that matches GET requests
 //! let get_filter = get_method();
-//! 
+//!
 //! // Create a filter that checks for specific header
 //! let auth_filter = header("Authorization", "Bearer token");
-//! 
+//!
 //! // Combine filters with AND logic
 //! let mut combined = all_filter();
 //! combined.and(get_filter).and(auth_filter);
@@ -32,17 +32,17 @@ use crate::RequestContext;
 use http::{HeaderName, HeaderValue, Method};
 
 /// Core trait for request filtering.
-/// 
+///
 /// Implementors of this trait can be used to filter HTTP requests
 /// based on custom logic. Filters can be composed using [`AllFilter`]
 /// and [`AnyFilter`].
-/// 
-/// 
+///
+///
 /// The `Filter` trait requires `Send + Sync`, ensuring that filters
 /// can be safely used in a multi-threaded environment.
 pub trait Filter: Send + Sync {
     /// Check if the request matches this filter's criteria.
-    /// 
+    ///
     /// Returns `true` if the request should be allowed, `false` otherwise.
     fn matches(&self, req: &RequestContext) -> bool;
 }
@@ -59,11 +59,11 @@ impl<F: Fn(&RequestContext) -> bool + Send + Sync> Filter for FnFilter<F> {
 /// Creates a new filter from a closure.
 ///
 /// This allows creating custom filters using simple closures.
-/// 
+///
 /// # Example
 /// ```
 /// use micro_web::filter::fn_filter;
-/// 
+///
 /// let custom_filter = fn_filter(|req| {
 ///     req.uri().path().starts_with("/api")
 /// });
@@ -109,7 +109,7 @@ pub fn any_filter() -> AnyFilter {
 }
 
 /// Compose filters with OR logic.
-/// 
+///
 /// If any inner filter succeeds, the whole filter succeeds.
 /// An empty filter chain returns true by default.
 pub struct AnyFilter {
@@ -150,7 +150,7 @@ pub fn all_filter() -> AllFilter {
 }
 
 /// Compose filters with AND logic.
-/// 
+///
 /// All inner filters must succeed for the whole filter to succeed.
 /// An empty filter chain returns true by default.
 pub struct AllFilter {

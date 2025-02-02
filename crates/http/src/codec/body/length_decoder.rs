@@ -1,7 +1,7 @@
 //! Decoder implementation for HTTP messages with Content-Length header.
-//! 
+//!
 //! This module provides functionality to decode HTTP messages where the payload size
-//! is specified by the Content-Length header, as defined in 
+//! is specified by the Content-Length header, as defined in
 //! [RFC 7230 Section 3.3.2](https://tools.ietf.org/html/rfc7230#section-3.3.2).
 
 use std::cmp;

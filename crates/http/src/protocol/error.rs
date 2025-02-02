@@ -1,14 +1,14 @@
 //! Error types for HTTP protocol handling
-//! 
+//!
 //! This module provides error types for handling various error conditions that may occur
 //! during HTTP request processing and response generation.
-//! 
+//!
 //! # Error Types
-//! 
+//!
 //! - [`HttpError`]: The top-level error type that wraps all other error types
 //!   - [`ParseError`]: Errors that occur during request parsing and processing
 //!   - [`SendError`]: Errors that occur during response generation and sending
-//! 
+//!
 //! The error types form a hierarchy where `HttpError` is the top-level error that can
 //! contain either a `ParseError` or `SendError`. This allows for granular error handling
 //! while still providing a unified error type at the API boundary.
@@ -16,7 +16,7 @@ use std::io;
 use thiserror::Error;
 
 /// The top-level error type for HTTP operations
-/// 
+///
 /// This enum represents all possible errors that can occur during HTTP request
 /// processing and response generation.
 #[derive(Debug, Error)]
@@ -37,7 +37,7 @@ pub enum HttpError {
 }
 
 /// Errors that occur during HTTP request parsing
-/// 
+///
 /// This enum represents various error conditions that can occur while parsing
 /// and processing HTTP requests.
 #[derive(Error, Debug)]
@@ -115,7 +115,7 @@ impl ParseError {
 }
 
 /// Errors that occur during HTTP response generation and sending
-/// 
+///
 /// This enum represents error conditions that can occur while generating
 /// and sending HTTP responses.
 #[derive(Error, Debug)]

@@ -1,17 +1,17 @@
 //! Router module for HTTP request routing and handling.
-//! 
+//!
 //! This module provides functionality for routing HTTP requests to appropriate handlers based on paths and filters.
 //! It supports method-based routing, path parameters, and middleware-style wrappers.
 //!
 //! # Examples
-//! 
+//!
 //! ```no_run
 //! use micro_web::router::{get, Router};
 //! use micro_web::handler_fn;
 //! async fn hello() -> &'static str {
 //!     "Hello, World!"
 //! }
-//! 
+//!
 //! let router = Router::builder()
 //!     .route("/hello", get(handler_fn(hello)))
 //!     .build();
@@ -53,7 +53,7 @@ impl Router {
     }
 
     /// Matches a path against the router's routes
-    /// 
+    ///
     /// Returns a `RouteResult` containing matched handlers and path parameters
     ///
     /// # Arguments
@@ -61,10 +61,7 @@ impl Router {
     pub fn at<'router, 'req>(&'router self, path: &'req str) -> RouteResult<'router, 'req> {
         self.inner_router
             .at(path)
-            .map(|matched| RouteResult { 
-                router_item: matched.value.as_slice(), 
-                params: matched.params.into() 
-            })
+            .map(|matched| RouteResult { router_item: matched.value.as_slice(), params: matched.params.into() })
             .map_err(|e| error!("match {} error: {}", path, e))
             .unwrap_or(RouteResult::empty())
     }
@@ -76,7 +73,7 @@ impl RouterItem {
         self.filter.as_ref()
     }
 
-    /// Gets the request handler for this router item 
+    /// Gets the request handler for this router item
     pub fn handler(&self) -> &dyn RequestHandler {
         self.handler.as_ref()
     }
@@ -132,7 +129,7 @@ where
     /// * `route` - The path pattern to match
     /// * `item_builder` - The router item builder containing filters and handler
     pub fn route(mut self, route: impl Into<String>, item_builder: RouterItemBuilder) -> Self {
-        let vec = self.data.entry(route.into()).or_insert_with(Vec::new);
+        let vec = self.data.entry(route.into()).or_default();
         vec.push(item_builder);
         self
     }

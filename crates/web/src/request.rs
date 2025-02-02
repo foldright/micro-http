@@ -1,5 +1,5 @@
 //! Request handling module that provides access to HTTP request information and path parameters.
-//! 
+//!
 //! This module contains the core types for working with HTTP requests in the web framework:
 //! - `RequestContext`: Provides access to request headers and path parameters
 //! - `PathParams`: Handles URL path parameters extracted from request paths
@@ -56,7 +56,7 @@ impl<'server, 'req> RequestContext<'server, 'req> {
 }
 
 /// Represents path parameters extracted from the URL path of an HTTP request.
-/// 
+///
 /// Path parameters are named segments in the URL path that can be extracted and accessed
 /// by name. For example, in the path "/users/{id}", "id" is a path parameter.
 #[derive(Debug, Clone)]

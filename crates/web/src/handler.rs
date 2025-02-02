@@ -1,5 +1,5 @@
 //! Request handler types and traits for the web framework.
-//! 
+//!
 //! This module provides the core abstractions for handling HTTP requests:
 //! - `RequestHandler` trait for implementing request handlers
 //! - `FnHandler` for wrapping async functions as handlers
@@ -17,7 +17,7 @@ use crate::extract::FromRequest;
 use std::marker::PhantomData;
 
 /// Trait for types that can handle HTTP requests.
-/// 
+///
 /// Implementors must provide an `invoke` method that processes the request
 /// and returns a response. This is the core trait for request handling.
 #[async_trait]
@@ -66,7 +66,7 @@ impl RequestHandler for &dyn RequestHandler {
 }
 
 /// A wrapper type that converts async functions into request handlers.
-/// 
+///
 /// This allows regular async functions to be used as request handlers
 /// by implementing the `RequestHandler` trait for them.
 ///

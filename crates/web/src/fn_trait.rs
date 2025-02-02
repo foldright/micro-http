@@ -1,7 +1,5 @@
-
-
 //! Function trait implementation for handling async request handlers
-//! 
+//!
 //! This module provides the [`FnTrait`] trait which is used to abstract over different types
 //! of async functions that can serve as request handlers. It supports functions with varying
 //! numbers of parameters (from 0 to 12) and ensures they can be used in an async context.

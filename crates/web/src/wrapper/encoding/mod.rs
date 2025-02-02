@@ -1,5 +1,5 @@
 //! Module for handling HTTP response body encoding.
-//! 
+//!
 //! This module provides functionality for encoding HTTP response bodies using different compression
 //! algorithms like gzip, deflate, zstd, and brotli. It works in conjunction with the encoder
 //! module to provide a complete encoding solution.

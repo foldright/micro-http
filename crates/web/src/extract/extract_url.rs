@@ -1,5 +1,5 @@
 //! URL query string extraction functionality
-//! 
+//!
 //! This module provides implementation for extracting typed data from URL query strings.
 //! It allows handlers to receive strongly-typed query parameters by implementing the
 //! `FromRequest` trait for the `Query<T>` type.
@@ -8,13 +8,13 @@
 //! ```no_run
 //! # use serde::Deserialize;
 //! # use micro_web::extract::Query;
-//! 
+//!
 //! #[derive(Deserialize)]
 //! struct Params {
 //!     name: String,
 //!     age: u32,
 //! }
-//! 
+//!
 //! async fn handler(Query(params): Query<Params>) {
 //!     println!("Name: {}, Age: {}", params.name, params.age);
 //! }
@@ -27,7 +27,7 @@ use micro_http::protocol::ParseError;
 use serde::Deserialize;
 
 /// Implements query string extraction for any type that implements Deserialize
-/// 
+///
 /// This implementation allows automatic deserialization of query string parameters
 /// into a strongly-typed struct using serde_qs.
 #[async_trait]
@@ -45,7 +45,7 @@ where
 }
 
 /// Implements path parameter extraction for owned PathParams
-/// 
+///
 /// This implementation allows handlers to receive path parameters directly from
 /// the request context. The parameters are returned as a reference to the
 /// PathParams struct.
@@ -60,7 +60,7 @@ impl FromRequest for PathParams<'_, '_> {
 }
 
 /// Implements path parameter extraction for referenced PathParams
-/// 
+///
 /// This implementation is similar to the owned version but works with references
 /// to PathParams. It allows handlers to receive path parameters as references
 /// directly from the request context.

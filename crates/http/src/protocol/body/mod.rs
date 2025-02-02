@@ -1,8 +1,8 @@
 //! HTTP request body handling implementation.
-//! 
+//!
 //! This module provides the core abstractions and implementations for handling HTTP request bodies
 //! in an efficient streaming manner. The design focuses on:
-//! 
+//!
 //! - Memory efficiency through streaming
 //! - Protocol correctness
 //! - Clean abstraction boundaries
@@ -24,7 +24,7 @@
 //!    - Stream body chunks instead of buffering entire payload
 //!    - Implement backpressure to prevent overwhelming memory
 //!
-//! 2. **Protocol Correctness** 
+//! 2. **Protocol Correctness**
 //!    - Ensure complete body consumption even if handler abandons reading
 //!    - Maintain proper connection state for keep-alive support
 //!

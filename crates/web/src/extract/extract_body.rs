@@ -1,28 +1,28 @@
 //! Body data extraction implementations
-//! 
+//!
 //! This module provides implementations for extracting typed data from request bodies.
 //! It supports extracting raw bytes, strings, JSON data and form data.
-//! 
+//!
 //! # Examples
-//! 
+//!
 //! ```no_run
 //! # use micro_web::extract::{Json, Form};
 //! # use serde::Deserialize;
-//! 
+//!
 //! #[derive(Deserialize)]
 //! struct User {
 //!     name: String,
 //!     age: u32
 //! }
-//! 
+//!
 //! // Extract JSON data
 //! async fn handle_json(Json(user): Json<User>) {
 //!     println!("Got user: {}", user.name);
 //! }
-//! 
+//!
 //! // Extract form data
 //! async fn handle_form(Form(user): Form<User>) {
-//!     println!("Got user: {}", user.name); 
+//!     println!("Got user: {}", user.name);
 //! }
 //! ```
 
@@ -63,7 +63,7 @@ impl FromRequest for String {
 }
 
 /// Extracts form data from request body
-/// 
+///
 /// This implementation expects the request body to be URL-encoded form data
 /// and deserializes it into the target type using `serde_urlencoded`.
 #[async_trait]
@@ -83,7 +83,7 @@ where
 }
 
 /// Extracts JSON data from request body
-/// 
+///
 /// This implementation expects the request body to be valid JSON
 /// and deserializes it into the target type using `serde_json`.
 #[async_trait]
