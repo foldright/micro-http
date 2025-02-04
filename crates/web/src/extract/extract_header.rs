@@ -31,21 +31,19 @@
 //! ```
 
 use crate::body::OptionReqBody;
-use crate::extract::from_request::FromRequest;
 use crate::RequestContext;
-use async_trait::async_trait;
 use http::{HeaderMap, Method};
 use micro_http::protocol::{ParseError, RequestHeader};
+use crate::extract::from_request::FromRequest2;
 
 /// Extracts the HTTP method by value
 ///
 /// This extractor takes ownership of the request method.
-#[async_trait]
-impl FromRequest for Method {
+impl FromRequest2 for Method {
     type Output<'any> = Method;
     type Error = ParseError;
 
-    async fn from_request(req: &RequestContext, _body: OptionReqBody) -> Result<Self::Output<'static>, Self::Error> {
+    async fn from_request(req: &RequestContext<'_, '_>, _body: OptionReqBody) -> Result<Self::Output<'static>, Self::Error> {
         Ok(req.method().clone())
     }
 }
@@ -53,12 +51,11 @@ impl FromRequest for Method {
 /// Extracts a reference to the HTTP method
 ///
 /// This extractor borrows the request method, avoiding cloning.
-#[async_trait]
-impl FromRequest for &Method {
+impl FromRequest2 for &Method {
     type Output<'r> = &'r Method;
     type Error = ParseError;
 
-    async fn from_request<'r>(req: &'r RequestContext, _body: OptionReqBody) -> Result<Self::Output<'r>, Self::Error> {
+    async fn from_request<'r>(req: &'r RequestContext<'_, '_>, _body: OptionReqBody) -> Result<Self::Output<'r>, Self::Error> {
         Ok(req.method())
     }
 }
@@ -66,12 +63,11 @@ impl FromRequest for &Method {
 /// Extracts a reference to the raw request header
 ///
 /// Provides access to the underlying HTTP request header structure.
-#[async_trait]
-impl FromRequest for &RequestHeader {
+impl FromRequest2 for &RequestHeader {
     type Output<'r> = &'r RequestHeader;
     type Error = ParseError;
 
-    async fn from_request<'r>(req: &'r RequestContext, _body: OptionReqBody) -> Result<Self::Output<'r>, Self::Error> {
+    async fn from_request<'r>(req: &'r RequestContext<'_, '_>, _body: OptionReqBody) -> Result<Self::Output<'r>, Self::Error> {
         Ok(req.request_header())
     }
 }
@@ -79,12 +75,11 @@ impl FromRequest for &RequestHeader {
 /// Extracts a reference to the header map
 ///
 /// This extractor provides borrowed access to all HTTP headers.
-#[async_trait]
-impl FromRequest for &HeaderMap {
+impl FromRequest2 for &HeaderMap {
     type Output<'r> = &'r HeaderMap;
     type Error = ParseError;
 
-    async fn from_request<'r>(req: &'r RequestContext, _body: OptionReqBody) -> Result<Self::Output<'r>, Self::Error> {
+    async fn from_request<'r>(req: &'r RequestContext<'_, '_>, _body: OptionReqBody) -> Result<Self::Output<'r>, Self::Error> {
         Ok(req.headers())
     }
 }
@@ -92,12 +87,11 @@ impl FromRequest for &HeaderMap {
 /// Extracts the header map by value
 ///
 /// This extractor clones and takes ownership of all HTTP headers.
-#[async_trait]
-impl FromRequest for HeaderMap {
+impl FromRequest2 for HeaderMap {
     type Output<'any> = HeaderMap;
     type Error = ParseError;
 
-    async fn from_request(req: &RequestContext, _body: OptionReqBody) -> Result<Self::Output<'static>, Self::Error> {
+    async fn from_request(req: &RequestContext<'_, '_>, _body: OptionReqBody) -> Result<Self::Output<'static>, Self::Error> {
         Ok(req.headers().clone())
     }
 }

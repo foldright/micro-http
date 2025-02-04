@@ -20,42 +20,26 @@
 //! }
 //! ```
 
-use crate::extract::{FromRequest, Query};
+use crate::extract::Query;
 use crate::{OptionReqBody, PathParams, RequestContext};
-use async_trait::async_trait;
 use micro_http::protocol::ParseError;
 use serde::Deserialize;
+use crate::extract::from_request::FromRequest2;
 
 /// Implements query string extraction for any type that implements Deserialize
 ///
 /// This implementation allows automatic deserialization of query string parameters
 /// into a strongly-typed struct using serde_qs.
-#[async_trait]
-impl<T> FromRequest for Query<T>
+impl<T> FromRequest2 for Query<T>
 where
     T: for<'de> Deserialize<'de> + Send,
 {
     type Output<'r> = T;
     type Error = ParseError;
 
-    async fn from_request<'r>(req: &'r RequestContext, _body: OptionReqBody) -> Result<Self::Output<'r>, Self::Error> {
+    async fn from_request<'r>(req: &'r RequestContext<'_, '_>, _body: OptionReqBody) -> Result<Self::Output<'r>, Self::Error> {
         let query = req.uri().query().ok_or_else(|| ParseError::invalid_header("has no query string, path"))?;
         serde_qs::from_str::<'_, T>(query).map_err(|e| ParseError::invalid_header(e.to_string()))
-    }
-}
-
-/// Implements path parameter extraction for owned PathParams
-///
-/// This implementation allows handlers to receive path parameters directly from
-/// the request context. The parameters are returned as a reference to the
-/// PathParams struct.
-#[async_trait]
-impl FromRequest for PathParams<'_, '_> {
-    type Output<'r> = &'r PathParams<'r, 'r>;
-    type Error = ParseError;
-
-    async fn from_request<'r>(req: &'r RequestContext, _body: OptionReqBody) -> Result<Self::Output<'r>, Self::Error> {
-        Ok(req.path_params())
     }
 }
 
@@ -64,12 +48,11 @@ impl FromRequest for PathParams<'_, '_> {
 /// This implementation is similar to the owned version but works with references
 /// to PathParams. It allows handlers to receive path parameters as references
 /// directly from the request context.
-#[async_trait]
-impl FromRequest for &PathParams<'_, '_> {
+impl FromRequest2 for &PathParams<'_, '_> {
     type Output<'r> = &'r PathParams<'r, 'r>;
     type Error = ParseError;
 
-    async fn from_request<'r>(req: &'r RequestContext, _body: OptionReqBody) -> Result<Self::Output<'r>, Self::Error> {
+    async fn from_request<'r>(req: &'r RequestContext<'_, '_>, _body: OptionReqBody) -> Result<Self::Output<'r>, Self::Error> {
         Ok(req.path_params())
     }
 }

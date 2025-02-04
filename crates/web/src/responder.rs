@@ -7,6 +7,7 @@
 //! The [`Responder`] trait is a key part of the response pipeline, allowing handler
 //! return values to be automatically converted into proper HTTP responses.
 
+use std::convert::Infallible;
 use crate::body::ResponseBody;
 use crate::RequestContext;
 use http::{Response, StatusCode};
@@ -106,5 +107,11 @@ impl Responder for String {
         headers.insert(http::header::CONTENT_TYPE, mime::TEXT_PLAIN_UTF_8.as_ref().parse().unwrap());
 
         builder.status(StatusCode::OK).body(ResponseBody::from(self)).unwrap()
+    }
+}
+
+impl Responder for Infallible {
+    fn response_to(self, _req: &RequestContext) -> Response<ResponseBody> {
+        unreachable!()
     }
 }

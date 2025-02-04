@@ -1,6 +1,6 @@
 # see: https://github.com/rust-lang/rustfmt/blob/master/Configurations.md
 
-max_width = 120
+max_width = 140
 use_small_heuristics = "Max"
 # use_small_heuristics = "Default"
 # hard_tabs = false

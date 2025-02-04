@@ -27,33 +27,31 @@
 //! ```
 
 use crate::body::OptionReqBody;
-use crate::extract::{Form, FromRequest, Json};
+use crate::extract::{Form, Json};
 use crate::RequestContext;
-use async_trait::async_trait;
 use bytes::Bytes;
 use http_body_util::BodyExt;
 use micro_http::protocol::ParseError;
 use serde::Deserialize;
+use crate::extract::from_request::FromRequest2;
 
 /// Extracts raw bytes from request body
-#[async_trait]
-impl FromRequest for Bytes {
+impl FromRequest2 for Bytes {
     type Output<'any> = Bytes;
     type Error = ParseError;
 
-    async fn from_request(_req: &RequestContext, body: OptionReqBody) -> Result<Self::Output<'static>, Self::Error> {
+    async fn from_request(_req: &RequestContext<'_, '_>, body: OptionReqBody) -> Result<Self::Output<'static>, Self::Error> {
         body.apply(|b| async { b.collect().await.map(|c| c.to_bytes()) }).await
     }
 }
 
 /// Extracts UTF-8 string from request body
-#[async_trait]
-impl FromRequest for String {
+impl FromRequest2 for String {
     type Output<'any> = String;
     type Error = ParseError;
 
-    async fn from_request(req: &RequestContext, body: OptionReqBody) -> Result<Self::Output<'static>, Self::Error> {
-        let bytes = Bytes::from_request(req, body).await?;
+    async fn from_request(req: &RequestContext<'_, '_>, body: OptionReqBody) -> Result<Self::Output<'static>, Self::Error> {
+        let bytes = <Bytes as FromRequest2>::from_request(req, body).await?;
         // todo: using character to decode
         match String::from_utf8(bytes.into()) {
             Ok(s) => Ok(s),
@@ -66,16 +64,15 @@ impl FromRequest for String {
 ///
 /// This implementation expects the request body to be URL-encoded form data
 /// and deserializes it into the target type using `serde_urlencoded`.
-#[async_trait]
-impl<T> FromRequest for Form<T>
+impl<T> FromRequest2 for Form<T>
 where
     T: for<'de> Deserialize<'de> + Send,
 {
     type Output<'r> = Form<T>;
     type Error = ParseError;
 
-    async fn from_request<'r>(req: &'r RequestContext, body: OptionReqBody) -> Result<Self::Output<'r>, Self::Error> {
-        let bytes = Bytes::from_request(req, body).await?;
+    async fn from_request<'r>(req: &'r RequestContext<'_, '_>, body: OptionReqBody) -> Result<Self::Output<'r>, Self::Error> {
+        let bytes = <Bytes as FromRequest2>::from_request(req, body).await?;
         serde_urlencoded::from_bytes::<'_, T>(&bytes)
             .map(|t| Form(t))
             .map_err(|e| ParseError::invalid_body(e.to_string()))
@@ -86,16 +83,15 @@ where
 ///
 /// This implementation expects the request body to be valid JSON
 /// and deserializes it into the target type using `serde_json`.
-#[async_trait]
-impl<T> FromRequest for Json<T>
+impl<T> FromRequest2 for Json<T>
 where
     T: for<'de> Deserialize<'de> + Send,
 {
     type Output<'r> = Json<T>;
     type Error = ParseError;
 
-    async fn from_request<'r>(req: &'r RequestContext, body: OptionReqBody) -> Result<Self::Output<'r>, Self::Error> {
-        let bytes = Bytes::from_request(req, body).await?;
+    async fn from_request<'r>(req: &'r RequestContext<'_, '_>, body: OptionReqBody) -> Result<Self::Output<'r>, Self::Error> {
+        let bytes = <Bytes as FromRequest2>::from_request(req, body).await?;
         serde_json::from_slice::<'_, T>(&bytes).map(|t| Json(t)).map_err(|e| ParseError::invalid_body(e.to_string()))
     }
 }

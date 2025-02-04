@@ -40,6 +40,7 @@ pin-project-lite.workspace = true
 tokio = { workspace = true, features = ["time"] }
 futures.workspace = true
 async-trait.workspace = true
+trait-variant.workspace = true
 arc-swap.workspace = true
 
 matchit.workspace = true
