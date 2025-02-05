@@ -17,15 +17,16 @@
 //!     .build();
 //! ```
 
-use crate::filter::{AllFilter, Filter};
 use crate::handler::RequestHandler;
-use crate::{filter, PathParams};
+use crate::PathParams;
 
 use std::collections::HashMap;
 
 use crate::wrapper::{IdentityWrapper, IdentityWrappers, Wrapper, Wrappers};
 use tracing::error;
+use crate::router::filter::{AllFilter, Filter};
 
+pub mod filter;
 type RouterFilter = dyn Filter + Send + Sync + 'static;
 type InnerRouter<T> = matchit::Router<T>;
 
@@ -42,7 +43,7 @@ pub struct RouterItem {
 
 /// Result of matching a route, containing matched items and path parameters
 pub struct RouteResult<'router, 'req> {
-    router_item: &'router [RouterItem],
+    router_items: &'router [RouterItem],
     params: PathParams<'router, 'req>,
 }
 
@@ -61,8 +62,8 @@ impl Router {
     pub fn at<'router, 'req>(&'router self, path: &'req str) -> RouteResult<'router, 'req> {
         self.inner_router
             .at(path)
-            .map(|matched| RouteResult { router_item: matched.value.as_slice(), params: matched.params.into() })
-            .map_err(|e| error!("match {} error: {}", path, e))
+            .map(|matched| RouteResult { router_items: matched.value.as_slice(), params: matched.params.into() })
+            .map_err(|e| error!("match '{}' error: {}", path, e))
             .unwrap_or(RouteResult::empty())
     }
 }
@@ -81,23 +82,23 @@ impl RouterItem {
 
 impl<'router, 'req> RouteResult<'router, 'req> {
     fn empty() -> Self {
-        Self { router_item: &[], params: PathParams::empty() }
+        Self { router_items: &[], params: PathParams::empty() }
     }
 
     /// Returns true if no routes were matched
     #[inline]
     pub fn is_empty(&self) -> bool {
-        self.router_item.is_empty()
+        self.router_items.is_empty()
     }
 
     /// Gets the path parameters from the matched route
-    pub fn params(&self) -> PathParams<'router, 'req> {
-        self.params.clone()
+    pub fn params(&self) -> &PathParams<'router, 'req> {
+        &self.params
     }
 
     /// Gets the matched router items
     pub fn router_items(&self) -> &'router [RouterItem] {
-        self.router_item
+        self.router_items
     }
 }
 
@@ -208,7 +209,7 @@ impl RouterItemBuilder {
 
 #[cfg(test)]
 mod tests {
-    use crate::filter::header;
+    use crate::router::filter::header;
     use crate::router::{get, post, Router};
     use crate::{handler_fn, PathParams, RequestContext};
     use http::{HeaderValue, Method, Request};
@@ -244,11 +245,12 @@ mod tests {
 
         assert_eq!(route_result.params.len(), 0);
 
-        let items = route_result.router_item;
+        let items = route_result.router_items;
         assert_eq!(items.len(), 3);
 
         let header: RequestHeader = Request::builder().method(Method::GET).body(()).unwrap().into_parts().0.into();
-        let req_ctx = RequestContext::new(&header, PathParams::empty());
+        let params = PathParams::empty();
+        let req_ctx = RequestContext::new(&header, &params);
 
         assert!(items[0].filter.matches(&req_ctx));
         assert!(!items[1].filter.matches(&req_ctx));
@@ -262,11 +264,12 @@ mod tests {
 
         assert_eq!(route_result.params.len(), 0);
 
-        let items = route_result.router_item;
+        let items = route_result.router_items;
         assert_eq!(items.len(), 3);
 
         let header: RequestHeader = Request::builder().method(Method::POST).body(()).unwrap().into_parts().0.into();
-        let req_ctx = RequestContext::new(&header, PathParams::empty());
+        let params = PathParams::empty();
+        let req_ctx = RequestContext::new(&header, &params);
 
         assert!(!items[0].filter.matches(&req_ctx));
         assert!(!items[1].filter.matches(&req_ctx));
@@ -280,7 +283,7 @@ mod tests {
 
         assert_eq!(route_result.params.len(), 0);
 
-        let items = route_result.router_item;
+        let items = route_result.router_items;
         assert_eq!(items.len(), 3);
 
         let header: RequestHeader = Request::builder()
@@ -291,7 +294,8 @@ mod tests {
             .into_parts()
             .0
             .into();
-        let req_ctx = RequestContext::new(&header, PathParams::empty());
+        let params = PathParams::empty();
+        let req_ctx = RequestContext::new(&header, &params);
 
         assert!(!items[0].filter.matches(&req_ctx));
         assert!(items[1].filter.matches(&req_ctx));

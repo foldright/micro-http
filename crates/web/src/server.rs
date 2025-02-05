@@ -40,9 +40,7 @@ use micro_http::handler::Handler;
 use micro_http::protocol::body::ReqBody;
 use micro_http::protocol::RequestHeader;
 use std::error::Error;
-use std::future::Future;
 use std::net::{SocketAddr, ToSocketAddrs};
-use std::pin::Pin;
 use std::sync::Arc;
 use thiserror::Error;
 use tokio::net::TcpListener;
@@ -82,8 +80,7 @@ impl ServerBuilder {
     }
 
     pub fn build(self) -> Result<Server, ServerBuildError> {
-        let new_builder =
-            if self.default_handler.is_none() { self.default_handler(handler_fn(default_handler)) } else { self };
+        let new_builder = if self.default_handler.is_none() { self.default_handler(handler_fn(default_handler)) } else { self };
         let router = new_builder.router.ok_or(ServerBuildError::MissingRouter)?;
         let address = new_builder.address.ok_or(ServerBuildError::MissingAddress)?;
 
@@ -171,30 +168,27 @@ impl Server {
 impl Handler for Server {
     type RespBody = ResponseBody;
     type Error = Box<dyn Error + Send + Sync>;
-    type Fut<'fut> = Pin<Box<dyn Future<Output = Result<Response<Self::RespBody>, Self::Error>> + Send + 'fut>>;
 
-    fn call(&self, req: Request<ReqBody>) -> Self::Fut<'_> {
-        Box::pin(async {
-            let (parts, body) = req.into_parts();
-            let header = RequestHeader::from(parts);
-            let req_body = OptionReqBody::from(body);
+    async fn call(&self, req: Request<ReqBody>) -> Result<Response<Self::RespBody>, Self::Error> {
+        let (parts, body) = req.into_parts();
+        let header = RequestHeader::from(parts);
+        let req_body = OptionReqBody::from(body);
 
-            let path = header.uri().path();
-            let route_result = self.router.at(path);
+        let path = header.uri().path();
+        let route_result = self.router.at(path);
 
-            let mut request_context = RequestContext::new(&header, route_result.params());
+        let mut request_context = RequestContext::new(&header, route_result.params());
 
-            let handler = route_result
-                .router_items()
-                .iter()
-                .filter(|item| item.filter().matches(&request_context))
-                .map(|item| item.handler())
-                .take(1)
-                .next()
-                .unwrap_or(self.default_handler.as_ref());
+        let handler = route_result
+            .router_items()
+            .iter()
+            .filter(|item| item.filter().matches(&request_context))
+            .map(|item| item.handler())
+            .take(1)
+            .next()
+            .unwrap_or(self.default_handler.as_ref());
 
-            let response = handler.invoke(&mut request_context, req_body).await;
-            Ok(response)
-        })
+        let response = handler.invoke(&mut request_context, req_body).await;
+        Ok(response)
     }
 }

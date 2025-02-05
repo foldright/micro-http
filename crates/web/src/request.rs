@@ -15,12 +15,12 @@ use micro_http::protocol::RequestHeader;
 /// or the request data it references.
 pub struct RequestContext<'server: 'req, 'req> {
     request_header: &'req RequestHeader,
-    path_params: PathParams<'server, 'req>,
+    path_params: &'req PathParams<'server, 'req>,
 }
 
 impl<'server, 'req> RequestContext<'server, 'req> {
     /// Creates a new RequestContext with the given request header and path parameters
-    pub fn new(request_header: &'req RequestHeader, path_params: PathParams<'server, 'req>) -> Self {
+    pub fn new(request_header: &'req RequestHeader, path_params: &'req PathParams<'server, 'req>) -> Self {
         Self { request_header, path_params }
     }
 
@@ -51,7 +51,7 @@ impl<'server, 'req> RequestContext<'server, 'req> {
 
     /// Returns a reference to the path parameters extracted from the request URL
     pub fn path_params(&self) -> &PathParams {
-        &self.path_params
+        self.path_params
     }
 }
 

@@ -15,7 +15,7 @@
 //! # Examples
 //!
 //! ```
-//! use micro_web::filter::{all_filter, any_filter, get_method, header};
+//! use micro_web::router::filter::{all_filter, any_filter, get_method, header};
 //!
 //! // Create a filter that matches GET requests
 //! let get_filter = get_method();
@@ -62,7 +62,7 @@ impl<F: Fn(&RequestContext) -> bool + Send + Sync> Filter for FnFilter<F> {
 ///
 /// # Example
 /// ```
-/// use micro_web::filter::fn_filter;
+/// use micro_web::router::filter::fn_filter;
 ///
 /// let custom_filter = fn_filter(|req| {
 ///     req.uri().path().starts_with("/api")

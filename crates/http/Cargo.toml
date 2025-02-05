@@ -26,6 +26,7 @@ bytes.workspace = true
 tokio.workspace = true
 tokio-util = { version = "0.7.12", features = ["codec", "io"] }
 futures.workspace = true
+trait-variant.workspace = true
 
 thiserror.workspace = true
 

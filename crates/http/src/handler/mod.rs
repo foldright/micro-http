@@ -21,6 +21,7 @@
 //! let handler = make_handler(hello_handler);
 //! ```
 
+
 use crate::protocol::body::ReqBody;
 use http::{Request, Response};
 use http_body::Body;
@@ -37,24 +38,15 @@ use std::future::Future;
 /// * `RespBody`: The response body type that implements [`Body`]
 /// * `Error`: The error type that can be converted into a boxed error
 /// * `Fut`: The future type returned by the handler
-pub trait Handler: Send + Sync {
+#[trait_variant::make(Handler: Send)]
+pub trait LocalHandler: Sync {
     /// The type of the response body
     type RespBody: Body;
 
     /// The error type returned by the handler
     type Error: Into<Box<dyn Error + Send + Sync>>;
 
-    /// The future type returned by the handler
-    type Fut<'fut>: Future<Output = Result<Response<Self::RespBody>, Self::Error>>
-    where
-        Self: 'fut;
-
-    /// Process an HTTP request and return a future that resolves to a response
-    ///
-    /// # Arguments
-    ///
-    /// * `req` - The HTTP [`Request`] to process
-    fn call(&self, req: Request<ReqBody>) -> Self::Fut<'_>;
+    async fn call(&self, req: Request<ReqBody>) -> Result<Response<Self::RespBody>, Self::Error>;
 }
 
 /// A wrapper type for function-based handlers
@@ -75,13 +67,9 @@ where
 {
     type RespBody = RespBody;
     type Error = Err;
-    type Fut<'fut>
-        = Fut
-    where
-        Self: 'fut;
 
-    fn call(&self, req: Request<ReqBody>) -> Self::Fut<'_> {
-        (self.f)(req)
+    async fn call(&self, req: Request<ReqBody>) -> Result<Response<Self::RespBody>, Self::Error> {
+        (self.f)(req).await
     }
 }
 

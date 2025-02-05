@@ -108,9 +108,8 @@ mod server;
 
 // Public modules
 pub mod extract;
-pub mod filter;
-pub mod router;
 pub mod wrapper;
+pub mod router;
 
 // Public re-exports
 pub use body::OptionReqBody;

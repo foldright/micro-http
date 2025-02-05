@@ -5,7 +5,6 @@ use http::{Request, Response, StatusCode};
 use micro_http::{
     codec::{RequestDecoder, ResponseEncoder},
     connection::HttpConnection,
-    handler::make_handler,
     protocol::{body::ReqBody, Message, PayloadSize, ResponseHead},
 };
 use std::{
@@ -17,6 +16,7 @@ use std::{
 };
 use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
 use tokio_util::codec::{Decoder, Encoder};
+use micro_http::handler::make_handler;
 
 // Mock IO for testing
 #[derive(Clone)]

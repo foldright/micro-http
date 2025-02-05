@@ -20,15 +20,14 @@ async fn main() {
     let router = Router::builder()
         .route("/", get(handler_fn(empty_body)))
         .route("/user", post(handler_fn(empty_body)))
-        // POST route for JSON data with content-type filter
         .route("/user/{id}", get(handler_fn(echo_uid)))
-        // Add response encoding wrapper
+        .route("/{*p}", get(handler_fn(default_handler)))
         .build();
 
     // Configure and start the server
     Server::builder()
         .router(router)
-        .bind("127.0.0.1:8080")
+        .bind("127.0.0.1:3000")
         .default_handler(handler_fn(default_handler))
         .build()
         .unwrap()
