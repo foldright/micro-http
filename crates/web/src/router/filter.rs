@@ -76,11 +76,13 @@ where
 }
 
 /// Creates a filter that always returns true.
+#[inline(always)]
 pub fn true_filter() -> TrueFilter {
     TrueFilter
 }
 
 /// Creates a filter that always returns false.
+#[inline(always)]
 pub fn false_filter() -> FalseFilter {
     FalseFilter
 }
@@ -88,7 +90,7 @@ pub fn false_filter() -> FalseFilter {
 /// A filter that always returns true.
 pub struct TrueFilter;
 impl Filter for TrueFilter {
-    #[inline]
+    #[inline(always)]
     fn matches(&self, _req: &RequestContext) -> bool {
         true
     }
@@ -97,7 +99,7 @@ impl Filter for TrueFilter {
 /// A filter that always returns false.
 pub struct FalseFilter;
 impl Filter for FalseFilter {
-    #[inline]
+    #[inline(always)]
     fn matches(&self, _req: &RequestContext) -> bool {
         false
     }
