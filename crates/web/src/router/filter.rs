@@ -39,7 +39,7 @@ use http::{HeaderName, HeaderValue, Method};
 ///
 ///
 /// The `Filter` trait requires `Send + Sync`, ensuring that filters
-/// can be safely used in a multi-threaded environment.
+/// can be safely used in a multithreaded environment.
 pub trait Filter: Send + Sync {
     /// Check if the request matches this filter's criteria.
     ///
@@ -62,13 +62,13 @@ impl<F: Fn(&RequestContext) -> bool + Send + Sync> Filter for FnFilter<F> {
 ///
 /// # Example
 /// ```
-/// use micro_web::router::filter::fn_filter;
+/// use micro_web::router::filter::filter_fn;
 ///
-/// let custom_filter = fn_filter(|req| {
+/// let custom_filter = filter_fn(|req| {
 ///     req.uri().path().starts_with("/api")
 /// });
 /// ```
-pub fn fn_filter<F>(f: F) -> impl Filter
+pub fn filter_fn<F>(f: F) -> impl Filter
 where
     F: Fn(&RequestContext) -> bool + Send + Sync,
 {
