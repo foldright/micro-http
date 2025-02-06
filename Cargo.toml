@@ -30,7 +30,9 @@ async-trait = "0.1.83"
 futures = "0.3.31"
 bytes = "1.8.0"
 pin-project-lite = "0.2.15"
-trait-variant = "0.1.2"
+
+dynosaur = "0.1"
+trait-variant = "0.1"
 
 hlist2 = "0.0.15"
 

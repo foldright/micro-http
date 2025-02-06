@@ -4,8 +4,8 @@ use std::convert::Infallible;
 use http::{Response, StatusCode};
 use micro_http::protocol::ParseError;
 
-#[trait_variant::make(FromRequest2: Send)]
-pub trait LocalFromRequest2 {
+#[trait_variant::make(Send)]
+pub trait FromRequest {
     type Output<'r>: Send;
     type Error: Responder + Send;
 
@@ -16,7 +16,7 @@ pub trait LocalFromRequest2 {
     ) -> Result<Self::Output<'r>, Self::Error>;
 }
 
-impl<T: FromRequest2> FromRequest2 for Option<T> {
+impl<T: FromRequest> FromRequest for Option<T> {
     type Output<'r> = Option<T::Output<'r>>;
     type Error = T::Error;
 
@@ -28,7 +28,7 @@ impl<T: FromRequest2> FromRequest2 for Option<T> {
     }
 }
 
-impl<T: FromRequest2> FromRequest2 for Result<T, T::Error> {
+impl<T: FromRequest> FromRequest for Result<T, T::Error> {
     type Output<'r> = Result<T::Output<'r>, T::Error>;
     type Error = T::Error;
 
@@ -37,7 +37,7 @@ impl<T: FromRequest2> FromRequest2 for Result<T, T::Error> {
     }
 }
 
-impl FromRequest2 for () {
+impl FromRequest for () {
     type Output<'r> = ();
     type Error = Infallible;
 

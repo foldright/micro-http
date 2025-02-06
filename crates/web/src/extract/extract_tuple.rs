@@ -2,14 +2,14 @@ use crate::body::OptionReqBody;
 use crate::responder::Responder;
 use crate::{RequestContext, ResponseBody};
 use http::Response;
-use crate::extract::from_request::FromRequest2;
+use crate::extract::from_request::FromRequest;
 
 
-macro_rules! impl_from_request_2_for_fn {
+macro_rules! impl_from_request_for_fn {
     ($either:ident, $($param:ident)*) => {
-        impl<$($param,)*> FromRequest2 for ($($param,)*)
+        impl<$($param,)*> FromRequest for ($($param,)*)
         where
-            $($param: FromRequest2,)*
+            $($param: FromRequest,)*
             $(for <'any> $param::Output<'any>: Send,)*
         {
             type Output<'r> = ($($param::Output<'r>,)*);
@@ -55,16 +55,16 @@ macro_rules! impl_from_request_2_for_fn {
     }
 }
 
-impl_from_request_2_for_fn! { EitherA2, A }
-impl_from_request_2_for_fn! { EitherAB2, A B}
-impl_from_request_2_for_fn! { EitherABC2, A B C}
-impl_from_request_2_for_fn! { EitherABCD2, A B C D }
-impl_from_request_2_for_fn! { EitherABCDE2, A B C D E }
-impl_from_request_2_for_fn! { EitherABCDEF2, A B C D E F }
-impl_from_request_2_for_fn! { EitherABCDEFG2, A B C D E F G }
-impl_from_request_2_for_fn! { EitherABCDEFGH2, A B C D E F G H }
-impl_from_request_2_for_fn! { EitherABCDEFGHI2, A B C D E F G H I }
-impl_from_request_2_for_fn! { EitherABCDEFGHIJ2, A B C D E F G H I J }
-impl_from_request_2_for_fn! { EitherABCDEFGHIJK2, A B C D E F G H I J K }
-impl_from_request_2_for_fn! { EitherABCDEFGHIJKL2, A B C D E F G H I J K L }
+impl_from_request_for_fn! { EitherA, A }
+impl_from_request_for_fn! { EitherAB, A B}
+impl_from_request_for_fn! { EitherABC, A B C}
+impl_from_request_for_fn! { EitherABCD, A B C D }
+impl_from_request_for_fn! { EitherABCDE, A B C D E }
+impl_from_request_for_fn! { EitherABCDEF, A B C D E F }
+impl_from_request_for_fn! { EitherABCDEFG, A B C D E F G }
+impl_from_request_for_fn! { EitherABCDEFGH, A B C D E F G H }
+impl_from_request_for_fn! { EitherABCDEFGHI, A B C D E F G H I }
+impl_from_request_for_fn! { EitherABCDEFGHIJ, A B C D E F G H I J }
+impl_from_request_for_fn! { EitherABCDEFGHIJK, A B C D E F G H I J K }
+impl_from_request_for_fn! { EitherABCDEFGHIJKL, A B C D E F G H I J K L }
 

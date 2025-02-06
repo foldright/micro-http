@@ -14,7 +14,7 @@ use async_trait::async_trait;
 use http::Response;
 
 use std::marker::PhantomData;
-use crate::extract::FromRequest2;
+use crate::extract::FromRequest;
 
 /// Trait for types that can handle HTTP requests.
 ///
@@ -102,7 +102,7 @@ impl<F, Args> RequestHandler for FnHandler<F, Args>
 where
     // Args must implement [`FromRequest`] trait
     // This allows extracting the function arguments from the HTTP request
-    Args: FromRequest2,
+    Args: FromRequest,
     // F must be a function [`FnTrait`] that can accept Args::Output<'r> for any lifetime 'r
     // This allows the function to work with arguments that have different lifetimes
     for<'r> F: FnTrait<Args::Output<'r>>,

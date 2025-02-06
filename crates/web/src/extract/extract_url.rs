@@ -24,13 +24,13 @@ use crate::extract::Query;
 use crate::{OptionReqBody, PathParams, RequestContext};
 use micro_http::protocol::ParseError;
 use serde::Deserialize;
-use crate::extract::from_request::FromRequest2;
+use crate::extract::from_request::FromRequest;
 
 /// Implements query string extraction for any type that implements Deserialize
 ///
 /// This implementation allows automatic deserialization of query string parameters
 /// into a strongly-typed struct using serde_qs.
-impl<T> FromRequest2 for Query<T>
+impl<T> FromRequest for Query<T>
 where
     T: for<'de> Deserialize<'de> + Send,
 {
@@ -48,7 +48,7 @@ where
 /// This implementation is similar to the owned version but works with references
 /// to PathParams. It allows handlers to receive path parameters as references
 /// directly from the request context.
-impl FromRequest2 for &PathParams<'_, '_> {
+impl FromRequest for &PathParams<'_, '_> {
     type Output<'r> = &'r PathParams<'r, 'r>;
     type Error = ParseError;
 

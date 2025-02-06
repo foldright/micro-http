@@ -34,12 +34,12 @@ use crate::body::OptionReqBody;
 use crate::RequestContext;
 use http::{HeaderMap, Method};
 use micro_http::protocol::{ParseError, RequestHeader};
-use crate::extract::from_request::FromRequest2;
+use crate::extract::from_request::FromRequest;
 
 /// Extracts the HTTP method by value
 ///
 /// This extractor takes ownership of the request method.
-impl FromRequest2 for Method {
+impl FromRequest for Method {
     type Output<'any> = Method;
     type Error = ParseError;
 
@@ -51,7 +51,7 @@ impl FromRequest2 for Method {
 /// Extracts a reference to the HTTP method
 ///
 /// This extractor borrows the request method, avoiding cloning.
-impl FromRequest2 for &Method {
+impl FromRequest for &Method {
     type Output<'r> = &'r Method;
     type Error = ParseError;
 
@@ -63,7 +63,7 @@ impl FromRequest2 for &Method {
 /// Extracts a reference to the raw request header
 ///
 /// Provides access to the underlying HTTP request header structure.
-impl FromRequest2 for &RequestHeader {
+impl FromRequest for &RequestHeader {
     type Output<'r> = &'r RequestHeader;
     type Error = ParseError;
 
@@ -75,7 +75,7 @@ impl FromRequest2 for &RequestHeader {
 /// Extracts a reference to the header map
 ///
 /// This extractor provides borrowed access to all HTTP headers.
-impl FromRequest2 for &HeaderMap {
+impl FromRequest for &HeaderMap {
     type Output<'r> = &'r HeaderMap;
     type Error = ParseError;
 
@@ -87,7 +87,7 @@ impl FromRequest2 for &HeaderMap {
 /// Extracts the header map by value
 ///
 /// This extractor clones and takes ownership of all HTTP headers.
-impl FromRequest2 for HeaderMap {
+impl FromRequest for HeaderMap {
     type Output<'any> = HeaderMap;
     type Error = ParseError;
 

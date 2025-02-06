@@ -42,6 +42,7 @@ tokio = { workspace = true, features = ["time"] }
 futures.workspace = true
 async-trait.workspace = true
 trait-variant.workspace = true
+dynosaur.workspace = true
 arc-swap.workspace = true
 
 matchit.workspace = true

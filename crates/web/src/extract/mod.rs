@@ -115,7 +115,7 @@ mod extract_body;
 mod extract_header;
 mod extract_url;
 
-pub use from_request::FromRequest2;
+pub use from_request::FromRequest;
 use serde::Deserialize;
 
 /// Represented as form data
