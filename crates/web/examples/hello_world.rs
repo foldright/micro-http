@@ -28,7 +28,7 @@ async fn main() {
         // handler_fn converts our async function into a handler
         .route("/", get(handler_fn(hello_world)))
         // Add middleware that will add date headers to responses
-        .with_decorator(DateServiceDecorator)
+        .with_global_decorator(DateServiceDecorator)
         .build();
 
     // Configure and start the server

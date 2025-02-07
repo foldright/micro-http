@@ -3,7 +3,7 @@ pub mod filter;
 use crate::handler::RequestHandler;
 use crate::PathParams;
 
-use crate::decorator::{Decorator, DecoratorComposer, IdentityDecorator};
+use crate::decorator::{Decorator, DecoratorComposer, DecoratorExt, IdentityDecorator};
 use filter::{AllFilter, Filter};
 use std::collections::HashMap;
 use tracing::error;
@@ -100,9 +100,12 @@ impl<D> RouterBuilder<D> {
         self
     }
 
-    // TODO: maybe we can decorator with specify handler and, this will become global decorator
-    pub fn with_decorator<D2>(self, decorator: D2) -> RouterBuilder<DecoratorComposer<D, D2>> {
-        RouterBuilder { data: self.data, decorator: DecoratorComposer::new(self.decorator, decorator) }
+    pub fn with_global_decorator<D2>(self, decorator: D2) -> RouterBuilder<DecoratorComposer<D, D2>>
+    where
+        D: Decorator<Box<dyn RequestHandler>>,
+        D2: Decorator<D::Out>,
+    {
+        RouterBuilder { data: self.data, decorator: self.decorator.and_then(decorator) }
     }
 
     /// Builds the router from the accumulated routes and wrappers

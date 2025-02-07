@@ -119,7 +119,7 @@ async fn main() {
         // Additional GET route
         .route("/4", get(handler_fn(simple_another_get)))
         // Add response encoding wrapper
-        .with_decorator(EncodeDecorator)
+        .with_global_decorator(EncodeDecorator)
         .build();
 
     // Configure and start the server

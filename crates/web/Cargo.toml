@@ -46,6 +46,8 @@ trait-variant.workspace = true
 dynosaur.workspace = true
 arc-swap.workspace = true
 
+higher-kinded-types.workspace = true
+
 matchit.workspace = true
 
 thiserror.workspace = true

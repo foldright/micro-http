@@ -50,6 +50,8 @@ thiserror = "2"
 
 arc-swap = "1.7.1"
 
+higher-kinded-types = "0.1"
+
 matchit = "0.8.5"
 
 mockall = "0.13.1"
