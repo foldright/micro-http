@@ -12,16 +12,16 @@
 
 use crate::date::DateService;
 use crate::handler::RequestHandler;
-use crate::wrapper::Wrapper;
 use crate::{OptionReqBody, RequestContext, ResponseBody};
 use async_trait::async_trait;
 use http::{HeaderValue, Response};
+use crate::decorator::Decorator;
 
 /// A wrapper that adds automatic date header handling to responses.
 ///
 /// This wrapper creates a `DateResponseHandler` that will add an RFC 7231 compliant
 /// Date header to all HTTP responses.
-pub struct DateWrapper;
+pub struct DateServiceDecorator;
 
 /// A request handler that adds the Date header to responses.
 ///
@@ -34,11 +34,11 @@ pub struct DateResponseHandler<H: RequestHandler> {
     date_service: DateService,
 }
 
-impl<H: RequestHandler> Wrapper<H> for DateWrapper {
+impl<H: RequestHandler> Decorator<H> for DateServiceDecorator {
     type Out = DateResponseHandler<H>;
 
-    fn wrap(&self, handler: H) -> Self::Out {
-        DateResponseHandler { handler, date_service: DateService::new() }
+    fn decorate(&self, raw: H) -> Self::Out {
+        DateResponseHandler { handler: raw, date_service: DateService::new() }
     }
 }
 

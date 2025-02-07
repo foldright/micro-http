@@ -35,6 +35,7 @@ tracing-subscriber.workspace = true
 bytes.workspace = true
 
 hlist2.workspace = true
+tower-layer.workspace = true
 
 pin-project-lite.workspace = true
 

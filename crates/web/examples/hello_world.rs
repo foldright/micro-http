@@ -5,8 +5,8 @@
 //! - How to configure and start a server
 
 use micro_web::router::{get, Router};
-use micro_web::wrapper::DateWrapper;
 use micro_web::{handler_fn, Server};
+use micro_web::date::DateServiceDecorator;
 
 /// A simple handler that returns "hello world"
 async fn hello_world() -> &'static str {
@@ -28,7 +28,7 @@ async fn main() {
         // handler_fn converts our async function into a handler
         .route("/", get(handler_fn(hello_world)))
         // Add middleware that will add date headers to responses
-        .wrap(DateWrapper)
+        .with_decorator(DateServiceDecorator)
         .build();
 
     // Configure and start the server

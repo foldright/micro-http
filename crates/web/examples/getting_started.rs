@@ -16,7 +16,7 @@ use http::Method;
 use micro_web::extract::{Form, Json};
 use micro_web::router::filter::header;
 use micro_web::router::{get, post, Router};
-use micro_web::wrapper::EncodeWrapper;
+use micro_web::encoding::encoder::EncodeDecorator;
 use micro_web::{handler_fn, Server};
 use serde::Deserialize;
 
@@ -119,7 +119,7 @@ async fn main() {
         // Additional GET route
         .route("/4", get(handler_fn(simple_another_get)))
         // Add response encoding wrapper
-        .wrap(EncodeWrapper)
+        .with_decorator(EncodeDecorator)
         .build();
 
     // Configure and start the server

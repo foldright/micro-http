@@ -9,6 +9,10 @@ use httpdate::fmt_http_date;
 use std::sync::Arc;
 use std::time::{Duration, SystemTime};
 
+mod date_service_decorator;
+
+pub use date_service_decorator::DateServiceDecorator;
+
 /// A service that maintains and periodically updates the current HTTP date string.
 ///
 /// This service runs a background task that updates the date string every 700ms,

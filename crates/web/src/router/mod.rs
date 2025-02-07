@@ -1,32 +1,13 @@
-//! Router module for HTTP request routing and handling.
-//!
-//! This module provides functionality for routing HTTP requests to appropriate handlers based on paths and filters.
-//! It supports method-based routing, path parameters, and middleware-style wrappers.
-//!
-//! # Examples
-//!
-//! ```no_run
-//! use micro_web::router::{get, Router};
-//! use micro_web::handler_fn;
-//! async fn hello() -> &'static str {
-//!     "Hello, World!"
-//! }
-//!
-//! let router = Router::builder()
-//!     .route("/hello", get(handler_fn(hello)))
-//!     .build();
-//! ```
+pub mod filter;
 
 use crate::handler::RequestHandler;
 use crate::PathParams;
 
+use crate::decorator::{Decorator, DecoratorComposer, IdentityDecorator};
+use filter::{AllFilter, Filter};
 use std::collections::HashMap;
-
-use crate::wrapper::{IdentityWrapper, IdentityWrappers, Wrapper, Wrappers};
 use tracing::error;
-use crate::router::filter::{AllFilter, Filter};
 
-pub mod filter;
 type RouterFilter = dyn Filter + Send + Sync + 'static;
 type InnerRouter<T> = matchit::Router<T>;
 
@@ -49,7 +30,7 @@ pub struct RouteResult<'router, 'req> {
 
 impl Router {
     /// Creates a new router builder with default wrappers
-    pub fn builder() -> RouterBuilder<IdentityWrapper, IdentityWrapper> {
+    pub fn builder() -> RouterBuilder<IdentityDecorator> {
         RouterBuilder::new()
     }
 
@@ -102,55 +83,34 @@ impl<'router, 'req> RouteResult<'router, 'req> {
     }
 }
 
-/// Builder for constructing a router with routes and wrappers
-pub struct RouterBuilder<HeadW, TailW>
-where
-    HeadW: Wrapper<Box<dyn RequestHandler>> + 'static,
-    TailW: Wrapper<HeadW::Out> + 'static,
-    TailW::Out: RequestHandler,
-{
+pub struct RouterBuilder<D> {
     data: HashMap<String, Vec<RouterItemBuilder>>,
-    wrappers: Wrappers<HeadW, TailW, Box<dyn RequestHandler>>,
+    decorator: D,
 }
 
-impl RouterBuilder<IdentityWrapper, IdentityWrapper> {
+impl RouterBuilder<IdentityDecorator> {
     fn new() -> Self {
-        Self { data: HashMap::new(), wrappers: IdentityWrappers::default() }
+        Self { data: HashMap::new(), decorator: IdentityDecorator }
     }
 }
-impl<HeadW, TailW> RouterBuilder<HeadW, TailW>
-where
-    HeadW: Wrapper<Box<dyn RequestHandler>> + 'static,
-    TailW: Wrapper<HeadW::Out> + 'static,
-    TailW::Out: RequestHandler,
-{
-    /// Adds a route to the router builder
-    ///
-    /// # Arguments
-    /// * `route` - The path pattern to match
-    /// * `item_builder` - The router item builder containing filters and handler
+impl<D> RouterBuilder<D> {
     pub fn route(mut self, route: impl Into<String>, item_builder: RouterItemBuilder) -> Self {
         let vec = self.data.entry(route.into()).or_default();
         vec.push(item_builder);
         self
     }
 
-    /// Adds a wrapper to the router builder
-    ///
-    /// Wrappers can modify or enhance the behavior of handlers
-    pub fn wrap<NewW>(
-        self,
-        handler_wrapper: NewW,
-    ) -> RouterBuilder<Wrappers<HeadW, TailW, Box<dyn RequestHandler>>, NewW>
-    where
-        NewW: Wrapper<TailW::Out>,
-        NewW::Out: RequestHandler,
-    {
-        RouterBuilder { data: self.data, wrappers: self.wrappers.and_then(handler_wrapper) }
+    // TODO: maybe we can decorator with specify handler and, this will become global decorator
+    pub fn with_decorator<D2>(self, decorator: D2) -> RouterBuilder<DecoratorComposer<D, D2>> {
+        RouterBuilder { data: self.data, decorator: DecoratorComposer::new(self.decorator, decorator) }
     }
 
     /// Builds the router from the accumulated routes and wrappers
-    pub fn build(self) -> Router {
+    pub fn build(self) -> Router
+    where
+        D: Decorator<Box<dyn RequestHandler>>,
+        <D as Decorator<Box<dyn RequestHandler>>>::Out: RequestHandler + 'static,
+    {
         let mut inner_router = InnerRouter::new();
 
         for (path, items) in self.data.into_iter() {
@@ -158,7 +118,7 @@ where
                 .into_iter()
                 .map(|item_builder| item_builder.build())
                 .map(|item| {
-                    let handler = self.wrappers.wrap(item.handler);
+                    let handler = self.decorator.decorate(item.handler);
                     RouterItem { handler: Box::new(handler), ..item }
                 })
                 .collect::<Vec<_>>();
@@ -209,8 +169,8 @@ impl RouterItemBuilder {
 
 #[cfg(test)]
 mod tests {
-    use crate::router::filter::header;
-    use crate::router::{get, post, Router};
+    use super::filter::header;
+    use super::{get, post, Router};
     use crate::{handler_fn, PathParams, RequestContext};
     use http::{HeaderValue, Method, Request};
     use micro_http::protocol::RequestHeader;

@@ -1,6 +1,6 @@
+use crate::decorator::Decorator;
+use crate::encoding::Writer;
 use crate::handler::RequestHandler;
-use crate::wrapper::encoding::Writer;
-use crate::wrapper::Wrapper;
 use crate::{OptionReqBody, RequestContext, ResponseBody};
 use async_trait::async_trait;
 use bytes::{Buf, Bytes};
@@ -18,7 +18,6 @@ use std::pin::Pin;
 use std::task::{ready, Context, Poll};
 use tracing::{error, trace};
 use zstd::stream::write::Encoder as ZstdEncoder;
-
 // (almost thanks and) copy from actix-http: https://github.com/actix/actix-web/blob/master/actix-http/src/encoding/encoder.rs
 
 /// Represents different types of content encoding.
@@ -199,11 +198,9 @@ where
                         Err(mut frame) => {
                             let debug_info = frame.trailers_mut();
                             error!("want to data from body, but receive trailer header: {:?}", debug_info);
-                            return Poll::Ready(Some(Err(SendError::invalid_body(format!(
-                                "invalid body frame : {:?}",
-                                debug_info
-                            ))
-                            .into())));
+                            return Poll::Ready(Some(
+                                Err(SendError::invalid_body(format!("invalid body frame : {:?}", debug_info)).into()),
+                            ));
                         }
                     };
 
@@ -257,23 +254,19 @@ pub struct EncodeRequestHandler<H: RequestHandler> {
 }
 
 /// A wrapper that creates `EncodeRequestHandler`.
-pub struct EncodeWrapper;
+pub struct EncodeDecorator;
 
-impl<H: RequestHandler> Wrapper<H> for EncodeWrapper {
+impl<H: RequestHandler> Decorator<H> for EncodeDecorator {
     type Out = EncodeRequestHandler<H>;
 
-    fn wrap(&self, handler: H) -> Self::Out {
-        EncodeRequestHandler { handler }
+    fn decorate(&self, raw: H) -> Self::Out {
+        EncodeRequestHandler { handler: raw }
     }
 }
 
 #[async_trait]
 impl<H: RequestHandler> RequestHandler for EncodeRequestHandler<H> {
-    async fn invoke<'server, 'req>(
-        &self,
-        req: &mut RequestContext<'server, 'req>,
-        req_body: OptionReqBody,
-    ) -> Response<ResponseBody> {
+    async fn invoke<'server, 'req>(&self, req: &mut RequestContext<'server, 'req>, req_body: OptionReqBody) -> Response<ResponseBody> {
         let mut resp = self.handler.invoke(req, req_body).await;
         encode(req, &mut resp);
         resp

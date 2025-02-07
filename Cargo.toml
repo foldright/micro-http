@@ -35,6 +35,7 @@ dynosaur = "0.1"
 trait-variant = "0.1"
 
 hlist2 = "0.0.15"
+tower-layer = "0.3"
 
 serde = { version = "1.0.215", features = ["derive"] }
 serde_urlencoded = "0.7.1"
