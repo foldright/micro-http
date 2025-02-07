@@ -40,20 +40,16 @@ use std::sync::Arc;
 
 use tokio::net::TcpListener;
 
-use tracing::{error, info, warn, Level};
-use tracing_subscriber::FmtSubscriber;
 use micro_http::connection::HttpConnection;
 use micro_http::handler::make_handler;
 use micro_http::protocol::body::ReqBody;
+use tracing::{error, info, warn, Level};
+use tracing_subscriber::FmtSubscriber;
 
 #[tokio::main]
 async fn main() {
-    // Initialize logging
-    let subscriber = FmtSubscriber::builder()
-        .with_max_level(Level::INFO)
-        .finish();
-    tracing::subscriber::set_global_default(subscriber)
-        .expect("setting default subscriber failed");
+    let subscriber = FmtSubscriber::builder().with_max_level(Level::INFO).finish();
+    tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
 
     info!(port = 8080, "start listening");
     let tcp_listener = match TcpListener::bind("127.0.0.1:8080").await {
@@ -77,6 +73,7 @@ async fn main() {
 
         let handler = handler.clone();
 
+        // one connection per task
         tokio::spawn(async move {
             let (reader, writer) = tcp_stream.into_split();
             let connection = HttpConnection::new(reader, writer);
@@ -110,6 +107,7 @@ async fn simple_handler(request: Request<ReqBody>) -> Result<Response<String>, B
 
     Ok(response)
 }
+
 ```
 
 ## Architecture
