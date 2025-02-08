@@ -24,7 +24,7 @@ tracing-subscriber.workspace = true
 
 bytes.workspace = true
 tokio.workspace = true
-tokio-util = { version = "0.7.12", features = ["codec", "io"] }
+tokio-util = { version = "0.7.13", features = ["codec", "io", "tracing"] }
 futures.workspace = true
 trait-variant.workspace = true
 
@@ -33,6 +33,7 @@ thiserror.workspace = true
 [dev-dependencies]
 indoc = "2.0.5"
 criterion = { workspace = true, features = ["async_tokio", "html_reports"] }
+
 
 [[bench]]
 name = "http_bench"

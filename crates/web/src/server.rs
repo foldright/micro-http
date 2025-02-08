@@ -125,7 +125,7 @@ impl Server {
     }
 
     pub async fn start(self) {
-        let subscriber = FmtSubscriber::builder().with_max_level(Level::INFO).finish();
+        let subscriber = FmtSubscriber::builder().with_max_level(Level::WARN).finish();
         tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
 
         info!("start listening at {:?}", self.address);

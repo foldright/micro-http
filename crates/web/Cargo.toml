@@ -39,7 +39,7 @@ tower-layer.workspace = true
 
 pin-project-lite.workspace = true
 
-tokio = { workspace = true, features = ["time"] }
+tokio = { workspace = true}
 futures.workspace = true
 async-trait.workspace = true
 trait-variant.workspace = true

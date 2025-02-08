@@ -8,6 +8,7 @@ use arc_swap::ArcSwap;
 use httpdate::fmt_http_date;
 use std::sync::Arc;
 use std::time::{Duration, SystemTime};
+use http::HeaderValue;
 
 mod date_service_decorator;
 
@@ -19,7 +20,7 @@ pub use date_service_decorator::DateServiceDecorator;
 /// providing an efficient way to access formatted HTTP date strings without
 /// formatting them on every request.
 pub struct DateService {
-    current: Arc<ArcSwap<(SystemTime, String)>>,
+    current: Arc<ArcSwap<(SystemTime, HeaderValue)>>,
     handle: tokio::task::JoinHandle<()>,
 }
 
@@ -34,8 +35,9 @@ impl DateService {
     pub(crate) fn new() -> Self {
         let system_time = SystemTime::now();
         let http_date = fmt_http_date(system_time);
+        let date_value = HeaderValue::try_from(http_date).expect("http_date should not fail");
 
-        let current = Arc::new(ArcSwap::new(Arc::new((system_time, http_date))));
+        let current = Arc::new(ArcSwap::from_pointee((system_time, date_value)));
         let current_arc = Arc::clone(&current);
 
         let handle = tokio::spawn(async move {
@@ -43,7 +45,8 @@ impl DateService {
                 tokio::time::sleep(Duration::from_millis(700)).await;
                 let system_time = SystemTime::now();
                 let http_date = fmt_http_date(system_time);
-                current_arc.store(Arc::new((system_time, http_date)));
+                let date_value = HeaderValue::try_from(http_date).expect("http_date should not fail");
+                current_arc.store(Arc::new((system_time, date_value)));
             }
         });
 
@@ -56,7 +59,7 @@ impl DateService {
     /// the internal synchronization mechanisms.
     pub(crate) fn with_http_date<F>(&self, mut f: F)
     where
-        F: FnMut(&str),
+        F: FnMut(&HeaderValue),
     {
         let date = &self.current.load().1;
         f(date)

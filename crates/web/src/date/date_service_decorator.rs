@@ -51,8 +51,8 @@ impl<H: RequestHandler> RequestHandler for DateResponseHandler<H> {
     ) -> Response<ResponseBody> {
         let mut resp = self.handler.invoke(req, req_body).await;
 
-        self.date_service.with_http_date(|date_str| {
-            resp.headers_mut().insert(http::header::DATE, HeaderValue::try_from(date_str).unwrap());
+        self.date_service.with_http_date(|date_header_value| {
+            resp.headers_mut().insert(http::header::DATE, HeaderValue::from(date_header_value));
         });
 
         resp
