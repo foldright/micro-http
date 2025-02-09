@@ -128,12 +128,7 @@ impl ChunkedState {
     ///
     /// # Returns
     /// The next state in the decoding process or an error if invalid encoding is detected
-    fn step(
-        &self,
-        src: &mut BytesMut,
-        remaining_size: &mut u64,
-        buf: &mut Option<Bytes>,
-    ) -> Poll<Result<ChunkedState, io::Error>> {
+    fn step(&self, src: &mut BytesMut, remaining_size: &mut u64, buf: &mut Option<Bytes>) -> Poll<Result<ChunkedState, io::Error>> {
         match self {
             Size => ChunkedState::read_size(src, remaining_size),
             SizeLws => ChunkedState::read_size_lws(src),
@@ -166,12 +161,7 @@ impl ChunkedState {
             ($e:expr) => {
                 match $e {
                     Some(val) => val,
-                    None => {
-                        return Poll::Ready(Err(io::Error::new(
-                            ErrorKind::InvalidInput,
-                            "invalid overflow chunked length",
-                        )))
-                    }
+                    None => return Poll::Ready(Err(io::Error::new(ErrorKind::InvalidInput, "invalid overflow chunked length"))),
                 }
             };
         }
@@ -195,12 +185,7 @@ impl ChunkedState {
             b';' => return Poll::Ready(Ok(Extension)),
             b'\r' => return Poll::Ready(Ok(SizeLf)),
 
-            _ => {
-                return Poll::Ready(Err(io::Error::new(
-                    ErrorKind::InvalidInput,
-                    "invalid chunk size line: Invalid Size",
-                )))
-            }
+            _ => return Poll::Ready(Err(io::Error::new(ErrorKind::InvalidInput, "invalid chunk size line: Invalid Size"))),
         }
 
         Poll::Ready(Ok(Size))
@@ -251,9 +236,7 @@ impl ChunkedState {
         // well.
         match try_next_byte!(src) {
             b'\r' => Poll::Ready(Ok(SizeLf)),
-            b'\n' => {
-                Poll::Ready(Err(io::Error::new(ErrorKind::InvalidInput, "invalid chunk extension contains newline")))
-            }
+            b'\n' => Poll::Ready(Err(io::Error::new(ErrorKind::InvalidInput, "invalid chunk extension contains newline"))),
             _ => Poll::Ready(Ok(Extension)), // no supported extensions
         }
     }
@@ -295,11 +278,7 @@ impl ChunkedState {
     /// - On size = 0: Move to BodyCr state
     /// - After reading data with remaining size > 0: Stay in Body state
     /// - After reading data with remaining size = 0: Move to BodyCr state
-    fn read_body(
-        src: &mut BytesMut,
-        size_per_chunk: &mut u64,
-        buf: &mut Option<Bytes>,
-    ) -> Poll<Result<ChunkedState, io::Error>> {
+    fn read_body(src: &mut BytesMut, size_per_chunk: &mut u64, buf: &mut Option<Bytes>) -> Poll<Result<ChunkedState, io::Error>> {
         if src.is_empty() {
             return Poll::Ready(Ok(Body));
         }

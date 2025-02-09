@@ -105,10 +105,8 @@ impl From<Request<()>> for RequestHeader {
 /// - Headers
 impl<'headers, 'buf> From<httparse::Request<'headers, 'buf>> for RequestHeader {
     fn from(req: httparse::Request<'headers, 'buf>) -> Self {
-        let mut builder = Request::builder()
-            .method(req.method.unwrap())
-            .uri(req.path.unwrap())
-            .version(U8Wrapper(req.version.unwrap()).into());
+        let mut builder =
+            Request::builder().method(req.method.unwrap()).uri(req.path.unwrap()).version(U8Wrapper(req.version.unwrap()).into());
 
         builder.headers_mut().unwrap().reserve(req.headers.len());
         for header in req.headers.iter() {
@@ -172,10 +170,7 @@ mod tests {
 
         assert_eq!(header.headers().get(http::header::HOST), Some(&HeaderValue::from_str("127.0.0.1:8080").unwrap()));
 
-        assert_eq!(
-            header.headers().get(http::header::USER_AGENT),
-            Some(&HeaderValue::from_str("curl/7.79.1").unwrap())
-        );
+        assert_eq!(header.headers().get(http::header::USER_AGENT), Some(&HeaderValue::from_str("curl/7.79.1").unwrap()));
     }
 
     #[test]
@@ -219,27 +214,18 @@ mod tests {
         // TODO maybe we can using macro to reduce code
         assert_eq!(header.headers().get(http::header::CONNECTION), Some(&HeaderValue::from_str("keep-alive").unwrap()));
 
-        assert_eq!(
-            header.headers().get(http::header::CACHE_CONTROL),
-            Some(&HeaderValue::from_str("max-age=0").unwrap())
-        );
+        assert_eq!(header.headers().get(http::header::CACHE_CONTROL), Some(&HeaderValue::from_str("max-age=0").unwrap()));
 
         assert_eq!(
             header.headers().get("sec-ch-ua"),
-            Some(
-                &HeaderValue::from_str(r##""#Not_A Brand";v="99", "Microsoft Edge";v="109", "Chromium";v="109""##)
-                    .unwrap()
-            )
+            Some(&HeaderValue::from_str(r##""#Not_A Brand";v="99", "Microsoft Edge";v="109", "Chromium";v="109""##).unwrap())
         );
 
         assert_eq!(header.headers().get("sec-ch-ua-mobile"), Some(&HeaderValue::from_str("?0").unwrap()));
 
         assert_eq!(header.headers().get("sec-ch-ua-platform"), Some(&HeaderValue::from_str("\"macOS\"").unwrap()));
 
-        assert_eq!(
-            header.headers().get(http::header::UPGRADE_INSECURE_REQUESTS),
-            Some(&HeaderValue::from_str("1").unwrap())
-        );
+        assert_eq!(header.headers().get(http::header::UPGRADE_INSECURE_REQUESTS), Some(&HeaderValue::from_str("1").unwrap()));
 
         assert_eq!(header.headers().get(http::header::USER_AGENT),
                    Some(&HeaderValue::from_str("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36 Edg/109.0.1518.52").unwrap()));
@@ -252,10 +238,7 @@ mod tests {
 
         assert_eq!(header.headers().get("Sec-Fetch-Dest"), Some(&HeaderValue::from_str("document").unwrap()));
 
-        assert_eq!(
-            header.headers().get(http::header::ACCEPT_ENCODING),
-            Some(&HeaderValue::from_str("gzip, deflate, br").unwrap())
-        );
+        assert_eq!(header.headers().get(http::header::ACCEPT_ENCODING), Some(&HeaderValue::from_str("gzip, deflate, br").unwrap()));
 
         assert_eq!(
             header.headers().get(http::header::ACCEPT_LANGUAGE),

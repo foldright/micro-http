@@ -56,12 +56,7 @@ impl Encoder<(ResponseHead, PayloadSize)> for HeaderEncoder {
         dst.reserve(INIT_HEADER_SIZE);
         match header.version() {
             Version::HTTP_11 => {
-                write!(
-                    FastWrite(dst),
-                    "HTTP/1.1 {} {}\r\n",
-                    header.status().as_str(),
-                    header.status().canonical_reason().unwrap()
-                )?;
+                write!(FastWrite(dst), "HTTP/1.1 {} {}\r\n", header.status().as_str(), header.status().canonical_reason().unwrap())?;
             }
             v => {
                 error!(http_version = ?v, "unsupported http version");
@@ -86,7 +81,7 @@ impl Encoder<(ResponseHead, PayloadSize)> for HeaderEncoder {
             PayloadSize::Empty => match header.headers_mut().get_mut(header::CONTENT_LENGTH) {
                 Some(value) => *value = 0.into(),
                 None => {
-                    const ZERO_VALUE: HeaderValue =  HeaderValue::from_static("0");
+                    const ZERO_VALUE: HeaderValue = HeaderValue::from_static("0");
                     header.headers_mut().insert(header::CONTENT_LENGTH, ZERO_VALUE);
                 }
             },

@@ -1,7 +1,7 @@
 use http::StatusCode;
+use micro_web::date::DateServiceDecorator;
 use micro_web::router::{get, post, Router};
 use micro_web::{handler_fn, PathParams, Server};
-use micro_web::date::DateServiceDecorator;
 
 async fn empty_body() -> &'static str {
     ""
@@ -17,7 +17,6 @@ async fn default_handler() -> (&'static str, StatusCode) {
 
 #[tokio::main]
 async fn main() {
-
     // Build router with multiple routes and handlers
     let router = Router::builder()
         .route("/", get(handler_fn(empty_body)))
@@ -28,12 +27,5 @@ async fn main() {
         .build();
 
     // Configure and start the server
-    Server::builder()
-        .router(router)
-        .bind("127.0.0.1:3000")
-        .default_handler(handler_fn(default_handler))
-        .build()
-        .unwrap()
-        .start()
-        .await;
+    Server::builder().router(router).bind("127.0.0.1:3000").default_handler(handler_fn(default_handler)).build().unwrap().start().await;
 }

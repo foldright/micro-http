@@ -109,11 +109,11 @@
 //! }
 //! ```
 
-mod from_request;
-mod extract_tuple;
 mod extract_body;
 mod extract_header;
+mod extract_tuple;
 mod extract_url;
+mod from_request;
 
 pub use from_request::FromRequest;
 use serde::Deserialize;

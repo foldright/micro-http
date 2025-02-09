@@ -4,9 +4,9 @@
 //! - How to set up a router with middleware
 //! - How to configure and start a server
 
+use micro_web::date::DateServiceDecorator;
 use micro_web::router::{get, Router};
 use micro_web::{handler_fn, Server};
-use micro_web::date::DateServiceDecorator;
 
 /// A simple handler that returns "hello world"
 async fn hello_world() -> &'static str {

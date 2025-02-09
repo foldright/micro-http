@@ -13,8 +13,8 @@ use crate::{OptionReqBody, RequestContext};
 use async_trait::async_trait;
 use http::Response;
 
-use std::marker::PhantomData;
 use crate::extract::FromRequest;
+use std::marker::PhantomData;
 
 /// Trait for types that can handle HTTP requests.
 ///
@@ -22,11 +22,7 @@ use crate::extract::FromRequest;
 /// and returns a response. This is the core trait for request handling.
 #[async_trait]
 pub trait RequestHandler: Send + Sync {
-    async fn invoke<'server, 'req>(
-        &self,
-        req: &mut RequestContext<'server, 'req>,
-        req_body: OptionReqBody,
-    ) -> Response<ResponseBody>;
+    async fn invoke<'server, 'req>(&self, req: &mut RequestContext<'server, 'req>, req_body: OptionReqBody) -> Response<ResponseBody>;
 }
 
 #[async_trait]
@@ -34,33 +30,21 @@ impl<T> RequestHandler for Box<T>
 where
     T: RequestHandler,
 {
-    async fn invoke<'server, 'req>(
-        &self,
-        req: &mut RequestContext<'server, 'req>,
-        req_body: OptionReqBody,
-    ) -> Response<ResponseBody> {
+    async fn invoke<'server, 'req>(&self, req: &mut RequestContext<'server, 'req>, req_body: OptionReqBody) -> Response<ResponseBody> {
         (**self).invoke(req, req_body).await
     }
 }
 
 #[async_trait]
 impl RequestHandler for Box<dyn RequestHandler> {
-    async fn invoke<'server, 'req>(
-        &self,
-        req: &mut RequestContext<'server, 'req>,
-        req_body: OptionReqBody,
-    ) -> Response<ResponseBody> {
+    async fn invoke<'server, 'req>(&self, req: &mut RequestContext<'server, 'req>, req_body: OptionReqBody) -> Response<ResponseBody> {
         (**self).invoke(req, req_body).await
     }
 }
 
 #[async_trait]
 impl RequestHandler for &dyn RequestHandler {
-    async fn invoke<'server, 'req>(
-        &self,
-        req: &mut RequestContext<'server, 'req>,
-        req_body: OptionReqBody,
-    ) -> Response<ResponseBody> {
+    async fn invoke<'server, 'req>(&self, req: &mut RequestContext<'server, 'req>, req_body: OptionReqBody) -> Response<ResponseBody> {
         (**self).invoke(req, req_body).await
     }
 }
@@ -110,11 +94,7 @@ where
     // This ensures the function's return value can be converted into an HTTP response
     for<'r> <F as FnTrait<Args::Output<'r>>>::Output: Responder,
 {
-    async fn invoke<'server, 'req>(
-        &self,
-        req: &mut RequestContext<'server, 'req>,
-        req_body: OptionReqBody,
-    ) -> Response<ResponseBody> {
+    async fn invoke<'server, 'req>(&self, req: &mut RequestContext<'server, 'req>, req_body: OptionReqBody) -> Response<ResponseBody> {
         let args = match Args::from_request(req, req_body.clone()).await {
             Ok(args) => args,
             Err(responder) => return responder.response_to(req),

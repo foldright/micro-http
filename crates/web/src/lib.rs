@@ -106,11 +106,11 @@ mod responder;
 mod server;
 
 // Public modules
-pub mod extract;
-pub mod router;
+pub mod date;
 pub mod decorator;
 pub mod encoding;
-pub mod date;
+pub mod extract;
+pub mod router;
 
 // Public re-exports
 pub use body::OptionReqBody;

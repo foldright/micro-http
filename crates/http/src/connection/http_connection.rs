@@ -15,9 +15,7 @@ use tokio::select;
 use crate::codec::{RequestDecoder, ResponseEncoder};
 use crate::handler::Handler;
 use crate::protocol::body::ReqBody;
-use crate::protocol::{
-    HttpError, Message, ParseError, PayloadItem, PayloadSize, RequestHeader, ResponseHead, SendError,
-};
+use crate::protocol::{HttpError, Message, ParseError, PayloadItem, PayloadSize, RequestHeader, ResponseHead, SendError};
 
 use tokio_util::codec::{FramedRead, FramedWrite};
 use tracing::{error, info};
@@ -201,10 +199,8 @@ where
         loop {
             match body.frame().await {
                 Some(Ok(frame)) => {
-                    let payload_item = frame
-                        .into_data()
-                        .map(PayloadItem::Chunk)
-                        .map_err(|_e| SendError::invalid_body("resolve body response error"))?;
+                    let payload_item =
+                        frame.into_data().map(PayloadItem::Chunk).map_err(|_e| SendError::invalid_body("resolve body response error"))?;
 
                     self.framed_write
                         .send(Message::Payload(payload_item))

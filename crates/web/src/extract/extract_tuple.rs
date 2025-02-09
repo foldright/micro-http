@@ -1,9 +1,8 @@
 use crate::body::OptionReqBody;
+use crate::extract::from_request::FromRequest;
 use crate::responder::Responder;
 use crate::{RequestContext, ResponseBody};
 use http::Response;
-use crate::extract::from_request::FromRequest;
-
 
 macro_rules! impl_from_request_for_fn {
     ($either:ident, $($param:ident)*) => {
@@ -67,4 +66,3 @@ impl_from_request_for_fn! { EitherABCDEFGHI, A B C D E F G H I }
 impl_from_request_for_fn! { EitherABCDEFGHIJ, A B C D E F G H I J }
 impl_from_request_for_fn! { EitherABCDEFGHIJK, A B C D E F G H I J K }
 impl_from_request_for_fn! { EitherABCDEFGHIJKL, A B C D E F G H I J K L }
-

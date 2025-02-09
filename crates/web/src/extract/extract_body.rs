@@ -27,13 +27,13 @@
 //! ```
 
 use crate::body::OptionReqBody;
+use crate::extract::from_request::FromRequest;
 use crate::extract::{Form, Json};
 use crate::RequestContext;
 use bytes::Bytes;
 use http_body_util::BodyExt;
 use micro_http::protocol::ParseError;
 use serde::Deserialize;
-use crate::extract::from_request::FromRequest;
 
 /// Extracts raw bytes from request body
 impl FromRequest for Bytes {
@@ -73,9 +73,7 @@ where
 
     async fn from_request<'r>(req: &'r RequestContext<'_, '_>, body: OptionReqBody) -> Result<Self::Output<'r>, Self::Error> {
         let bytes = <Bytes as FromRequest>::from_request(req, body).await?;
-        serde_urlencoded::from_bytes::<'_, T>(&bytes)
-            .map(|t| Form(t))
-            .map_err(|e| ParseError::invalid_body(e.to_string()))
+        serde_urlencoded::from_bytes::<'_, T>(&bytes).map(|t| Form(t)).map_err(|e| ParseError::invalid_body(e.to_string()))
     }
 }
 

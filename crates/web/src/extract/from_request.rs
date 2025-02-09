@@ -1,8 +1,8 @@
 use crate::responder::Responder;
 use crate::{OptionReqBody, RequestContext, ResponseBody};
-use std::convert::Infallible;
 use http::{Response, StatusCode};
 use micro_http::protocol::ParseError;
+use std::convert::Infallible;
 
 #[trait_variant::make(Send)]
 pub trait FromRequest {
@@ -10,10 +10,7 @@ pub trait FromRequest {
     type Error: Responder + Send;
 
     #[allow(unused)]
-    async fn from_request<'r>(
-        req: &'r RequestContext<'_, '_>,
-        body: OptionReqBody,
-    ) -> Result<Self::Output<'r>, Self::Error>;
+    async fn from_request<'r>(req: &'r RequestContext<'_, '_>, body: OptionReqBody) -> Result<Self::Output<'r>, Self::Error>;
 }
 
 impl<T: FromRequest> FromRequest for Option<T> {
@@ -50,17 +47,13 @@ impl FromRequest for () {
 impl Responder for ParseError {
     fn response_to(self, req: &RequestContext) -> Response<ResponseBody> {
         match self {
-            ParseError::TooLargeHeader { .. } => {
-                (StatusCode::REQUEST_HEADER_FIELDS_TOO_LARGE, "payload too large").response_to(req)
-            }
+            ParseError::TooLargeHeader { .. } => (StatusCode::REQUEST_HEADER_FIELDS_TOO_LARGE, "payload too large").response_to(req),
             ParseError::TooManyHeaders { .. } => (StatusCode::BAD_REQUEST, "too many headers").response_to(req),
             ParseError::InvalidHeader { .. } => (StatusCode::BAD_REQUEST, "invalid header").response_to(req),
             ParseError::InvalidVersion(_) => (StatusCode::BAD_REQUEST, "invalid version").response_to(req),
             ParseError::InvalidMethod => (StatusCode::BAD_REQUEST, "invalid method").response_to(req),
             ParseError::InvalidUri => (StatusCode::BAD_REQUEST, "invalid uri").response_to(req),
-            ParseError::InvalidContentLength { .. } => {
-                (StatusCode::BAD_REQUEST, "invalid content length").response_to(req)
-            }
+            ParseError::InvalidContentLength { .. } => (StatusCode::BAD_REQUEST, "invalid content length").response_to(req),
             ParseError::InvalidBody { .. } => (StatusCode::BAD_REQUEST, "invalid body").response_to(req),
             ParseError::Io { .. } => (StatusCode::BAD_REQUEST, "connection error").response_to(req),
         }

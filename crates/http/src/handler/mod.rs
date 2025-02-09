@@ -21,7 +21,6 @@
 //! let handler = make_handler(hello_handler);
 //! ```
 
-
 use crate::protocol::body::ReqBody;
 use http::{Request, Response};
 use http_body::Body;

@@ -165,10 +165,7 @@ impl Body for ReqBody {
     type Data = Bytes;
     type Error = ParseError;
 
-    fn poll_frame(
-        mut self: Pin<&mut Self>,
-        cx: &mut Context<'_>,
-    ) -> Poll<Option<Result<Frame<Self::Data>, Self::Error>>> {
+    fn poll_frame(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Result<Frame<Self::Data>, Self::Error>>> {
         loop {
             if let Some(oneshot_receiver) = &mut self.receiving {
                 return match ready!(oneshot_receiver.poll_unpin(cx)) {

@@ -5,10 +5,10 @@
 //! date string formatting operations in high-concurrency scenarios.
 
 use arc_swap::ArcSwap;
+use http::HeaderValue;
 use httpdate::fmt_http_date;
 use std::sync::Arc;
 use std::time::{Duration, SystemTime};
-use http::HeaderValue;
 
 mod date_service_decorator;
 

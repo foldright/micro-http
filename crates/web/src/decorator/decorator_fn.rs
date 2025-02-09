@@ -1,6 +1,5 @@
 use crate::decorator::Decorator;
 
-
 #[derive(Copy, Clone)]
 pub struct DecoratorFn<F> {
     f: F,

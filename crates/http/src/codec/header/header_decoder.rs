@@ -82,8 +82,7 @@ impl Decoder for HeaderDecoder {
     fn decode(&mut self, src: &mut BytesMut) -> Result<Option<Self::Item>, Self::Error> {
         // Create an empty HTTP request parser and uninitialized headers array
         let mut req = httparse::Request::new(&mut []);
-        let mut headers: [MaybeUninit<httparse::Header>; MAX_HEADER_NUM] =
-            unsafe { MaybeUninit::uninit().assume_init() };
+        let mut headers: [MaybeUninit<httparse::Header>; MAX_HEADER_NUM] = unsafe { MaybeUninit::uninit().assume_init() };
 
         // Parse request headers using httparse, return error if exceeds max headers or invalid format
         let parsed_result = req.parse_with_uninit_headers(src, &mut headers).map_err(|e| match e {
@@ -131,9 +130,7 @@ impl Decoder for HeaderDecoder {
                     // inspired by active-web:
                     // Safe to use from_maybe_shared_unchecked since httparse verified
                     // header value contains only visible ASCII chars
-                    let value = unsafe {
-                        HeaderValue::from_maybe_shared_unchecked(header_bytes.slice(index.value.0..index.value.1))
-                    };
+                    let value = unsafe { HeaderValue::from_maybe_shared_unchecked(header_bytes.slice(index.value.0..index.value.1)) };
 
                     headers.append(name, value);
                 }
@@ -234,17 +231,13 @@ fn parse_payload(header: &RequestHeader) -> Result<PayloadDecoder, ParseError> {
         (None, Some(cl_value)) => {
             let cl_str = cl_value.to_str().map_err(|_| ParseError::invalid_content_length("value can't to_str"))?;
 
-            let length = cl_str
-                .trim()
-                .parse::<u64>()
-                .map_err(|_| ParseError::invalid_content_length(format!("value {cl_str} is not u64")))?;
+            let length =
+                cl_str.trim().parse::<u64>().map_err(|_| ParseError::invalid_content_length(format!("value {cl_str} is not u64")))?;
 
             Ok(PayloadDecoder::fix_length(length))
         }
 
-        (Some(_), Some(_)) => {
-            Err(ParseError::invalid_content_length("transfer_encoding and content_length both present in headers"))
-        }
+        (Some(_), Some(_)) => Err(ParseError::invalid_content_length("transfer_encoding and content_length both present in headers")),
     }
 }
 
@@ -358,10 +351,7 @@ mod tests {
 
         assert_eq!(header.headers().get(http::header::HOST), Some(&HeaderValue::from_str("127.0.0.1:8080").unwrap()));
 
-        assert_eq!(
-            header.headers().get(http::header::USER_AGENT),
-            Some(&HeaderValue::from_str("curl/7.79.1").unwrap())
-        );
+        assert_eq!(header.headers().get(http::header::USER_AGENT), Some(&HeaderValue::from_str("curl/7.79.1").unwrap()));
     }
 
     #[test]
@@ -403,27 +393,18 @@ mod tests {
 
         assert_eq!(header.headers().get(http::header::CONNECTION), Some(&HeaderValue::from_str("keep-alive").unwrap()));
 
-        assert_eq!(
-            header.headers().get(http::header::CACHE_CONTROL),
-            Some(&HeaderValue::from_str("max-age=0").unwrap())
-        );
+        assert_eq!(header.headers().get(http::header::CACHE_CONTROL), Some(&HeaderValue::from_str("max-age=0").unwrap()));
 
         assert_eq!(
             header.headers().get("sec-ch-ua"),
-            Some(
-                &HeaderValue::from_str(r##""#Not_A Brand";v="99", "Microsoft Edge";v="109", "Chromium";v="109""##)
-                    .unwrap()
-            )
+            Some(&HeaderValue::from_str(r##""#Not_A Brand";v="99", "Microsoft Edge";v="109", "Chromium";v="109""##).unwrap())
         );
 
         assert_eq!(header.headers().get("sec-ch-ua-mobile"), Some(&HeaderValue::from_str("?0").unwrap()));
 
         assert_eq!(header.headers().get("sec-ch-ua-platform"), Some(&HeaderValue::from_str("\"macOS\"").unwrap()));
 
-        assert_eq!(
-            header.headers().get(http::header::UPGRADE_INSECURE_REQUESTS),
-            Some(&HeaderValue::from_str("1").unwrap())
-        );
+        assert_eq!(header.headers().get(http::header::UPGRADE_INSECURE_REQUESTS), Some(&HeaderValue::from_str("1").unwrap()));
 
         assert_eq!(header.headers().get(http::header::USER_AGENT),
                    Some(&HeaderValue::from_str("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36 Edg/109.0.1518.52").unwrap()));
@@ -436,10 +417,7 @@ mod tests {
 
         assert_eq!(header.headers().get("Sec-Fetch-Dest"), Some(&HeaderValue::from_str("document").unwrap()));
 
-        assert_eq!(
-            header.headers().get(http::header::ACCEPT_ENCODING),
-            Some(&HeaderValue::from_str("gzip, deflate, br").unwrap())
-        );
+        assert_eq!(header.headers().get(http::header::ACCEPT_ENCODING), Some(&HeaderValue::from_str("gzip, deflate, br").unwrap()));
 
         assert_eq!(
             header.headers().get(http::header::ACCEPT_LANGUAGE),

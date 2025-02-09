@@ -2,6 +2,7 @@ use bytes::Bytes;
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use futures::executor::block_on;
 use http::{Request, Response, StatusCode};
+use micro_http::handler::make_handler;
 use micro_http::{
     codec::{RequestDecoder, ResponseEncoder},
     connection::HttpConnection,
@@ -16,7 +17,6 @@ use std::{
 };
 use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
 use tokio_util::codec::{Decoder, Encoder};
-use micro_http::handler::make_handler;
 
 // Mock IO for testing
 #[derive(Clone)]
@@ -84,10 +84,7 @@ fn bench_response_encoder(c: &mut Criterion) {
             let mut bytes = bytes::BytesMut::new();
             let (header, body) = response.clone().into_parts();
             let payload_size = body.as_bytes().len();
-            let message = Message::<_, Bytes>::Header((
-                ResponseHead::from_parts(header, ()),
-                PayloadSize::Length(payload_size as u64),
-            ));
+            let message = Message::<_, Bytes>::Header((ResponseHead::from_parts(header, ()), PayloadSize::Length(payload_size as u64)));
             black_box(encoder.encode(message, &mut bytes).unwrap());
         });
     });

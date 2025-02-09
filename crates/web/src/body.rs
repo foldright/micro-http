@@ -196,11 +196,8 @@ mod tests {
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
     async fn test_stream_body() {
-        let chunks: Vec<Result<_, io::Error>> = vec![
-            Ok(Frame::data(Bytes::from(vec![1]))),
-            Ok(Frame::data(Bytes::from(vec![2]))),
-            Ok(Frame::data(Bytes::from(vec![3]))),
-        ];
+        let chunks: Vec<Result<_, io::Error>> =
+            vec![Ok(Frame::data(Bytes::from(vec![1]))), Ok(Frame::data(Bytes::from(vec![2]))), Ok(Frame::data(Bytes::from(vec![3])))];
         let stream = futures::stream::iter(chunks).map_err(|err| ParseError::io(err).into());
         let stream_body = StreamBody::new(stream);
 

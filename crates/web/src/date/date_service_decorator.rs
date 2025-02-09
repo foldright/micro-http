@@ -11,11 +11,11 @@
 //! The Date header is added according to RFC 7231 Section 7.1.1.2
 
 use crate::date::DateService;
+use crate::decorator::Decorator;
 use crate::handler::RequestHandler;
 use crate::{OptionReqBody, RequestContext, ResponseBody};
 use async_trait::async_trait;
 use http::{HeaderValue, Response};
-use crate::decorator::Decorator;
 
 /// A wrapper that adds automatic date header handling to responses.
 ///
@@ -44,11 +44,7 @@ impl<H: RequestHandler> Decorator<H> for DateServiceDecorator {
 
 #[async_trait]
 impl<H: RequestHandler> RequestHandler for DateResponseHandler<H> {
-    async fn invoke<'server, 'req>(
-        &self,
-        req: &mut RequestContext<'server, 'req>,
-        req_body: OptionReqBody,
-    ) -> Response<ResponseBody> {
+    async fn invoke<'server, 'req>(&self, req: &mut RequestContext<'server, 'req>, req_body: OptionReqBody) -> Response<ResponseBody> {
         let mut resp = self.handler.invoke(req, req_body).await;
 
         self.date_service.with_http_date(|date_header_value| {
