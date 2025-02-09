@@ -37,8 +37,8 @@ use std::future::Future;
 /// * `RespBody`: The response body type that implements [`Body`]
 /// * `Error`: The error type that can be converted into a boxed error
 /// * `Fut`: The future type returned by the handler
-#[trait_variant::make(Handler: Send)]
-pub trait LocalHandler: Sync {
+#[trait_variant::make(Send)]
+pub trait Handler: Sync {
     /// The type of the response body
     type RespBody: Body;
 

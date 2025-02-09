@@ -102,10 +102,10 @@ mod body;
 mod fn_trait;
 mod handler;
 mod request;
-mod responder;
 mod server;
 
 // Public modules
+pub mod responder;
 pub mod date;
 pub mod decorator;
 pub mod encoding;

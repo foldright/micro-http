@@ -115,3 +115,12 @@ impl Responder for Infallible {
         unreachable!()
     }
 }
+
+pub struct NotFound;
+
+impl Responder for NotFound {
+    #[inline]
+    fn response_to(self, req: &RequestContext) -> Response<ResponseBody> {
+        ("404 Not Found.", StatusCode::NOT_FOUND).response_to(req)
+    }
+}

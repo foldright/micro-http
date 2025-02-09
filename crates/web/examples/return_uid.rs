@@ -1,7 +1,7 @@
-use http::StatusCode;
 use micro_web::date::DateServiceDecorator;
 use micro_web::router::{get, post, Router};
-use micro_web::{handler_fn, PathParams, Server};
+use micro_web::{handler_fn, responder, PathParams, Server};
+use micro_web::responder::Responder;
 
 async fn empty_body() -> &'static str {
     ""
@@ -11,8 +11,8 @@ async fn echo_uid<'s, 'r>(path_params: &PathParams<'s, 'r>) -> String {
     path_params.get("id").map(|s| s.to_owned()).unwrap()
 }
 
-async fn default_handler() -> (&'static str, StatusCode) {
-    ("404 not found", StatusCode::NOT_FOUND)
+async fn default_handler() -> impl Responder {
+    responder::NotFound
 }
 
 #[tokio::main]
