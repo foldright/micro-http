@@ -15,7 +15,7 @@ use crate::protocol::{PayloadSize, ResponseHead, SendError};
 
 use bytes::{BufMut, BytesMut};
 
-use http::{header, Version};
+use http::{header, HeaderValue, Version};
 use std::io;
 use std::io::{ErrorKind, Write};
 use tokio_util::codec::Encoder;
@@ -86,7 +86,8 @@ impl Encoder<(ResponseHead, PayloadSize)> for HeaderEncoder {
             PayloadSize::Empty => match header.headers_mut().get_mut(header::CONTENT_LENGTH) {
                 Some(value) => *value = 0.into(),
                 None => {
-                    header.headers_mut().insert(header::CONTENT_LENGTH, 0.into());
+                    const ZERO_VALUE: HeaderValue =  HeaderValue::from_static("0");
+                    header.headers_mut().insert(header::CONTENT_LENGTH, ZERO_VALUE);
                 }
             },
         }

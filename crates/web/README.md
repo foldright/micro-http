@@ -26,12 +26,6 @@ tokio = { version = "1", features = ["rt-multi-thread", "net", "io-util", "macro
 Here's a simple hello world example:
 
 ```rust
-//! Basic example demonstrating how to create a simple web server using micro_web.
-//! This example shows:
-//! - How to define route handlers
-//! - How to set up a router with middleware
-//! - How to configure and start a server
-
 use micro_web::router::{get, Router};
 use micro_web::{handler_fn, Server};
 use micro_web::date::DateServiceDecorator;
@@ -56,7 +50,7 @@ async fn main() {
         // handler_fn converts our async function into a handler
         .route("/", get(handler_fn(hello_world)))
         // Add middleware that will add date headers to responses
-        .with_decorator(DateServiceDecorator)
+        .with_global_decorator(DateServiceDecorator)
         .build();
 
     // Configure and start the server
@@ -74,7 +68,6 @@ async fn main() {
         .start()
         .await;
 }
-
 ```
 
 ### Advanced Example 
@@ -189,7 +182,7 @@ async fn main() {
         // Additional GET route
         .route("/4", get(handler_fn(simple_another_get)))
         // Add response encoding wrapper
-        .with_decorator(EncodeDecorator)
+        .with_global_decorator(EncodeDecorator)
         .build();
 
     // Configure and start the server
@@ -256,8 +249,8 @@ The framework uses a flexible decorator pattern for middleware:
 ```rust
 // Add multiple decorators
 router.builder()
-    .with_decorator(DateServiceDecorator) // Adds Date header
-    .with_decorator(CompressionDecorator) // Handles response compression
+    .with_global_decorator(DateServiceDecorator) // Adds Date header
+    .with_global_decorator(CompressionDecorator) // Handles response compression
     .build();
 ```
 

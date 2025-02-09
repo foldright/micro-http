@@ -21,7 +21,7 @@ Add this to your `Cargo.toml`:
 ```toml
 [dependencies]
 micro-http = "0.1"
-tokio = { version = "1", features = ["rt-multi-thread", "net", "io-util", "macros", "sync", "signal", "test-util"] }
+tokio = { version = "1", features = ["full"] }
 http = "1"
 http-body = "1"
 tracing = "0.1"
@@ -107,7 +107,6 @@ async fn simple_handler(request: Request<ReqBody>) -> Result<Response<String>, B
 
     Ok(response)
 }
-
 ```
 
 ## Architecture
@@ -131,7 +130,7 @@ The implementation focuses on performance through:
 
 ## Limitations
 
-- HTTP/1.1 only (HTTP/2 or HTTP/3 not supported)
+- HTTP/1.1 only (HTTP/2 or HTTP/3 currently not supported yet)
 - No TLS support (use a reverse proxy for HTTPS)
 - Maximum header size: 8KB
 - Maximum number of headers: 64
