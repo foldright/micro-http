@@ -63,11 +63,32 @@ async fn test_handler(_req: Request<ReqBody>) -> Result<Response<String>, Box<dy
     Ok(response)
 }
 
-fn bench_request_decoder(c: &mut Criterion) {
-    let request = b"GET / HTTP/1.1\r\nHost: localhost\r\n\r\n";
+use indoc::indoc;
 
+static REQUEST: &'static str = indoc! {r##"
+GET /user/123 HTTP/1.1
+Host: 127.0.0.1:3000
+Sec-Fetch-Dest: document
+Sec-Fetch-Mode: navigate
+Sec-Fetch-Site: none
+Sec-Fetch-User: ?1
+sec-ch-ua: "Not A(Brand";v="8", "Chromium";v="132", "Microsoft Edge";v="132"
+sec-ch-ua-mobile: ?0
+sec-ch-ua-platform: "macOS"
+Cache-Control: max-age=0
+Connection: keep-alive
+Upgrade-Insecure-Requests: 1
+User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36 Edg/132.0.0.0
+Accept-Language: zh-CN,zh;q=0.9,en-US;q=0.8,en;q=0.7
+Accept-Encoding: gzip, deflate, br, zstd
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
+
+"##};
+
+fn bench_request_decoder(c: &mut Criterion) {
     c.bench_function("decode_simple_request", |b| {
         b.iter(|| {
+            let request = REQUEST.as_bytes();
             let mut decoder = RequestDecoder::new();
             let mut bytes = bytes::BytesMut::from(&request[..]);
             black_box(decoder.decode(&mut bytes).unwrap());
@@ -91,7 +112,7 @@ fn bench_response_encoder(c: &mut Criterion) {
 }
 
 fn bench_http_connection(c: &mut Criterion) {
-    let request = b"GET / HTTP/1.1\r\nHost: localhost\r\n\r\n";
+    let request = REQUEST.as_bytes();
     let handler = Arc::new(make_handler(test_handler));
 
     c.bench_function("process_simple_request", |b| {

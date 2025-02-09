@@ -253,11 +253,13 @@ fn parse_payload(header: &RequestHeader) -> Result<PayloadDecoder, ParseError> {
 ///
 /// Returns true if chunked is the final encoding in the Transfer-Encoding header.
 fn is_chunked(header_value: Option<&HeaderValue>) -> bool {
-    header_value
-        .and_then(|value| value.to_str().ok())
-        .and_then(|encodings| encodings.rsplit(',').next())
-        .map(|last_encoding| last_encoding.trim() == "chunked")
-        .unwrap_or(false)
+    const CHUNKED: &[u8] = b"chunked";
+    if let Some(value) = header_value {
+        if let Some(bytes) = value.as_bytes().rsplit(|b| *b == b',').next() {
+            return bytes == CHUNKED;
+        }
+    }
+    false
 }
 
 #[cfg(test)]
