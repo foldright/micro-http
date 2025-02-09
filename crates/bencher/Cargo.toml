@@ -1,0 +1,32 @@
+[package]
+name = "bencher"
+version = "0.0.0"
+edition = "2021"
+description = "micro-http benchmarks"
+authors.workspace = true
+homepage.workspace = true
+license.workspace = true
+readme.workspace = true
+repository.workspace = true
+
+[lib]
+bench = false
+test = false
+doctest = false
+
+[[bench]]
+name = "decoder"
+harness = false
+
+[dependencies]
+codspeed-criterion-compat = { workspace = true, default-features = false, optional = true }
+criterion = { workspace = true, default-features = false }
+
+
+[dev-dependencies]
+micro-http.workspace = true
+micro-web.workspace = true
+tokio-util.workspace = true
+
+[features]
+codspeed = ["codspeed-criterion-compat"]
