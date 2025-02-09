@@ -256,7 +256,7 @@ fn is_chunked(header_value: Option<&HeaderValue>) -> bool {
     const CHUNKED: &[u8] = b"chunked";
     if let Some(value) = header_value {
         if let Some(bytes) = value.as_bytes().rsplit(|b| *b == b',').next() {
-            return bytes == CHUNKED;
+            return bytes.trim_ascii() == CHUNKED;
         }
     }
     false
