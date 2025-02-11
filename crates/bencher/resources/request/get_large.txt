@@ -1,0 +1,48 @@
+GET /test HTTP/1.1
+Host: example.com
+User-Agent: perf-test/1.0
+Accept: text/html, application/xhtml+xml, application/xml;q=0.9, image/webp, image/apng, /;q=0.8
+Accept-Encoding: gzip, deflate, br
+Accept-Language: en-US, en;q=0.9
+Connection: keep-alive
+Cache-Control: no-cache
+Pragma: no-cache
+DNT: 1
+Referer: https://example.com/path/to/resource?param1=value1&param2=value2&tracking=verylongtrackingcode1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMN&extra_tracking=abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789
+Upgrade-Insecure-Requests: 1
+X-Forwarded-For: 192.168.1.1, 203.0.113.195, 10.0.0.1, 172.16.0.1
+X-Real-IP: 203.0.113.195
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6Ikp...superlongtokenvalue1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ
+Cookie: sessionid=abc123; csrftoken=xyz456; theme=dark; user_id=987654321; lang=en-US; pref=high-performance-mode;
+tracking_id: long-tracking-cookie-0123456789abcdef0123456789abcdef;
+security_token: secureRandomValueHere;
+analytics_session: another-long-session-value-abcdef1234567890;
+user_prefs: theme=dark; layout=compact; timezone=UTC+0;
+experiment_group: beta-user; device_type=desktop;
+test_cookie: ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789;
+extended_cookie: abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789ABCDEFGHIJKLMNOPQRST;
+Content-Type: application/json
+Content-Length: 16384
+X-Requested-With: XMLHttpRequest
+X-Device-ID: unique-device-id-9876543210-extendedvalue0987654321
+X-API-Version: v1.42.9999
+X-Request-ID: req-abcdefgh-1234-ijkl-5678-mnopqrstuvwx-extended
+X-Session-Hash: sha256-df78a3cbd0123456789abcdef0123456789abcdef-extendedhash
+X-Debug-Flag: true
+X-Cache-Control: max-age=0, must-revalidate
+X-Client-IP: 198.51.100.77
+X-Original-URL: /original/request/path?query=param&morequery=data1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ
+Forwarded: for=198.51.100.77; proto=https
+Custom-Header-1: This is a long custom header value meant to test server performance under load with an even longer extension to make sure the test is valid and comprehensive.
+Custom-Header-2: Another extended custom header with random payload 0123456789ABCDEF plus additional extended data for load testing.
+Custom-Header-3: Yet another custom header with a mix of alphanumeric values and symbols!@#$%^&*() that has been extended significantly for stress testing.
+Custom-Header-4: {"json_field_1": "long_value_1234567890_extended", "json_field_2": "another_value_abcdef_extended"}
+Custom-Header-5: lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod tempor incididunt ut labore et dolore magna aliqua now with an even longer body to increase the request size significantly.
+Custom-Header-6: 0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789
+Custom-Header-7: More random data to increase size 1234567890abcdefABCDEF! and even more appended to make it a longer value for testing purposes.
+Custom-Header-8: Performance testing header with long values repeated multiple times! Performance testing header with long values repeated multiple times! Performance testing header with long values repeated multiple times!
+Custom-Header-9: Additional header for stress testing purposes with excessive length to push server limits and simulate real-world large header sizes.
+Custom-Header-10: JSON payload {"key1": "verylongvalue1_extended", "key2": "verylongvalue2_extended", "key3": "verylongvalue3_extended"}
+Custom-Header-11: Extended stress test header with a long string of alphanumeric characters: 0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ
+Custom-Header-12: Additional custom header to ensure the request size is sufficiently large to test server performance and scaling capabilities under load.
+

@@ -1,0 +1,21 @@
+GET /user/123 HTTP/1.1
+Host: example.com
+User-Agent: perf-test/1.0
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8
+Accept-Encoding: gzip, deflate, br
+Accept-Language: en-US,en;q=0.9
+Connection: keep-alive
+Cache-Control: no-cache
+Pragma: no-cache
+DNT: 1
+Referer: https://example.com/
+Upgrade-Insecure-Requests: 1
+X-Forwarded-For: 192.168.1.1, 203.0.113.195
+X-Real-IP: 203.0.113.195
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6Ikp...
+Cookie: sessionid=abc123; csrftoken=xyz456; theme=dark
+Content-Type: application/json
+Content-Length: 1024
+Custom-Header-1: A very long custom header value to simulate load
+Custom-Header-2: Another long header with random data 0123456789abcdef
+
