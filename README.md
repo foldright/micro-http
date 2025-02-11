@@ -9,7 +9,7 @@ A lightweight, efficient, and modular HTTP server implementation built on top of
 
 ## Features
 
-- Full HTTP/1.1 protocol support, HTTP 2 currently not supported
+- Full HTTP/1.1 protocol support, HTTP/2 currently unsupported
 - Asynchronous I/O using tokio
 - Streaming request and response bodies
 - Chunked transfer encoding
