@@ -136,6 +136,7 @@ where
                         result = Some(response);
                         break;
                     }
+                    // FIXME: Maybe not cancellation safe?
                     // Keep processing body chunks in background
                     _ = &mut body_sender_future => {
                         // No action needed - just keep streaming body
