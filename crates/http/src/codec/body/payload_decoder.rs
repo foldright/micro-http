@@ -9,7 +9,7 @@
 
 use crate::codec::body::chunked_decoder::ChunkedDecoder;
 use crate::codec::body::length_decoder::LengthDecoder;
-use crate::protocol::{ParseError, PayloadItem};
+use crate::protocol::{ParseError, PayloadItem, PayloadSize};
 use bytes::BytesMut;
 use tokio_util::codec::Decoder;
 
@@ -86,6 +86,16 @@ impl PayloadDecoder {
             Kind::Length(_) => true,
             Kind::Chunked(_) => false,
             Kind::NoBody => false,
+        }
+    }
+}
+
+impl From<PayloadSize> for PayloadDecoder {
+    fn from(payload_size: PayloadSize) -> Self {
+        match payload_size {
+            PayloadSize::Length(u64) => PayloadDecoder::fix_length(u64),
+            PayloadSize::Chunked => PayloadDecoder::chunked(),
+            PayloadSize::Empty => PayloadDecoder::empty(),
         }
     }
 }

@@ -24,7 +24,7 @@
 
 use crate::codec::body::PayloadDecoder;
 use crate::codec::header::HeaderDecoder;
-use crate::protocol::{Message, ParseError, PayloadItem, RequestHeader};
+use crate::protocol::{Message, ParseError, PayloadItem, PayloadSize, RequestHeader};
 use bytes::BytesMut;
 use tokio_util::codec::Decoder;
 
@@ -58,7 +58,7 @@ impl Default for RequestDecoder {
 }
 
 impl Decoder for RequestDecoder {
-    type Item = Message<RequestHeader>;
+    type Item = Message<(RequestHeader, PayloadSize)>;
     type Error = ParseError;
 
     /// Attempts to decode an HTTP request from the provided buffer
@@ -87,9 +87,9 @@ impl Decoder for RequestDecoder {
 
         // parse request
         let message = match self.header_decoder.decode(src)? {
-            Some((header, payload_decoder)) => {
-                self.payload_decoder = Some(payload_decoder);
-                Some(Message::Header(header))
+            Some((header, payload_size)) => {
+                self.payload_decoder = Some(payload_size.into());
+                Some(Message::Header((header, payload_size)))
             }
             None => None,
         };

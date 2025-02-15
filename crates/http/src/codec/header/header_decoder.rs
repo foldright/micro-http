@@ -33,7 +33,6 @@
 
 use std::mem::MaybeUninit;
 
-use crate::codec::body::PayloadDecoder;
 use bytes::BytesMut;
 use http::{HeaderName, HeaderValue, Request};
 use httparse::{Error, Status};
@@ -42,7 +41,7 @@ use tracing::trace;
 
 use crate::ensure;
 
-use crate::protocol::{ParseError, RequestHeader};
+use crate::protocol::{ParseError, PayloadSize, RequestHeader};
 
 /// Maximum number of headers allowed in a request
 const MAX_HEADER_NUM: usize = 64;
@@ -57,7 +56,7 @@ const MAX_HEADER_BYTES: usize = 8 * 1024;
 pub struct HeaderDecoder;
 
 impl Decoder for HeaderDecoder {
-    type Item = (RequestHeader, PayloadDecoder);
+    type Item = (RequestHeader, PayloadSize);
     type Error = ParseError;
 
     /// Attempts to decode HTTP headers from the provided bytes buffer.
@@ -208,9 +207,9 @@ impl HeaderIndex {
 /// Returns `ParseError` if:
 /// - Both Content-Length and Transfer-Encoding headers are present
 /// - Content-Length value is invalid
-fn parse_payload(header: &RequestHeader) -> Result<PayloadDecoder, ParseError> {
+fn parse_payload(header: &RequestHeader) -> Result<PayloadSize, ParseError> {
     if !header.need_body() {
-        return Ok(PayloadDecoder::empty());
+        return Ok(PayloadSize::new_empty());
     }
 
     // refer: https://www.rfc-editor.org/rfc/rfc9112.html#name-transfer-encoding
@@ -218,13 +217,13 @@ fn parse_payload(header: &RequestHeader) -> Result<PayloadDecoder, ParseError> {
     let cl_header = header.headers().get(http::header::CONTENT_LENGTH);
 
     match (te_header, cl_header) {
-        (None, None) => Ok(PayloadDecoder::empty()),
+        (None, None) => Ok(PayloadSize::new_empty()),
 
         (te_value @ Some(_), None) => {
             if is_chunked(te_value) {
-                Ok(PayloadDecoder::chunked())
+                Ok(PayloadSize::new_chunked())
             } else {
-                Ok(PayloadDecoder::empty())
+                Ok(PayloadSize::new_empty())
             }
         }
 
@@ -234,7 +233,7 @@ fn parse_payload(header: &RequestHeader) -> Result<PayloadDecoder, ParseError> {
             let length =
                 cl_str.trim().parse::<u64>().map_err(|_| ParseError::invalid_content_length(format!("value {cl_str} is not u64")))?;
 
-            Ok(PayloadDecoder::fix_length(length))
+            Ok(PayloadSize::new_length(length))
         }
 
         (Some(_), Some(_)) => Err(ParseError::invalid_content_length("transfer_encoding and content_length both present in headers")),

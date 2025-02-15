@@ -14,7 +14,7 @@ use tokio::select;
 
 use crate::codec::{RequestDecoder, ResponseEncoder};
 use crate::handler::Handler;
-use crate::protocol::body::ReqBody;
+use crate::protocol::body::{ReqBody, ReqBody4};
 use crate::protocol::{HttpError, Message, ParseError, PayloadItem, PayloadSize, RequestHeader, ResponseHead, SendError};
 
 use tokio_util::codec::{FramedRead, FramedWrite};
@@ -58,8 +58,8 @@ where
     {
         loop {
             match self.framed_read.next().await {
-                Some(Ok(Message::Header(header))) => {
-                    self.do_process(header, &mut handler).await?;
+                Some(Ok(Message::Header((header, payload_size)))) => {
+                    self.do_process(header, payload_size, &mut handler).await?;
                 }
 
                 Some(Ok(Message::Payload(_))) => {
@@ -84,7 +84,7 @@ where
         }
     }
 
-    async fn do_process<H>(&mut self, header: RequestHeader, handler: &mut Arc<H>) -> Result<(), HttpError>
+    async fn do_process<H>(&mut self, header: RequestHeader, payload_size: PayloadSize, handler: &mut Arc<H>) -> Result<(), HttpError>
     where
         H: Handler,
         H::RespBody: Body<Data = Bytes> + Unpin,
@@ -104,9 +104,14 @@ where
             }
         }
 
-        let (req_body, mut body_sender) = ReqBody::body_channel(&mut self.framed_read);
+        //let (req_body, mut body_sender) = ReqBody::body_channel(&mut self.framed_read);
 
-        let request = header.body(req_body);
+        let req_body_4 = ReqBody {
+          stream: &mut self.framed_write,
+        };
+
+        // let request = header.body(req_body);
+        let request = header.body(req_body_4);
 
         // This block handles concurrent processing of the request handler and request body streaming.
         // We need this concurrent processing because:
@@ -114,41 +119,43 @@ where
         //    from the underlying TCP stream to maintain protocol correctness
         // 2. The request handler and body streaming need to happen simultaneously to avoid deadlocks,
         //    since the handler may be waiting for body data while the body sender is waiting to send
-        let response_result = {
-            // Pin both futures to the stack since they are used in select! macro
-            // The futures are lazy and won't start executing until polled
-            tokio::pin! {
-                let request_handle_future = handler.call(request);
-                let body_sender_future = body_sender.send_body();
-            }
+        // let response_result = {
+        //     // Pin both futures to the stack since they are used in select! macro
+        //     // The futures are lazy and won't start executing until polled
+        //     tokio::pin! {
+        //         let request_handle_future = handler.call(request);
+        //         let body_sender_future = body_sender.send_body();
+        //     }
+        //
+        //     // Store the handler result to return after body is fully processed
+        //     #[allow(unused_assignments)]
+        //     let mut result = Option::<Result<_, _>>::None;
+        //
+        //     // Keep processing until handler completes
+        //     loop {
+        //         select! {
+        //             // biased ensures we prioritize handling the response
+        //             biased;
+        //             // When handler completes, store result and break
+        //             response = &mut request_handle_future => {
+        //                 result = Some(response);
+        //                 break;
+        //             }
+        //             // FIXME: Maybe not cancellation safe?
+        //             // Keep processing body chunks in background
+        //             _ = &mut body_sender_future => {
+        //                 // No action needed - just keep streaming body
+        //             }
+        //         }
+        //     }
+        //     // Safe: result is Some if handler completed
+        //     result.unwrap()
+        // };
 
-            // Store the handler result to return after body is fully processed
-            #[allow(unused_assignments)]
-            let mut result = Option::<Result<_, _>>::None;
-
-            // Keep processing until handler completes
-            loop {
-                select! {
-                    // biased ensures we prioritize handling the response
-                    biased;
-                    // When handler completes, store result and break
-                    response = &mut request_handle_future => {
-                        result = Some(response);
-                        break;
-                    }
-                    // FIXME: Maybe not cancellation safe?
-                    // Keep processing body chunks in background
-                    _ = &mut body_sender_future => {
-                        // No action needed - just keep streaming body
-                    }
-                }
-            }
-            // Safe: result is Some if handler completed
-            result.unwrap()
-        };
+        let result = handler.call(request).await;
 
         // skip body if request handler don't read body
-        body_sender.skip_body().await;
+        //body_sender.skip_body().await;
 
         self.send_response(response_result).await?;
 

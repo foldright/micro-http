@@ -41,6 +41,21 @@ pub enum PayloadSize {
 }
 
 impl PayloadSize {
+    #[inline(always)]
+    pub fn new_chunked() -> Self {
+        PayloadSize::Chunked
+    }
+
+    #[inline(always)]
+    pub fn new_empty() -> Self {
+        PayloadSize::Empty
+    }
+
+    #[inline(always)]
+    pub fn new_length(length: u64) -> Self {
+        PayloadSize::Length(length)
+    }
+
     /// Returns true if the payload uses chunked transfer encoding
     #[inline]
     pub fn is_chunked(&self) -> bool {

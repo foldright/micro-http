@@ -9,7 +9,7 @@ use futures::{FutureExt, SinkExt, Stream, StreamExt};
 use http_body::{Body, Frame};
 use tracing::{error, info};
 
-use crate::protocol::{Message, ParseError, PayloadItem, RequestHeader};
+use crate::protocol::{Message, ParseError, PayloadItem, PayloadSize, RequestHeader};
 
 /// ReqBody implements an asynchronous streaming mechanism for HTTP request bodies.
 ///
@@ -88,7 +88,7 @@ where
 
 impl<S> ReqBodySender<'_, S>
 where
-    S: Stream<Item = Result<Message<RequestHeader>, ParseError>> + Unpin,
+    S: Stream<Item = Result<Message<(RequestHeader, PayloadSize)>, ParseError>> + Unpin,
 {
     /// Streams body chunks from payload stream to ReqBody consumer.
     ///
