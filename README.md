@@ -57,7 +57,7 @@ For performance benchmarks and comparisons, see (we are not in this benchmark ye
 
 ## MSRV
 
-The Minimum Supported Rust Version is 1.80
+The Minimum Supported Rust Version is 1.85
 
 ## License
 

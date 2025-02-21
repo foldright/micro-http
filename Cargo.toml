@@ -1,19 +1,16 @@
 [workspace]
-members = [
-    "crates/http",
-    "crates/web",
-    "crates/bencher",
-]
-resolver = "2"
+members = ["crates/http", "crates/web", "crates/bencher"]
+resolver = "3"
 
 # see: https://doc.rust-lang.org/cargo/reference/workspaces.html
 [workspace.package]
 authors = ["Zava <zava.kid@gmail.com>"]
-edition = "2021"
+edition = "2024"
 homepage = "https://github.com/foldright/micro-http"
 license = "MIT OR Apache-2.0"
 readme = "README.md"
 repository = "https://github.com/foldright/micro-http"
+rust-version = "1.85"
 
 [workspace.dependencies]
 http = "1.2.0"
@@ -27,7 +24,7 @@ httparse = "1.10.0"
 tracing = "0.1.41"
 tracing-subscriber = "0.3.19"
 
-tokio = {version = "1", features = ["full", "tracing"] }
+tokio = { version = "1", features = ["full", "tracing"] }
 tokio-util = { version = "0.7.13", features = ["codec", "io", "tracing"] }
 async-trait = "0.1.86"
 futures = "0.3.31"
@@ -58,7 +55,7 @@ higher-kinded-types = "0.1"
 matchit = "0.8.6"
 
 mockall = "0.13.1"
-criterion ="0.5"
+criterion = "0.5"
 
 codspeed-criterion-compat = { version = "2.6.0", default-features = false }
 

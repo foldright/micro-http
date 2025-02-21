@@ -87,7 +87,7 @@ impl Encoder {
     /// Writes data to the encoder.
     fn write(&mut self, data: &[u8]) -> Result<(), io::Error> {
         match self {
-            Self::Gzip(ref mut encoder) => match encoder.write_all(data) {
+            Self::Gzip(encoder) => match encoder.write_all(data) {
                 Ok(_) => Ok(()),
                 Err(err) => {
                     trace!("Error encoding gzip encoding: {}", err);
@@ -95,7 +95,7 @@ impl Encoder {
                 }
             },
 
-            Self::Deflate(ref mut encoder) => match encoder.write_all(data) {
+            Self::Deflate(encoder) => match encoder.write_all(data) {
                 Ok(_) => Ok(()),
                 Err(err) => {
                     trace!("Error encoding deflate encoding: {}", err);
@@ -103,7 +103,7 @@ impl Encoder {
                 }
             },
 
-            Self::Zstd(ref mut encoder) => match encoder.write_all(data) {
+            Self::Zstd(encoder) => match encoder.write_all(data) {
                 Ok(_) => Ok(()),
                 Err(err) => {
                     trace!("Error encoding zstd encoding: {}", err);
@@ -111,7 +111,7 @@ impl Encoder {
                 }
             },
 
-            Self::Br(ref mut encoder) => match encoder.write_all(data) {
+            Self::Br(encoder) => match encoder.write_all(data) {
                 Ok(_) => Ok(()),
                 Err(err) => {
                     trace!("Error encoding br encoding: {}", err);
@@ -123,11 +123,11 @@ impl Encoder {
 
     /// Takes the encoded data from the encoder.
     fn take(&mut self) -> Bytes {
-        match *self {
-            Self::Gzip(ref mut encoder) => encoder.get_mut().take(),
-            Self::Deflate(ref mut encoder) => encoder.get_mut().take(),
-            Self::Zstd(ref mut encoder) => encoder.get_mut().take(),
-            Self::Br(ref mut encoder) => encoder.get_mut().take(),
+        match self {
+            Self::Gzip(encoder) => encoder.get_mut().take(),
+            Self::Deflate(encoder) => encoder.get_mut().take(),
+            Self::Zstd(encoder) => encoder.get_mut().take(),
+            Self::Br(encoder) => encoder.get_mut().take(),
         }
     }
 

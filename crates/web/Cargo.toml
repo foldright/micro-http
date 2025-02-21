@@ -6,6 +6,7 @@ edition.workspace = true
 homepage.workspace = true
 license.workspace = true
 repository.workspace = true
+rust-version.workspace = true
 readme = "README.md"
 keywords = ["http", "async", "web"]
 categories = ["web-programming::http-server", "network-programming"]
