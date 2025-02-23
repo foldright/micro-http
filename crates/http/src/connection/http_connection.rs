@@ -10,11 +10,10 @@ use http::{Response, StatusCode};
 use http_body::Body;
 use http_body_util::{BodyExt, Empty};
 use tokio::io::{AsyncRead, AsyncWrite, AsyncWriteExt};
-use tokio::select;
 
 use crate::codec::{RequestDecoder, ResponseEncoder};
 use crate::handler::Handler;
-use crate::protocol::body::{ReqBody, ReqBody4};
+use crate::protocol::body::ReqBody;
 use crate::protocol::{HttpError, Message, ParseError, PayloadItem, PayloadSize, RequestHeader, ResponseHead, SendError};
 
 use tokio_util::codec::{FramedRead, FramedWrite};
@@ -62,6 +61,8 @@ where
                     self.do_process(header, payload_size, &mut handler).await?;
                 }
 
+                Some(Ok(Message::Payload(PayloadItem::Eof))) => continue,
+
                 Some(Ok(Message::Payload(_))) => {
                     error!("error status because chunked has read in do_process");
                     let error_response = build_error_response(StatusCode::BAD_REQUEST);
@@ -104,62 +105,24 @@ where
             }
         }
 
-        //let (req_body, mut body_sender) = ReqBody::body_channel(&mut self.framed_read);
+        let (req_body, maybe_body_sender) = ReqBody::create_req_body(&mut self.framed_read, payload_size);
+        let request = header.body(req_body);
 
-        let req_body_4 = ReqBody {
-          stream: &mut self.framed_write,
+
+        let response_result = match maybe_body_sender {
+            None => handler.call(request).await,
+            Some(mut body_sender) => {
+                let (handler_result, body_send_result) = tokio::join!(
+                    handler.call(request),  body_sender.start()
+                );
+
+                // check if body sender has error
+                body_send_result?;
+                handler_result
+            }
         };
 
-        // let request = header.body(req_body);
-        let request = header.body(req_body_4);
-
-        // This block handles concurrent processing of the request handler and request body streaming.
-        // We need this concurrent processing because:
-        // 1. The request handler may not read the entire body, but we still need to drain the body
-        //    from the underlying TCP stream to maintain protocol correctness
-        // 2. The request handler and body streaming need to happen simultaneously to avoid deadlocks,
-        //    since the handler may be waiting for body data while the body sender is waiting to send
-        // let response_result = {
-        //     // Pin both futures to the stack since they are used in select! macro
-        //     // The futures are lazy and won't start executing until polled
-        //     tokio::pin! {
-        //         let request_handle_future = handler.call(request);
-        //         let body_sender_future = body_sender.send_body();
-        //     }
-        //
-        //     // Store the handler result to return after body is fully processed
-        //     #[allow(unused_assignments)]
-        //     let mut result = Option::<Result<_, _>>::None;
-        //
-        //     // Keep processing until handler completes
-        //     loop {
-        //         select! {
-        //             // biased ensures we prioritize handling the response
-        //             biased;
-        //             // When handler completes, store result and break
-        //             response = &mut request_handle_future => {
-        //                 result = Some(response);
-        //                 break;
-        //             }
-        //             // FIXME: Maybe not cancellation safe?
-        //             // Keep processing body chunks in background
-        //             _ = &mut body_sender_future => {
-        //                 // No action needed - just keep streaming body
-        //             }
-        //         }
-        //     }
-        //     // Safe: result is Some if handler completed
-        //     result.unwrap()
-        // };
-
-        let result = handler.call(request).await;
-
-        // skip body if request handler don't read body
-        //body_sender.skip_body().await;
-
-        self.send_response(response_result).await?;
-
-        Ok(())
+        self.send_response(response_result).await
     }
 
     async fn send_response<T, E>(&mut self, response_result: Result<Response<T>, E>) -> Result<(), HttpError>

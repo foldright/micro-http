@@ -96,6 +96,10 @@ impl Decoder for HeaderDecoder {
                 // Ensure request headers size does not exceed limit
                 ensure!(body_offset <= MAX_HEADER_BYTES, ParseError::too_large_header(body_offset, MAX_HEADER_BYTES));
 
+                let header_count = req.headers.len();
+
+                ensure!(header_count <= MAX_HEADER_NUM, ParseError::too_many_headers(header_count));
+
                 // Calculate and record byte range indices for each header
                 let mut header_index: [HeaderIndex; MAX_HEADER_NUM] = EMPTY_HEADER_INDEX_ARRAY;
                 HeaderIndex::record(src, req.headers, &mut header_index);
@@ -115,7 +119,6 @@ impl Decoder for HeaderDecoder {
                     .version(version);
 
                 // Build headers
-                let header_count = req.headers.len();
                 let headers = header_builder.headers_mut().unwrap();
                 headers.reserve(header_count);
 
