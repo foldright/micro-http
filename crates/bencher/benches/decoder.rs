@@ -21,13 +21,13 @@ fn benchmark_request_decoder(criterion: &mut Criterion) {
     for case in test_cases {
         group.throughput(Throughput::Bytes(case.file().content().len() as u64));
         group.bench_with_input(BenchmarkId::from_parameter(case.name()), &case, |b, case| {
+            let mut request_decoder = RequestDecoder::new();
             b.iter_batched_ref(
-                || (RequestDecoder::new(), BytesMut::from(case.file().content())),
-                |(decoder, bytes_mut)| {
-                    let header = decoder.decode(bytes_mut).expect("input should be valide http request header").unwrap();
-                    black_box(header);
-                    let body = decoder.decode(bytes_mut).expect("input should be valide http request body").unwrap();
-                    black_box(body);
+                || BytesMut::from(case.file().content()),
+                |bytes_mut| {
+                    let header = request_decoder.decode(bytes_mut).expect("input should be valide http request header").unwrap();
+                    let body = request_decoder.decode(bytes_mut).expect("input should be valide http request body").unwrap();
+                    black_box((header, body));
                 },
                 BatchSize::SmallInput,
             );
