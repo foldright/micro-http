@@ -19,6 +19,7 @@ where
 
 pub(crate) enum BodyRequestSignal {
     RequestData,
+    #[allow(dead_code)]
     Enough,
 }
 

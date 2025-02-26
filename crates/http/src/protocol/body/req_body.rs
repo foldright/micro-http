@@ -6,9 +6,12 @@ use http_body::{Body, Frame, SizeHint};
 use std::pin::Pin;
 use std::task::{Context, Poll};
 
-pub enum ReqBody {
+pub struct  ReqBody {
+    inner: ReqBodyRepr,
+}
+pub(crate) enum ReqBodyRepr {
     Receiver(BodyReceiver),
-    NoBody,
+    NoBody,  
 }
 
 impl ReqBody {
@@ -17,12 +20,20 @@ impl ReqBody {
         S: Stream<Item = Result<Message<(RequestHeader, PayloadSize)>, ParseError>> + Unpin,
     {
         match payload_size {
-            PayloadSize::Empty | PayloadSize::Length(0) => (ReqBody::NoBody, None),
+            PayloadSize::Empty | PayloadSize::Length(0) => (ReqBody::no_body(), None),
             _ => {
                 let (sender, receiver) = create_body_sender_receiver(body_stream, payload_size);
-                (ReqBody::Receiver(receiver), Some(sender))
+                (ReqBody::receiver(receiver), Some(sender))
             }
         }
+    }
+
+    pub(crate) fn no_body() -> Self {
+        Self { inner: ReqBodyRepr::NoBody }
+    }
+
+    pub(crate) fn receiver(receiver: BodyReceiver) -> Self {
+        Self { inner: ReqBodyRepr::Receiver(receiver) }
     }
 }
 
@@ -32,23 +43,23 @@ impl Body for ReqBody {
 
     fn poll_frame(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Result<Frame<Self::Data>, Self::Error>>> {
         let this = self.get_mut();
-        match this {
-            ReqBody::Receiver(body_receiver) => Pin::new(body_receiver).poll_frame(cx),
-            ReqBody::NoBody => Poll::Ready(None),
+        match &mut this.inner {
+            ReqBodyRepr::Receiver(body_receiver) => Pin::new(body_receiver).poll_frame(cx),
+            ReqBodyRepr::NoBody => Poll::Ready(None),
         }
     }
 
     fn is_end_stream(&self) -> bool {
-        match self {
-            ReqBody::NoBody => true,
-            ReqBody::Receiver(body_receiver) => body_receiver.is_end_stream(),
+        match &self.inner {
+            ReqBodyRepr::NoBody => true,
+            ReqBodyRepr::Receiver(body_receiver) => body_receiver.is_end_stream(),
         }
     }
 
     fn size_hint(&self) -> SizeHint {
-        match self {
-            ReqBody::NoBody => SizeHint::with_exact(0),
-            ReqBody::Receiver(body_receiver) => body_receiver.size_hint(),
+        match &self.inner {
+            ReqBodyRepr::NoBody => SizeHint::with_exact(0),
+            ReqBodyRepr::Receiver(body_receiver) => body_receiver.size_hint(),
         }
     }
 }
