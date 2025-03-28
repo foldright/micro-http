@@ -1,11 +1,12 @@
-use crate::decorator::Decorator;
 use crate::encoding::Writer;
 use crate::handler::RequestHandler;
+use crate::router::handler_decorator::RequestHandlerDecorator;
+use crate::router::handler_decorator_factory::RequestHandlerDecoratorFactory;
 use crate::{OptionReqBody, RequestContext, ResponseBody};
 use async_trait::async_trait;
 use bytes::{Buf, Bytes};
-use flate2::write::{GzEncoder, ZlibEncoder};
 use flate2::Compression;
+use flate2::write::{GzEncoder, ZlibEncoder};
 use http::{Response, StatusCode};
 use http_body::{Body, Frame};
 use http_body_util::combinators::UnsyncBoxBody;
@@ -15,7 +16,7 @@ use std::fmt::Debug;
 use std::io;
 use std::io::Write;
 use std::pin::Pin;
-use std::task::{ready, Context, Poll};
+use std::task::{Context, Poll, ready};
 use tracing::{error, trace};
 use zstd::stream::write::Encoder as ZstdEncoder;
 // (almost thanks and) copy from actix-http: https://github.com/actix/actix-web/blob/master/actix-http/src/encoding/encoder.rs
@@ -230,11 +231,7 @@ where
                                 return Poll::Ready(Some(Err(SendError::from(e).into())));
                             }
                         };
-                        if !bytes.is_empty() {
-                            Poll::Ready(Some(Ok(Frame::data(bytes))))
-                        } else {
-                            Poll::Ready(None)
-                        }
+                        if !bytes.is_empty() { Poll::Ready(Some(Ok(Frame::data(bytes)))) } else { Poll::Ready(None) }
                     } else {
                         Poll::Ready(None)
                     }
@@ -256,11 +253,25 @@ pub struct EncodeRequestHandler<H: RequestHandler> {
 /// A wrapper that creates `EncodeRequestHandler`.
 pub struct EncodeDecorator;
 
-impl<H: RequestHandler> Decorator<H> for EncodeDecorator {
-    type Out = EncodeRequestHandler<H>;
+impl<H: RequestHandler> RequestHandlerDecorator<H> for EncodeDecorator {
+    type Output = EncodeRequestHandler<H>;
 
-    fn decorate(&self, raw: H) -> Self::Out {
+    fn decorate(&self, raw: H) -> Self::Output {
         EncodeRequestHandler { handler: raw }
+    }
+}
+
+impl RequestHandlerDecoratorFactory for EncodeDecorator {
+    type Output<In>
+        = EncodeDecorator
+    where
+        In: RequestHandler;
+
+    fn create_decorator<In>(&self) -> Self::Output<In>
+    where
+        In: RequestHandler,
+    {
+        EncodeDecorator
     }
 }
 

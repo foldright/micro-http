@@ -11,8 +11,9 @@
 //! The Date header is added according to RFC 7231 Section 7.1.1.2
 
 use crate::date::DateService;
-use crate::decorator::Decorator;
 use crate::handler::RequestHandler;
+use crate::router::handler_decorator::RequestHandlerDecorator;
+use crate::router::handler_decorator_factory::RequestHandlerDecoratorFactory;
 use crate::{OptionReqBody, RequestContext, ResponseBody};
 use async_trait::async_trait;
 use http::{HeaderValue, Response};
@@ -21,6 +22,7 @@ use http::{HeaderValue, Response};
 ///
 /// This wrapper creates a `DateResponseHandler` that will add an RFC 7231 compliant
 /// Date header to all HTTP responses.
+#[derive(Clone)]
 pub struct DateServiceDecorator;
 
 /// A request handler that adds the Date header to responses.
@@ -28,17 +30,31 @@ pub struct DateServiceDecorator;
 /// This handler wraps another handler and adds the Date header to its responses.
 /// The Date header is generated using a shared `DateService` instance to avoid
 /// unnecessary system calls.
-pub struct DateResponseHandler<H: RequestHandler> {
+pub struct DateResponseHandler<H> {
     handler: H,
     // todo: we need to ensure data_service is singleton
     date_service: DateService,
 }
 
-impl<H: RequestHandler> Decorator<H> for DateServiceDecorator {
-    type Out = DateResponseHandler<H>;
+impl<H: RequestHandler> RequestHandlerDecorator<H> for DateServiceDecorator {
+    type Output = DateResponseHandler<H>;
 
-    fn decorate(&self, raw: H) -> Self::Out {
+    fn decorate(&self, raw: H) -> Self::Output {
         DateResponseHandler { handler: raw, date_service: DateService::new() }
+    }
+}
+
+impl RequestHandlerDecoratorFactory for DateServiceDecorator {
+    type Output<In>
+        = DateServiceDecorator
+    where
+        In: RequestHandler;
+
+    fn create_decorator<In>(&self) -> Self::Output<In>
+    where
+        In: RequestHandler,
+    {
+        DateServiceDecorator
     }
 }
 

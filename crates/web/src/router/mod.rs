@@ -1,12 +1,15 @@
 pub mod filter;
+pub mod handler_decorator;
+pub mod handler_decorator_factory;
 
 use crate::handler::RequestHandler;
 use crate::PathParams;
 
-use crate::decorator::{Decorator, DecoratorComposer, DecoratorExt, IdentityDecorator};
 use filter::{AllFilter, Filter};
 use std::collections::HashMap;
 use tracing::error;
+use crate::router::handler_decorator::{RequestHandlerDecorator};
+use crate::router::handler_decorator_factory::{IdentityRequestHandlerDecoratorFactory, RequestHandlerDecoratorFactory, RequestHandlerDecoratorFactoryComposer, RequestHandlerDecoratorFactoryExt};
 
 type RouterFilter = dyn Filter + Send + Sync + 'static;
 type InnerRouter<T> = matchit::Router<T>;
@@ -30,7 +33,7 @@ pub struct RouteResult<'router, 'req> {
 
 impl Router {
     /// Creates a new router builder with default wrappers
-    pub fn builder() -> RouterBuilder<IdentityDecorator> {
+    pub fn builder() -> RouterBuilder<IdentityRequestHandlerDecoratorFactory> {
         RouterBuilder::new()
     }
 
@@ -83,36 +86,38 @@ impl<'router, 'req> RouteResult<'router, 'req> {
     }
 }
 
-pub struct RouterBuilder<D> {
+pub struct RouterBuilder<DF> {
     data: HashMap<String, Vec<RouterItemBuilder>>,
-    decorator: D,
+    decorator_factory: DF,
 }
 
-impl RouterBuilder<IdentityDecorator> {
+impl RouterBuilder<IdentityRequestHandlerDecoratorFactory> {
     fn new() -> Self {
-        Self { data: HashMap::new(), decorator: IdentityDecorator }
+        Self { data: HashMap::new(), decorator_factory: IdentityRequestHandlerDecoratorFactory }
     }
 }
-impl<D> RouterBuilder<D> {
+impl<DF> RouterBuilder<DF> {
     pub fn route(mut self, route: impl Into<String>, item_builder: RouterItemBuilder) -> Self {
         let vec = self.data.entry(route.into()).or_default();
         vec.push(item_builder);
         self
     }
 
-    pub fn with_global_decorator<D2>(self, decorator: D2) -> RouterBuilder<DecoratorComposer<D, D2>>
+    pub fn with_global_decorator<DF2>(self, factory: DF2) -> RouterBuilder<RequestHandlerDecoratorFactoryComposer<DF, DF2>>
     where
-        D: Decorator<Box<dyn RequestHandler>>,
-        D2: Decorator<D::Out>,
+        DF: RequestHandlerDecoratorFactory,
+        DF2: RequestHandlerDecoratorFactory,
     {
-        RouterBuilder { data: self.data, decorator: self.decorator.and_then(decorator) }
+        RouterBuilder {
+            data: self.data,
+            decorator_factory: self.decorator_factory.and_then(factory),
+        }
     }
 
     /// Builds the router from the accumulated routes and wrappers
     pub fn build(self) -> Router
     where
-        D: Decorator<Box<dyn RequestHandler>>,
-        <D as Decorator<Box<dyn RequestHandler>>>::Out: RequestHandler + 'static,
+        DF: RequestHandlerDecoratorFactory,
     {
         let mut inner_router = InnerRouter::new();
 
@@ -121,7 +126,8 @@ impl<D> RouterBuilder<D> {
                 .into_iter()
                 .map(|item_builder| item_builder.build())
                 .map(|item| {
-                    let handler = self.decorator.decorate(item.handler);
+                    let decorator = self.decorator_factory.create_decorator();
+                    let handler = decorator.decorate(item.handler);
                     RouterItem { handler: Box::new(handler), ..item }
                 })
                 .collect::<Vec<_>>();

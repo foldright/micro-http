@@ -107,7 +107,6 @@ mod server;
 // Public modules
 pub mod responder;
 pub mod date;
-pub mod decorator;
 pub mod encoding;
 pub mod extract;
 pub mod router;
