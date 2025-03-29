@@ -47,6 +47,7 @@ async-trait.workspace = true
 trait-variant.workspace = true
 dynosaur.workspace = true
 arc-swap.workspace = true
+once_cell.workspace = true
 
 higher-kinded-types.workspace = true
 

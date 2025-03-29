@@ -1,7 +1,7 @@
 use crate::encoding::Writer;
 use crate::handler::RequestHandler;
-use crate::handler::handler_decorator::RequestHandlerDecorator;
-use crate::handler::handler_decorator_factory::RequestHandlerDecoratorFactory;
+use crate::handler::handler_decorator::HandlerDecorator;
+use crate::handler::handler_decorator_factory::HandlerDecoratorFactory;
 use crate::{OptionReqBody, RequestContext, ResponseBody};
 use async_trait::async_trait;
 use bytes::{Buf, Bytes};
@@ -253,7 +253,7 @@ pub struct EncodeRequestHandler<H: RequestHandler> {
 /// A wrapper that creates `EncodeRequestHandler`.
 pub struct EncodeDecorator;
 
-impl<H: RequestHandler> RequestHandlerDecorator<H> for EncodeDecorator {
+impl<H: RequestHandler> HandlerDecorator<H> for EncodeDecorator {
     type Output = EncodeRequestHandler<H>;
 
     fn decorate(&self, raw: H) -> Self::Output {
@@ -261,7 +261,7 @@ impl<H: RequestHandler> RequestHandlerDecorator<H> for EncodeDecorator {
     }
 }
 
-impl RequestHandlerDecoratorFactory for EncodeDecorator {
+impl HandlerDecoratorFactory for EncodeDecorator {
     type Output<In>
         = EncodeDecorator
     where

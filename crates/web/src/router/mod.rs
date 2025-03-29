@@ -6,8 +6,8 @@ use crate::PathParams;
 use filter::{AllFilter, Filter};
 use std::collections::HashMap;
 use tracing::error;
-use crate::handler::handler_decorator::RequestHandlerDecorator;
-use crate::handler::handler_decorator_factory::{IdentityRequestHandlerDecoratorFactory, RequestHandlerDecoratorFactory, RequestHandlerDecoratorFactoryComposer, RequestHandlerDecoratorFactoryExt};
+use crate::handler::handler_decorator::HandlerDecorator;
+use crate::handler::handler_decorator_factory::{IdentityHandlerDecoratorFactory, HandlerDecoratorFactory, HandlerDecoratorFactoryComposer, HandlerDecoratorFactoryExt};
 
 type RouterFilter = dyn Filter + Send + Sync + 'static;
 type InnerRouter<T> = matchit::Router<T>;
@@ -31,7 +31,7 @@ pub struct RouteResult<'router, 'req> {
 
 impl Router {
     /// Creates a new router builder with default wrappers
-    pub fn builder() -> RouterBuilder<IdentityRequestHandlerDecoratorFactory> {
+    pub fn builder() -> RouterBuilder<IdentityHandlerDecoratorFactory> {
         RouterBuilder::new()
     }
 
@@ -89,9 +89,9 @@ pub struct RouterBuilder<DF> {
     decorator_factory: DF,
 }
 
-impl RouterBuilder<IdentityRequestHandlerDecoratorFactory> {
+impl RouterBuilder<IdentityHandlerDecoratorFactory> {
     fn new() -> Self {
-        Self { data: HashMap::new(), decorator_factory: IdentityRequestHandlerDecoratorFactory }
+        Self { data: HashMap::new(), decorator_factory: IdentityHandlerDecoratorFactory }
     }
 }
 impl<DF> RouterBuilder<DF> {
@@ -101,10 +101,10 @@ impl<DF> RouterBuilder<DF> {
         self
     }
 
-    pub fn with_global_decorator<DF2>(self, factory: DF2) -> RouterBuilder<RequestHandlerDecoratorFactoryComposer<DF, DF2>>
+    pub fn with_global_decorator<DF2>(self, factory: DF2) -> RouterBuilder<HandlerDecoratorFactoryComposer<DF, DF2>>
     where
-        DF: RequestHandlerDecoratorFactory,
-        DF2: RequestHandlerDecoratorFactory,
+        DF: HandlerDecoratorFactory,
+        DF2: HandlerDecoratorFactory,
     {
         RouterBuilder {
             data: self.data,
@@ -115,7 +115,7 @@ impl<DF> RouterBuilder<DF> {
     /// Builds the router from the accumulated routes and wrappers
     pub fn build(self) -> Router
     where
-        DF: RequestHandlerDecoratorFactory,
+        DF: HandlerDecoratorFactory,
     {
         let mut inner_router = InnerRouter::new();
 

@@ -7,6 +7,7 @@
 use arc_swap::ArcSwap;
 use http::HeaderValue;
 use httpdate::fmt_http_date;
+use once_cell::sync::Lazy;
 use std::sync::Arc;
 use std::time::{Duration, SystemTime};
 
@@ -24,7 +25,21 @@ pub struct DateService {
     handle: tokio::task::JoinHandle<()>,
 }
 
+static DATE_SERVICE: Lazy<DateService> = Lazy::new(|| DateService::new_with_update_interval(Duration::from_millis(800)));
+
 impl DateService {
+
+    /// Returns a reference to the global singleton instance of `DateService`.
+    ///
+    /// This method provides access to a shared `DateService` instance that can be used
+    /// across the application to efficiently handle HTTP date headers.
+    ///
+    /// # Returns
+    /// A static reference to the global `DateService` instance.
+    pub fn get_global_instance() -> &'static DateService {
+        &DATE_SERVICE
+    }
+
     /// Creates a new `DateService` instance.
     ///
     /// This method initializes the service with the current system time and starts
@@ -32,7 +47,7 @@ impl DateService {
     ///
     /// # Returns
     /// Returns a new `DateService` instance with the background update task running.
-    pub(crate) fn new() -> Self {
+    fn new_with_update_interval(update_interval: Duration) -> Self {
         let system_time = SystemTime::now();
         let http_date = fmt_http_date(system_time);
         let date_value = HeaderValue::try_from(http_date).expect("http_date should not fail");
@@ -42,7 +57,7 @@ impl DateService {
 
         let handle = tokio::spawn(async move {
             loop {
-                tokio::time::sleep(Duration::from_millis(700)).await;
+                tokio::time::sleep(update_interval).await;
                 let system_time = SystemTime::now();
                 let http_date = fmt_http_date(system_time);
                 let date_value = HeaderValue::try_from(http_date).expect("http_date should not fail");

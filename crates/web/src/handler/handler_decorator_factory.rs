@@ -1,8 +1,8 @@
 use crate::handler::RequestHandler;
-use crate::handler::handler_decorator::{IdentityRequestHandlerDecorator, RequestHandlerDecorator, RequestHandlerDecoratorComposer};
+use crate::handler::handler_decorator::{IdentityHandlerDecorator, HandlerDecorator, HandlerDecoratorComposer};
 
-pub trait RequestHandlerDecoratorFactory: Sized {
-    type Output<In>: RequestHandlerDecorator<In> + 'static
+pub trait HandlerDecoratorFactory: Sized {
+    type Output<In>: HandlerDecorator<In> + 'static
     where
         In: RequestHandler;
 
@@ -11,24 +11,24 @@ pub trait RequestHandlerDecoratorFactory: Sized {
         In: RequestHandler;
 }
 
-pub trait RequestHandlerDecoratorFactoryExt: RequestHandlerDecoratorFactory {
-    fn and_then<F: RequestHandlerDecoratorFactory>(self, factory: F) -> RequestHandlerDecoratorFactoryComposer<Self, F> {
-        RequestHandlerDecoratorFactoryComposer { factory_1: self, factory_2: factory }
+pub trait HandlerDecoratorFactoryExt: HandlerDecoratorFactory {
+    fn and_then<F: HandlerDecoratorFactory>(self, factory: F) -> HandlerDecoratorFactoryComposer<Self, F> {
+        HandlerDecoratorFactoryComposer { factory_1: self, factory_2: factory }
     }
 
-    fn compose<F: RequestHandlerDecoratorFactory>(self, factory: F) -> RequestHandlerDecoratorFactoryComposer<F, Self> {
-        RequestHandlerDecoratorFactoryComposer { factory_1: factory, factory_2: self }
+    fn compose<F: HandlerDecoratorFactory>(self, factory: F) -> HandlerDecoratorFactoryComposer<F, Self> {
+        HandlerDecoratorFactoryComposer { factory_1: factory, factory_2: self }
     }
 }
 
-impl <T: RequestHandlerDecoratorFactory> RequestHandlerDecoratorFactoryExt for T {}
+impl <T: HandlerDecoratorFactory> HandlerDecoratorFactoryExt for T {}
 
 #[derive(Debug, Default, Copy, Clone)]
-pub struct IdentityRequestHandlerDecoratorFactory;
+pub struct IdentityHandlerDecoratorFactory;
 
-impl RequestHandlerDecoratorFactory for IdentityRequestHandlerDecoratorFactory {
+impl HandlerDecoratorFactory for IdentityHandlerDecoratorFactory {
     type Output<In>
-        = IdentityRequestHandlerDecorator
+        = IdentityHandlerDecorator
     where
         In: RequestHandler;
 
@@ -36,27 +36,27 @@ impl RequestHandlerDecoratorFactory for IdentityRequestHandlerDecoratorFactory {
     where
         In: RequestHandler,
     {
-        IdentityRequestHandlerDecorator
+        IdentityHandlerDecorator
     }
 }
 
-pub struct RequestHandlerDecoratorFactoryComposer<F1, F2> {
+pub struct HandlerDecoratorFactoryComposer<F1, F2> {
     factory_1: F1,
     factory_2: F2,
 }
 
-impl<F1, F2> RequestHandlerDecoratorFactory for RequestHandlerDecoratorFactoryComposer<F1, F2>
+impl<F1, F2> HandlerDecoratorFactory for HandlerDecoratorFactoryComposer<F1, F2>
 where
-    F1: RequestHandlerDecoratorFactory,
-    F2: RequestHandlerDecoratorFactory,
+    F1: HandlerDecoratorFactory,
+    F2: HandlerDecoratorFactory,
 {
     // F1::Output<In> means: first factory's output, which is the first Decorator
-    // F2::Output<<F1::Output<In> as RequestHandlerDecorator<In>>::Out> means:
-    // 1.  `<F1::Output<In> as RequestHandlerDecorator<In>` means: the first Decorator
-    // 2.  `<F1::Output<In> as RequestHandlerDecorator<In>>::Out` means: the first Decorator's result
-    // 3.  `Output<<F1::Output<In> as RequestHandlerDecorator<In>>::Out>` means: the second Decorator's param is the first Decorator's result
+    // F2::Output<<F1::Output<In> as HandlerDecorator<In>>::Out> means:
+    // 1.  `<F1::Output<In> as HandlerDecorator<In>` means: the first Decorator
+    // 2.  `<F1::Output<In> as HandlerDecorator<In>>::Out` means: the first Decorator's result
+    // 3.  `Output<<F1::Output<In> as HandlerDecorator<In>>::Out>` means: the second Decorator's param is the first Decorator's result
     type Output<In>
-        = RequestHandlerDecoratorComposer<F1::Output<In>, F2::Output<<F1::Output<In> as RequestHandlerDecorator<In>>::Output>>
+        = HandlerDecoratorComposer<F1::Output<In>, F2::Output<<F1::Output<In> as HandlerDecorator<In>>::Output>>
     where
         In: RequestHandler;
 
@@ -67,6 +67,6 @@ where
         let decorator_1 = self.factory_1.create_decorator();
         let decorator_2 = self.factory_2.create_decorator();
 
-        RequestHandlerDecoratorComposer::new(decorator_1, decorator_2)
+        HandlerDecoratorComposer::new(decorator_1, decorator_2)
     }
 }

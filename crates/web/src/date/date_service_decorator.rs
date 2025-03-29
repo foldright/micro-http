@@ -12,8 +12,8 @@
 
 use crate::date::DateService;
 use crate::handler::RequestHandler;
-use crate::handler::handler_decorator::RequestHandlerDecorator;
-use crate::handler::handler_decorator_factory::RequestHandlerDecoratorFactory;
+use crate::handler::handler_decorator::HandlerDecorator;
+use crate::handler::handler_decorator_factory::HandlerDecoratorFactory;
 use crate::{OptionReqBody, RequestContext, ResponseBody};
 use async_trait::async_trait;
 use http::{HeaderValue, Response};
@@ -33,18 +33,18 @@ pub struct DateServiceDecorator;
 pub struct DateResponseHandler<H> {
     handler: H,
     // todo: we need to ensure data_service is singleton
-    date_service: DateService,
+    date_service: &'static DateService,
 }
 
-impl<H: RequestHandler> RequestHandlerDecorator<H> for DateServiceDecorator {
+impl<H: RequestHandler> HandlerDecorator<H> for DateServiceDecorator {
     type Output = DateResponseHandler<H>;
 
     fn decorate(&self, raw: H) -> Self::Output {
-        DateResponseHandler { handler: raw, date_service: DateService::new() }
+        DateResponseHandler { handler: raw, date_service: DateService::get_global_instance() }
     }
 }
 
-impl RequestHandlerDecoratorFactory for DateServiceDecorator {
+impl HandlerDecoratorFactory for DateServiceDecorator {
     type Output<In>
         = DateServiceDecorator
     where
