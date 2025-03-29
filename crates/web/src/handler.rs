@@ -16,6 +16,9 @@ use http::Response;
 use crate::extract::FromRequest;
 use std::marker::PhantomData;
 
+pub mod handler_decorator;
+pub mod handler_decorator_factory;
+
 /// Trait for types that can handle HTTP requests.
 ///
 /// Implementors must provide an `invoke` method that processes the request

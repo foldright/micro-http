@@ -1,6 +1,4 @@
 pub mod filter;
-pub mod handler_decorator;
-pub mod handler_decorator_factory;
 
 use crate::handler::RequestHandler;
 use crate::PathParams;
@@ -8,8 +6,8 @@ use crate::PathParams;
 use filter::{AllFilter, Filter};
 use std::collections::HashMap;
 use tracing::error;
-use crate::router::handler_decorator::{RequestHandlerDecorator};
-use crate::router::handler_decorator_factory::{IdentityRequestHandlerDecoratorFactory, RequestHandlerDecoratorFactory, RequestHandlerDecoratorFactoryComposer, RequestHandlerDecoratorFactoryExt};
+use crate::handler::handler_decorator::RequestHandlerDecorator;
+use crate::handler::handler_decorator_factory::{IdentityRequestHandlerDecoratorFactory, RequestHandlerDecoratorFactory, RequestHandlerDecoratorFactoryComposer, RequestHandlerDecoratorFactoryExt};
 
 type RouterFilter = dyn Filter + Send + Sync + 'static;
 type InnerRouter<T> = matchit::Router<T>;

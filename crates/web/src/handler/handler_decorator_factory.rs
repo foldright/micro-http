@@ -1,5 +1,5 @@
 use crate::handler::RequestHandler;
-use crate::router::handler_decorator::{IdentityRequestHandlerDecorator, RequestHandlerDecorator, RequestHandlerDecoratorComposer};
+use crate::handler::handler_decorator::{IdentityRequestHandlerDecorator, RequestHandlerDecorator, RequestHandlerDecoratorComposer};
 
 pub trait RequestHandlerDecoratorFactory: Sized {
     type Output<In>: RequestHandlerDecorator<In> + 'static
