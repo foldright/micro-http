@@ -6,6 +6,8 @@ pub trait HandlerDecorator<In: RequestHandler> {
     fn decorate(&self, handler: In) -> Self::Output;
 }
 
+
+#[allow(unused)]
 pub trait HandlerDecoratorExt<In: RequestHandler>: HandlerDecorator<In> {
     fn and_then<D>(self, decorator: D) -> HandlerDecoratorComposer<Self, D>
     where

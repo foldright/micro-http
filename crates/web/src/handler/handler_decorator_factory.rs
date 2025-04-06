@@ -16,6 +16,7 @@ pub trait HandlerDecoratorFactoryExt: HandlerDecoratorFactory {
         HandlerDecoratorFactoryComposer { factory_1: self, factory_2: factory }
     }
 
+    #[allow(unused)]
     fn compose<F: HandlerDecoratorFactory>(self, factory: F) -> HandlerDecoratorFactoryComposer<F, Self> {
         HandlerDecoratorFactoryComposer { factory_1: factory, factory_2: self }
     }
