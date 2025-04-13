@@ -7,6 +7,8 @@
 //! The [`Responder`] trait is a key part of the response pipeline, allowing handler
 //! return values to be automatically converted into proper HTTP responses.
 
+pub mod sse;
+
 use crate::body::ResponseBody;
 use crate::RequestContext;
 use http::{Response, StatusCode};
