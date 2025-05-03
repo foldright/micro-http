@@ -10,10 +10,10 @@ async fn sse_process() -> SseStream<impl Stream<Item = Event>> {
     tokio::spawn(async move {
         for i in 0..5 {
             tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
-            emitter.send(Event::from_data(format!("{}", i))).await;
+            let _ = emitter.send(Event::from_data(format!("{}", i))).await;
         }
 
-        emitter.close().await;
+        let _ = emitter.close().await;
     });
 
     stream
