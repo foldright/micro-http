@@ -16,7 +16,7 @@ rust-version = "1.85"
 http = "1.2.0"
 http-body = "1.0.1"
 http-body-util = "0.1.2"
-httpdate = "1.0.3"
+faf-http-date = "0.1"
 mime = "0.3.17"
 
 httparse = "1.10.0"

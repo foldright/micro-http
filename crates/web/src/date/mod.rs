@@ -5,11 +5,11 @@
 //! date string formatting operations in high-concurrency scenarios.
 
 use arc_swap::ArcSwap;
+use bytes::Bytes;
 use http::HeaderValue;
-use httpdate::fmt_http_date;
 use once_cell::sync::Lazy;
 use std::sync::Arc;
-use std::time::{Duration, SystemTime};
+use std::time::Duration;
 
 mod date_service_decorator;
 
@@ -21,7 +21,7 @@ pub use date_service_decorator::DateServiceDecorator;
 /// providing an efficient way to access formatted HTTP date strings without
 /// formatting them on every request.
 pub struct DateService {
-    current: Arc<ArcSwap<(SystemTime, HeaderValue)>>,
+    current: Arc<ArcSwap<Bytes>>,
     handle: tokio::task::JoinHandle<()>,
 }
 
@@ -48,20 +48,20 @@ impl DateService {
     /// # Returns
     /// Returns a new `DateService` instance with the background update task running.
     fn new_with_update_interval(update_interval: Duration) -> Self {
-        let system_time = SystemTime::now();
-        let http_date = fmt_http_date(system_time);
-        let date_value = HeaderValue::try_from(http_date).expect("http_date should not fail");
+        let mut buf = faf_http_date::get_date_buff_no_key();
+        faf_http_date::get_date_no_key(&mut buf);
+        let bytes = Bytes::from_owner(buf);
 
-        let current = Arc::new(ArcSwap::from_pointee((system_time, date_value)));
+        let current = Arc::new(ArcSwap::from_pointee(bytes));
         let current_arc = Arc::clone(&current);
 
         let handle = tokio::spawn(async move {
             loop {
                 tokio::time::sleep(update_interval).await;
-                let system_time = SystemTime::now();
-                let http_date = fmt_http_date(system_time);
-                let date_value = HeaderValue::try_from(http_date).expect("http_date should not fail");
-                current_arc.store(Arc::new((system_time, date_value)));
+                let mut buf = faf_http_date::get_date_buff_no_key();
+                faf_http_date::get_date_no_key(&mut buf);
+                let bytes = Bytes::from_owner(buf);
+                current_arc.store(Arc::new(bytes));
             }
         });
 
@@ -74,10 +74,12 @@ impl DateService {
     /// the internal synchronization mechanisms.
     pub(crate) fn with_http_date<F>(&self, mut f: F)
     where
-        F: FnMut(&HeaderValue),
+        F: FnMut(HeaderValue),
     {
-        let date = &self.current.load().1;
-        f(date)
+        let date = self.current.load().as_ref().clone();
+        // SAFE: date is created by faf_http_date, it's valid
+        let header_value = unsafe{ HeaderValue::from_maybe_shared_unchecked(date) };
+        f(header_value)
     }
 }
 
