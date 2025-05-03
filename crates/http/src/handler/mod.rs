@@ -79,8 +79,7 @@ where
 ///
 /// # Arguments
 ///
-/// * `f` - An async function that takes a [`Request`] and returns a [`Future`]
-///         resolving to a [`Response`]
+/// * `f` - An async function that takes a [`Request`] and returns a [`Future`] resolving to a [`Response`]
 ///
 /// # Examples
 ///
