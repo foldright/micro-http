@@ -9,8 +9,8 @@
 
 pub mod sse;
 
-use crate::body::ResponseBody;
 use crate::RequestContext;
+use crate::body::ResponseBody;
 use http::{Response, StatusCode};
 use std::convert::Infallible;
 

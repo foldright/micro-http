@@ -7,13 +7,13 @@
 //! indicating the size of each chunk before its data.
 
 use crate::protocol::{ParseError, PayloadItem};
+use ChunkedState::*;
 use bytes::{Buf, Bytes, BytesMut};
 use std::io;
 use std::io::ErrorKind;
 use std::task::Poll;
 use tokio_util::codec::Decoder;
 use tracing::trace;
-use ChunkedState::*;
 
 /// A decoder for handling HTTP chunked transfer encoding.
 ///
@@ -299,11 +299,7 @@ impl ChunkedState {
         let bytes = src.split_to(read_size).freeze();
         *buf = Some(bytes);
 
-        if *size_per_chunk > 0 {
-            Poll::Ready(Ok(Body))
-        } else {
-            Poll::Ready(Ok(BodyCr))
-        }
+        if *size_per_chunk > 0 { Poll::Ready(Ok(Body)) } else { Poll::Ready(Ok(BodyCr)) }
     }
 
     /// Validates the CR byte after chunk data.

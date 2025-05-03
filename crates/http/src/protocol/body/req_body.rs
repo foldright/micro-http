@@ -1,4 +1,4 @@
-use crate::protocol::body::body_channel::{create_body_sender_receiver, BodyReceiver, BodySender};
+use crate::protocol::body::body_channel::{BodyReceiver, BodySender, create_body_sender_receiver};
 use crate::protocol::{Message, ParseError, PayloadSize, RequestHeader};
 use bytes::Bytes;
 use futures::Stream;
@@ -6,12 +6,12 @@ use http_body::{Body, Frame, SizeHint};
 use std::pin::Pin;
 use std::task::{Context, Poll};
 
-pub struct  ReqBody {
+pub struct ReqBody {
     inner: ReqBodyRepr,
 }
 pub(crate) enum ReqBodyRepr {
     Receiver(BodyReceiver),
-    NoBody,  
+    NoBody,
 }
 
 impl ReqBody {

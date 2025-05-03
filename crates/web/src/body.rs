@@ -108,11 +108,7 @@ impl From<Option<Bytes>> for ResponseBody {
 
 impl From<&'static str> for ResponseBody {
     fn from(value: &'static str) -> Self {
-        if value.is_empty() {
-            Self::empty()
-        } else {
-            Self::once(value.as_bytes().into())
-        }
+        if value.is_empty() { Self::empty() } else { Self::once(value.as_bytes().into()) }
     }
 }
 

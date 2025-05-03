@@ -15,7 +15,7 @@ use crate::protocol::{PayloadSize, ResponseHead, SendError};
 
 use bytes::{BufMut, BytesMut};
 
-use http::{header, HeaderValue, Version};
+use http::{HeaderValue, Version, header};
 use std::io;
 use std::io::{ErrorKind, Write};
 use tokio_util::codec::Encoder;

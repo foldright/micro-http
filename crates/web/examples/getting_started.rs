@@ -16,8 +16,8 @@ use http::Method;
 use micro_web::encoding::encoder::EncodeDecorator;
 use micro_web::extract::{Form, Json};
 use micro_web::router::filter::header;
-use micro_web::router::{get, post, Router};
-use micro_web::{handler_fn, Server};
+use micro_web::router::{Router, get, post};
+use micro_web::{Server, handler_fn};
 use serde::Deserialize;
 
 /// User struct for demonstrating data extraction

@@ -30,9 +30,9 @@
 //! }
 //! ```
 
+use crate::RequestContext;
 use crate::body::OptionReqBody;
 use crate::extract::from_request::FromRequest;
-use crate::RequestContext;
 use http::{HeaderMap, Method};
 use micro_http::protocol::{ParseError, RequestHeader};
 

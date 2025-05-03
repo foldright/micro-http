@@ -105,18 +105,18 @@ mod request;
 mod server;
 
 // Public modules
-pub mod responder;
 pub mod date;
 pub mod encoding;
 pub mod extract;
+pub mod responder;
 pub mod router;
 
 // Public re-exports
 pub use body::OptionReqBody;
 pub use body::ResponseBody;
 pub use fn_trait::FnTrait;
-pub use handler::handler_fn;
 pub use handler::FnHandler;
+pub use handler::handler_fn;
 pub use request::PathParams;
 pub use request::RequestContext;
 pub use server::Server;

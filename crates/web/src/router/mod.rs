@@ -1,13 +1,15 @@
 pub mod filter;
 
-use crate::handler::RequestHandler;
 use crate::PathParams;
+use crate::handler::RequestHandler;
 
+use crate::handler::handler_decorator::HandlerDecorator;
+use crate::handler::handler_decorator_factory::{
+    HandlerDecoratorFactory, HandlerDecoratorFactoryComposer, HandlerDecoratorFactoryExt, IdentityHandlerDecoratorFactory,
+};
 use filter::{AllFilter, Filter};
 use std::collections::HashMap;
 use tracing::error;
-use crate::handler::handler_decorator::HandlerDecorator;
-use crate::handler::handler_decorator_factory::{IdentityHandlerDecoratorFactory, HandlerDecoratorFactory, HandlerDecoratorFactoryComposer, HandlerDecoratorFactoryExt};
 
 type RouterFilter = dyn Filter + Send + Sync + 'static;
 type InnerRouter<T> = matchit::Router<T>;
@@ -106,10 +108,7 @@ impl<DF> RouterBuilder<DF> {
         DF: HandlerDecoratorFactory,
         DF2: HandlerDecoratorFactory,
     {
-        RouterBuilder {
-            data: self.data,
-            decorator_factory: self.decorator_factory.and_then(factory),
-        }
+        RouterBuilder { data: self.data, decorator_factory: self.decorator_factory.and_then(factory) }
     }
 
     /// Builds the router from the accumulated routes and wrappers
@@ -177,8 +176,8 @@ impl RouterItemBuilder {
 #[cfg(test)]
 mod tests {
     use super::filter::header;
-    use super::{get, post, Router};
-    use crate::{handler_fn, PathParams, RequestContext};
+    use super::{Router, get, post};
+    use crate::{PathParams, RequestContext, handler_fn};
     use http::{HeaderValue, Method, Request};
     use micro_http::protocol::RequestHeader;
 

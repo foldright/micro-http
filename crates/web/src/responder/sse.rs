@@ -1,7 +1,7 @@
 use crate::responder::Responder;
 use crate::{RequestContext, ResponseBody};
 use bytes::Bytes;
-use futures::channel::mpsc::{channel, SendError};
+use futures::channel::mpsc::{SendError, channel};
 use futures::{Sink, SinkExt, Stream, StreamExt};
 use http::{HeaderValue, Response, StatusCode};
 use http_body::Frame;
@@ -11,7 +11,6 @@ use std::time::Duration;
 pub struct SseStream<S> {
     stream: S,
 }
-
 
 pub struct SseEmitter<S> {
     sink: S,
@@ -35,7 +34,10 @@ where
     }
 }
 
-impl<S> SseEmitter<S> where S: Sink<Event, Error = SendError> + Unpin {
+impl<S> SseEmitter<S>
+where
+    S: Sink<Event, Error = SendError> + Unpin,
+{
     pub async fn send(&mut self, event: Event) -> Result<(), SendError> {
         self.sink.send(event).await
     }
@@ -77,9 +79,11 @@ impl Event {
     }
 }
 
-impl<S> Responder for SseStream<S> where S: Stream<Item = Event> + Send + 'static {
+impl<S> Responder for SseStream<S>
+where
+    S: Stream<Item = Event> + Send + 'static,
+{
     fn response_to(self, _req: &RequestContext) -> Response<ResponseBody> {
-
         let mut builder = Response::builder();
         let headers = builder.headers_mut().unwrap();
         headers.reserve(8);
@@ -87,35 +91,32 @@ impl<S> Responder for SseStream<S> where S: Stream<Item = Event> + Send + 'stati
         headers.insert(http::header::CACHE_CONTROL, HeaderValue::from_str("no-cache").unwrap());
         headers.insert(http::header::CONNECTION, HeaderValue::from_str("keep-alive").unwrap());
 
-        let event_stream = self.stream.map(|event| {
-           match event {
-               Event::Message(Message {id, name, data}) => {
-                   let mut string = String::with_capacity(data.len());
+        let event_stream = self.stream.map(|event| match event {
+            Event::Message(Message { id, name, data }) => {
+                let mut string = String::with_capacity(data.len());
 
-                   if let Some(i) = id {
-                       string.push_str(&format!("id: {}\n", i));
-                   }
+                if let Some(i) = id {
+                    string.push_str(&format!("id: {}\n", i));
+                }
 
-                   if let Some(n) = name {
-                       string.push_str(&format!("event: {}\n", n));
-                   }
+                if let Some(n) = name {
+                    string.push_str(&format!("event: {}\n", n));
+                }
 
-                   let split = data.lines();
-                   
-                   for s  in split {
-                       string.push_str(&format!("data: {}\n", s));
-                   }
+                let split = data.lines();
 
-                   string.push('\n');
-                   Ok(Frame::data(Bytes::from(string)))
-               },
-               Event::Retry(duration) => Ok(Frame::data(Bytes::from(format!("retry: {}\n\n", duration.as_millis())))),
-           }
+                for s in split {
+                    string.push_str(&format!("data: {}\n", s));
+                }
+
+                string.push('\n');
+                Ok(Frame::data(Bytes::from(string)))
+            }
+            Event::Retry(duration) => Ok(Frame::data(Bytes::from(format!("retry: {}\n\n", duration.as_millis())))),
         });
 
         let stream_body = StreamBody::new(event_stream);
 
         builder.status(StatusCode::OK).body(ResponseBody::stream(stream_body)).unwrap()
-
     }
 }

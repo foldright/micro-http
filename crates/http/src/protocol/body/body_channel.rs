@@ -1,6 +1,6 @@
 use crate::protocol::{Message, ParseError, PayloadItem, PayloadSize, RequestHeader};
 use bytes::Bytes;
-use futures::{channel::mpsc, SinkExt, Stream, StreamExt};
+use futures::{SinkExt, Stream, StreamExt, channel::mpsc};
 use http_body::{Body, Frame, SizeHint};
 use std::future::Future;
 use std::pin::Pin;

@@ -76,11 +76,7 @@ impl<'server, 'req> PathParams<'server, 'req> {
     /// If the params are empty, returns an empty PathParams instance
     #[inline]
     fn new(params: Params<'server, 'req>) -> Self {
-        if params.is_empty() {
-            Self::empty()
-        } else {
-            Self { kind: PathParamsKind::Params(params) }
-        }
+        if params.is_empty() { Self::empty() } else { Self { kind: PathParamsKind::Params(params) } }
     }
 
     /// Creates an empty PathParams instance with no parameters

@@ -8,10 +8,7 @@ static SMALL_HEADER: TestFile = TestFile::new("get_small.txt", include_str!("../
 static LARGE_HEADER: TestFile = TestFile::new("get_large.txt", include_str!("../resources/request/get_large.txt"));
 
 fn create_test_cases() -> Vec<TestCase> {
-    vec![
-        TestCase::normal("small_header_decoder", SMALL_HEADER.clone()),
-        TestCase::normal("large_header_decoder", LARGE_HEADER.clone())
-    ]
+    vec![TestCase::normal("small_header_decoder", SMALL_HEADER.clone()), TestCase::normal("large_header_decoder", LARGE_HEADER.clone())]
 }
 
 fn benchmark_request_decoder(criterion: &mut Criterion) {

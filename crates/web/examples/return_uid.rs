@@ -1,7 +1,7 @@
 use micro_web::date::DateServiceDecorator;
-use micro_web::router::{get, post, Router};
-use micro_web::{handler_fn, responder, PathParams, Server};
 use micro_web::responder::Responder;
+use micro_web::router::{Router, get, post};
+use micro_web::{PathParams, Server, handler_fn, responder};
 
 async fn empty_body() -> &'static str {
     ""

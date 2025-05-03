@@ -1,12 +1,12 @@
 use bytes::Bytes;
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
+use criterion::{Criterion, black_box, criterion_group, criterion_main};
 use futures::executor::block_on;
 use http::{Request, Response, StatusCode};
 use micro_http::handler::make_handler;
 use micro_http::{
     codec::{RequestDecoder, ResponseEncoder},
     connection::HttpConnection,
-    protocol::{body::ReqBody, Message, PayloadSize, ResponseHead},
+    protocol::{Message, PayloadSize, ResponseHead, body::ReqBody},
 };
 use std::{
     error::Error,

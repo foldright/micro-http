@@ -11,9 +11,9 @@
 //! The Date header is added according to RFC 7231 Section 7.1.1.2
 
 use crate::date::DateService;
+use crate::handler::RequestHandler;
 use crate::handler::handler_decorator::HandlerDecorator;
 use crate::handler::handler_decorator_factory::HandlerDecoratorFactory;
-use crate::handler::RequestHandler;
 use crate::{OptionReqBody, RequestContext, ResponseBody};
 use async_trait::async_trait;
 use http::Response;

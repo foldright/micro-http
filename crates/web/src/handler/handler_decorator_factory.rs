@@ -1,5 +1,5 @@
 use crate::handler::RequestHandler;
-use crate::handler::handler_decorator::{IdentityHandlerDecorator, HandlerDecorator, HandlerDecoratorComposer};
+use crate::handler::handler_decorator::{HandlerDecorator, HandlerDecoratorComposer, IdentityHandlerDecorator};
 
 pub trait HandlerDecoratorFactory: Sized {
     type Output<In>: HandlerDecorator<In> + 'static
@@ -22,7 +22,7 @@ pub trait HandlerDecoratorFactoryExt: HandlerDecoratorFactory {
     }
 }
 
-impl <T: HandlerDecoratorFactory> HandlerDecoratorFactoryExt for T {}
+impl<T: HandlerDecoratorFactory> HandlerDecoratorFactoryExt for T {}
 
 #[derive(Debug, Default, Copy, Clone)]
 pub struct IdentityHandlerDecoratorFactory;

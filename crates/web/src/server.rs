@@ -33,18 +33,18 @@
 
 use crate::handler::RequestHandler;
 use crate::router::Router;
-use crate::{handler_fn, OptionReqBody, RequestContext, ResponseBody};
+use crate::{OptionReqBody, RequestContext, ResponseBody, handler_fn};
 use http::{Request, Response, StatusCode};
 use micro_http::connection::HttpConnection;
 use micro_http::handler::Handler;
-use micro_http::protocol::body::ReqBody;
 use micro_http::protocol::RequestHeader;
+use micro_http::protocol::body::ReqBody;
 use std::error::Error;
 use std::net::{SocketAddr, ToSocketAddrs};
 use std::sync::Arc;
 use thiserror::Error;
 use tokio::net::TcpListener;
-use tracing::{error, info, warn, Level};
+use tracing::{Level, error, info, warn};
 use tracing_subscriber::FmtSubscriber;
 
 /// Builder for configuring and constructing a [`Server`] instance.

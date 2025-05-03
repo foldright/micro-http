@@ -80,10 +80,11 @@ impl Decoder for HeaderDecoder {
     /// - Headers contain invalid characters
     fn decode(&mut self, src: &mut BytesMut) -> Result<Option<Self::Item>, Self::Error> {
         // Fast path: return early if buffer is empty or too small
-        if src.len() < 14 {  // Minimum valid HTTP request needs at least "GET / HTTP/1.1\r\n\r\n"
+        if src.len() < 14 {
+            // Minimum valid HTTP request needs at least "GET / HTTP/1.1\r\n\r\n"
             return Ok(None);
         }
-        
+
         // Create an empty HTTP request parser and uninitialized headers array
         let mut req = httparse::Request::new(&mut []);
         let mut headers: [MaybeUninit<httparse::Header>; MAX_HEADER_NUM] = unsafe { MaybeUninit::uninit().assume_init() };

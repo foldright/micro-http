@@ -75,14 +75,9 @@ impl RequestHeader {
     /// - OPTIONS
     /// - CONNECT
     pub fn need_body(&self) -> bool {
-        !matches!(self.method(),
-            &Method::GET |
-            &Method::HEAD |
-            &Method::DELETE |
-            &Method::OPTIONS |
-            &Method::CONNECT |
-            &Method::TRACE |
-            &Method::PATCH
+        !matches!(
+            self.method(),
+            &Method::GET | &Method::HEAD | &Method::DELETE | &Method::OPTIONS | &Method::CONNECT | &Method::TRACE | &Method::PATCH
         )
     }
 }

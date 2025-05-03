@@ -1,8 +1,8 @@
 use futures::Stream;
 use micro_web::encoding::encoder::EncodeDecorator;
-use micro_web::router::{get, Router};
-use micro_web::{handler_fn, Server};
-use micro_web::responder::sse::{build_sse_stream_emitter, Event, SseStream};
+use micro_web::responder::sse::{Event, SseStream, build_sse_stream_emitter};
+use micro_web::router::{Router, get};
+use micro_web::{Server, handler_fn};
 
 async fn sse_process() -> SseStream<impl Stream<Item = Event>> {
     let (stream, mut emitter) = build_sse_stream_emitter(2);

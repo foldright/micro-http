@@ -108,13 +108,10 @@ where
         let (req_body, maybe_body_sender) = ReqBody::create_req_body(&mut self.framed_read, payload_size);
         let request = header.body(req_body);
 
-
         let response_result = match maybe_body_sender {
             None => handler.call(request).await,
             Some(mut body_sender) => {
-                let (handler_result, body_send_result) = tokio::join!(
-                    handler.call(request),  body_sender.start()
-                );
+                let (handler_result, body_send_result) = tokio::join!(handler.call(request), body_sender.start());
 
                 // check if body sender has error
                 body_send_result?;

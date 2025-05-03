@@ -8,7 +8,7 @@ use tokio::net::TcpListener;
 use micro_http::connection::HttpConnection;
 use micro_http::handler::make_handler;
 use micro_http::protocol::body::ReqBody;
-use tracing::{error, info, warn, Level};
+use tracing::{Level, error, info, warn};
 use tracing_subscriber::FmtSubscriber;
 
 #[tokio::main]

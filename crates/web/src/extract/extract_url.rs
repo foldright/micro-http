@@ -20,8 +20,8 @@
 //! }
 //! ```
 
-use crate::extract::from_request::FromRequest;
 use crate::extract::Query;
+use crate::extract::from_request::FromRequest;
 use crate::{OptionReqBody, PathParams, RequestContext};
 use micro_http::protocol::ParseError;
 use serde::Deserialize;

@@ -28,7 +28,6 @@ pub struct DateService {
 static DATE_SERVICE: Lazy<DateService> = Lazy::new(|| DateService::new_with_update_interval(Duration::from_millis(800)));
 
 impl DateService {
-
     /// Returns a reference to the global singleton instance of `DateService`.
     ///
     /// This method provides access to a shared `DateService` instance that can be used
@@ -78,7 +77,7 @@ impl DateService {
     {
         let date = self.current.load().as_ref().clone();
         // SAFE: date is created by faf_http_date, it's valid
-        let header_value = unsafe{ HeaderValue::from_maybe_shared_unchecked(date) };
+        let header_value = unsafe { HeaderValue::from_maybe_shared_unchecked(date) };
         f(header_value)
     }
 }
