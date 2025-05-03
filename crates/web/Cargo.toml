@@ -15,7 +15,7 @@ description = "the async micro web framework"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-micro-http = "0.1.0-alpha.11"
+micro-http.workspace = true
 http.workspace = true
 http-body.workspace = true
 http-body-util.workspace = true
