@@ -9,6 +9,8 @@ license.workspace = true
 readme.workspace = true
 repository.workspace = true
 rust-version.workspace = true
+# keep the package private, see https://doc.rust-lang.org/cargo/reference/manifest.html#the-publish-field
+publish = false
 
 [package.metadata.workspaces]
 independent = true
