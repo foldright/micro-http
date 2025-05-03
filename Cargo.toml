@@ -61,8 +61,8 @@ criterion = "0.5"
 codspeed-criterion-compat = { version = "2.6.0", default-features = false }
 
 
-micro-web = { path = "crates/web", version = "0.1.0" }
-micro-http = { path = "crates/http", version = "0.1.0" }
+micro-web = { path = "crates/web", version = "0.1.1" }
+micro-http = { path = "crates/http", version = "0.1.1" }
 
 [profile.dev.build-override]
 debug = true
