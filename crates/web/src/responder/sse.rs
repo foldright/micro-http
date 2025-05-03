@@ -36,12 +36,12 @@ where
 }
 
 impl<S> SseEmitter<S> where S: Sink<Event, Error = SendError> + Unpin {
-    pub async fn send(&mut self, event: Event) {
-        self.sink.send(event).await.unwrap();
+    pub async fn send(&mut self, event: Event) -> Result<(), SendError> {
+        self.sink.send(event).await
     }
 
-    pub async fn close(&mut self) {
-        self.sink.close().await.unwrap();
+    pub async fn close(&mut self) -> Result<(), SendError> {
+        self.sink.close().await
     }
 }
 
@@ -55,7 +55,7 @@ pub enum Event {
     Message(Message),
 }
 
-struct Message {
+pub struct Message {
     // https://html.spec.whatwg.org/multipage/server-sent-events.html#concept-event-stream-last-event-id
     pub id: Option<String>,
     pub name: Option<String>,

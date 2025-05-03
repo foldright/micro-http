@@ -21,3 +21,4 @@ guide/build/
 .vscode
 
 flamegraph.svg
+micro-http.txt
