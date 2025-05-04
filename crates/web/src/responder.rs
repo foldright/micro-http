@@ -11,7 +11,7 @@ pub mod sse;
 
 use crate::RequestContext;
 use crate::body::ResponseBody;
-use http::{Response, StatusCode};
+use http::{HeaderValue, Response, StatusCode};
 use std::convert::Infallible;
 
 /// A trait for types that can be converted into HTTP responses.
@@ -88,13 +88,15 @@ impl Responder for () {
     }
 }
 
+const TEXT_PLAIN_CONTENT_TYPE: HeaderValue = HeaderValue::from_static("text/plain; charset=utf-8");
+
 /// Implementation for static strings returns them as plain text responses.
 impl Responder for &'static str {
     fn response_to(self, _req: &RequestContext) -> Response<ResponseBody> {
         let mut builder = Response::builder();
         let headers = builder.headers_mut().unwrap();
-        headers.reserve(8);
-        headers.insert(http::header::CONTENT_TYPE, mime::TEXT_PLAIN_UTF_8.as_ref().parse().unwrap());
+        headers.reserve(16);
+        headers.insert(http::header::CONTENT_TYPE, TEXT_PLAIN_CONTENT_TYPE);
 
         builder.status(StatusCode::OK).body(ResponseBody::from(self)).unwrap()
     }
@@ -105,9 +107,8 @@ impl Responder for String {
     fn response_to(self, _req: &RequestContext) -> Response<ResponseBody> {
         let mut builder = Response::builder();
         let headers = builder.headers_mut().unwrap();
-        headers.reserve(8);
-        headers.insert(http::header::CONTENT_TYPE, mime::TEXT_PLAIN_UTF_8.as_ref().parse().unwrap());
-
+        headers.reserve(16);
+        headers.insert(http::header::CONTENT_TYPE, TEXT_PLAIN_CONTENT_TYPE);
         builder.status(StatusCode::OK).body(ResponseBody::from(self)).unwrap()
     }
 }

@@ -13,7 +13,7 @@
 
 use crate::protocol::{PayloadSize, ResponseHead, SendError};
 
-use bytes::{BufMut, BytesMut};
+use bytes::{BufMut, Bytes, BytesMut};
 
 use http::{HeaderValue, Version, header};
 use std::io;
@@ -72,10 +72,13 @@ impl Encoder<(ResponseHead, PayloadSize)> for HeaderEncoder {
                     header.headers_mut().insert(header::CONTENT_LENGTH, n.into());
                 }
             },
+
             PayloadSize::Chunked => match header.headers_mut().get_mut(header::TRANSFER_ENCODING) {
-                Some(value) => *value = "chunked".parse().unwrap(),
+                Some(value) => *value = unsafe { HeaderValue::from_maybe_shared_unchecked(Bytes::from_static("chunked".as_bytes())) },
                 None => {
-                    header.headers_mut().insert(header::TRANSFER_ENCODING, "chunked".parse().unwrap());
+                    header.headers_mut().insert(header::TRANSFER_ENCODING, unsafe {
+                        HeaderValue::from_maybe_shared_unchecked(Bytes::from_static("chunked".as_bytes()))
+                    });
                 }
             },
             PayloadSize::Empty => match header.headers_mut().get_mut(header::CONTENT_LENGTH) {

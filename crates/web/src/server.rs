@@ -139,11 +139,16 @@ impl Server {
 
         let handler = Arc::new(self);
         loop {
-            let (tcp_stream, _remote_addr) = match tcp_listener.accept().await {
-                Ok(stream_and_addr) => stream_and_addr,
-                Err(e) => {
-                    warn!(cause = %e, "failed to accept");
-                    continue;
+            let (tcp_stream, _remote_addr) = tokio::select! {
+                _ = tokio::signal::ctrl_c() => { break; },
+                result = tcp_listener.accept() => {
+                    match result {
+                        Ok(stream_and_addr) => stream_and_addr,
+                        Err(e) => {
+                            warn!(cause = %e, "failed to accept");
+                            continue;
+                        }
+                    }
                 }
             };
 
@@ -172,6 +177,7 @@ impl Handler for Server {
     async fn call(&self, req: Request<ReqBody>) -> Result<Response<Self::RespBody>, Self::Error> {
         let (parts, body) = req.into_parts();
         let header = RequestHeader::from(parts);
+        // TODO: insignificant memory allocate
         let req_body = OptionReqBody::from(body);
 
         let path = header.uri().path();

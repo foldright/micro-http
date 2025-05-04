@@ -86,10 +86,10 @@ where
     fn response_to(self, _req: &RequestContext) -> Response<ResponseBody> {
         let mut builder = Response::builder();
         let headers = builder.headers_mut().unwrap();
-        headers.reserve(8);
+        headers.reserve(16);
         headers.insert(http::header::CONTENT_TYPE, mime::TEXT_EVENT_STREAM.as_ref().parse().unwrap());
-        headers.insert(http::header::CACHE_CONTROL, HeaderValue::from_str("no-cache").unwrap());
-        headers.insert(http::header::CONNECTION, HeaderValue::from_str("keep-alive").unwrap());
+        headers.insert(http::header::CACHE_CONTROL, HeaderValue::from_static("no-cache"));
+        headers.insert(http::header::CONNECTION, HeaderValue::from_static("keep-alive"));
 
         let event_stream = self.stream.map(|event| match event {
             Event::Message(Message { id, name, data }) => {

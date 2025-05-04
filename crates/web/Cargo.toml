@@ -39,6 +39,8 @@ bytes.workspace = true
 hlist2.workspace = true
 tower-layer.workspace = true
 
+dhat.workspace = true
+
 pin-project-lite.workspace = true
 
 tokio = { workspace = true}
@@ -57,3 +59,6 @@ thiserror.workspace = true
 
 [dev-dependencies]
 mockall.workspace = true
+
+[features]
+dhat-heap = []    # if you are doing heap profiling

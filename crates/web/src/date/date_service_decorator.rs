@@ -64,6 +64,7 @@ impl<H: RequestHandler> RequestHandler for DateResponseHandler<H> {
         let mut resp = self.handler.invoke(req, req_body).await;
 
         self.date_service.with_http_date(|date_header_value| {
+            resp.headers_mut().reserve(16);
             resp.headers_mut().insert(http::header::DATE, date_header_value);
         });
 
