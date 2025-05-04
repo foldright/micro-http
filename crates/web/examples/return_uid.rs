@@ -30,7 +30,6 @@ async fn main() {
         .route("/", get(handler_fn(empty_body)))
         .route("/user", post(handler_fn(empty_body)))
         .route("/user/{id}", get(handler_fn(echo_uid)))
-        .route("/{*p}", get(handler_fn(default_handler)))
         .with_global_decorator(DateServiceDecorator)
         .build();
 
