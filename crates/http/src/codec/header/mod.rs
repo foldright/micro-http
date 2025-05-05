@@ -27,6 +27,7 @@
 
 mod header_decoder;
 mod header_encoder;
+mod pico_header_decoder;
 
 pub use header_decoder::HeaderDecoder;
 pub use header_encoder::HeaderEncoder;

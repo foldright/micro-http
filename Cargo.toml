@@ -20,6 +20,7 @@ faf-http-date = "0.1"
 mime = "0.3.17"
 
 httparse = "1.10.0"
+picohttpparser-sys = "1"
 
 tracing = "0.1.41"
 tracing-subscriber = "0.3.19"

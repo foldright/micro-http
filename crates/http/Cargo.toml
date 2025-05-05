@@ -16,6 +16,8 @@ description = "the async micro http server"
 
 [dependencies]
 httparse.workspace = true
+picohttpparser-sys.workspace = true
+
 http.workspace = true
 http-body.workspace = true
 http-body-util.workspace = true
