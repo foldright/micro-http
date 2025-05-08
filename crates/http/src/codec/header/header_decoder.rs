@@ -31,11 +31,14 @@
 //! recording the byte ranges of header names and values for efficient conversion
 //! to the final header structure.
 
+use std::ffi::c_int;
 use std::mem::MaybeUninit;
-
+use std::os::raw::c_char;
+use std::{mem, ptr};
 use bytes::BytesMut;
-use http::{HeaderName, HeaderValue, Request};
+use http::{HeaderMap, HeaderName, HeaderValue, Method, Request, Uri};
 use httparse::{Error, Status};
+use picohttpparser_sys::phr_header;
 use tokio_util::codec::Decoder;
 use tracing::trace;
 
@@ -270,6 +273,117 @@ fn is_chunked(header_value: Option<&HeaderValue>) -> bool {
     false
 }
 
+
+
+pub struct PicoHeaderDecoder {
+    header_map: Option<HeaderMap>,
+}
+
+impl PicoHeaderDecoder {
+    pub fn new() -> PicoHeaderDecoder {
+        let header_map = HeaderMap::with_capacity(MAX_HEADER_NUM);
+        PicoHeaderDecoder { header_map: Some(header_map) }
+    }
+}
+
+
+impl Decoder for PicoHeaderDecoder {
+    type Item = (RequestHeader, PayloadSize);
+    type Error = ParseError;
+
+    fn decode(&mut self, src: &mut BytesMut) -> Result<Option<Self::Item>, Self::Error> {
+        let cs = src.as_ptr() as *const c_char;
+        let cs_len = src.len();
+
+        let mut method_ptr: *const c_char = ptr::null();
+        let mut method_len: usize = 0;
+        let mut path_ptr: *const c_char = ptr::null();
+        let mut path_len: usize = 0;
+        let mut minor_version: c_int = 0;
+        let mut headers = [phr_header::default(); MAX_HEADER_NUM];
+        let mut num_headers: usize = MAX_HEADER_NUM;
+
+        let offset = unsafe {
+            picohttpparser_sys::phr_parse_request(
+                cs,
+                cs_len,
+                &mut method_ptr,
+                &mut method_len,
+                &mut path_ptr,
+                &mut path_len,
+                &mut minor_version,
+                headers.as_mut_ptr(),
+                &mut num_headers,
+                0,
+            )
+        };
+
+        match offset {
+            -2 => return Ok(None),
+            -1 => return Err(ParseError::invalid_header("invalid request header")),
+            size => if size as usize > MAX_HEADER_BYTES {
+                return Err(ParseError::too_large_header(size as usize, MAX_HEADER_BYTES));
+            }
+        };
+
+        let header_bytes = src.split_to(offset as usize).freeze();
+        let base_ptr = header_bytes.as_ptr() as usize;
+
+        let method_start = (method_ptr as usize) - base_ptr;
+        let method = Method::from_bytes(&header_bytes[method_start..method_len]).map_err(|e|ParseError::InvalidMethod)?;
+
+        let path_start = (path_ptr as usize) - base_ptr;
+        let uri = Uri::from_maybe_shared(header_bytes.slice(path_start..path_len)).map_err(|e |ParseError::InvalidUri)?;
+
+        // Build HTTP version based on version number
+        let version = match minor_version {
+            0 => http::Version::HTTP_10,
+            1 => http::Version::HTTP_11,
+            // Currently HTTP/2 and HTTP/3 not supported
+            _ => return Err(ParseError::InvalidVersion(Some(minor_version as u8))),
+        };
+
+
+
+        // Build request header using parsed method, URI and version
+        let mut header_builder = Request::builder()
+            .method(method)
+            .uri(uri)
+            .version(version);
+
+        let header_map = header_builder.headers_mut().unwrap();
+        header_map.reserve(64);
+
+
+
+
+        headers
+            .into_iter()
+            .filter_map(|header| {
+                if header.name.is_null() {
+                    None
+                } else {
+                    let name_start = header.name as usize - base_ptr;
+                    let value_start = header.value as usize - base_ptr;
+
+                    let header_name = HeaderName::from_bytes(&header_bytes[name_start..name_start + header.name_len]).unwrap();
+                    let header_value = unsafe {
+                        HeaderValue::from_maybe_shared_unchecked(header_bytes.slice(value_start..value_start + header.value_len))
+                    };
+                    Some((header_name, header_value))
+                }
+            })
+            .for_each(|(header_name, header_value)| {
+                header_map.insert(header_name, header_value);
+            });
+
+        let header = RequestHeader::from(header_builder.body(()).unwrap());
+        let payload_decoder = parse_payload(&header)?;
+
+        Ok(Some((header, payload_decoder)))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -433,5 +547,82 @@ mod tests {
             header.headers().get(http::header::ACCEPT_LANGUAGE),
             Some(&HeaderValue::from_str("zh-CN,zh;q=0.9,en-US;q=0.8,en;q=0.7").unwrap())
         );
+    }
+
+
+    #[test]
+    fn from_edge_pico() {
+        let str = indoc! {r##"
+        GET /user/123 HTTP/1.1
+        Host: example.com
+        User-Agent: perf-test/1.0
+        Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8
+        Accept-Encoding: gzip, deflate, br
+        Accept-Language: en-US,en;q=0.9
+        Connection: keep-alive
+        Cache-Control: no-cache
+        Pragma: no-cache
+        DNT: 1
+        Referer: https://example.com/
+        Upgrade-Insecure-Requests: 1
+        X-Forwarded-For: 192.168.1.1, 203.0.113.195
+        X-Real-IP: 203.0.113.195
+        Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6Ikp...
+        Cookie: sessionid=abc123; csrftoken=xyz456; theme=dark
+        Content-Type: application/json
+        Content-Length: 1024
+        Custom-Header-1: A very long custom header value to simulate load
+        Custom-Header-2: Another long header with random data 0123456789abcdef
+
+
+        "##};
+
+        // let mut buf = BytesMut::from(str);
+        //
+        // let (header, payload_decoder) = PicoHeaderDecoder.decode(&mut buf).unwrap().unwrap();
+
+        // assert!(payload_decoder.is_empty());
+        //
+        // assert_eq!(header.method(), &Method::GET);
+        // assert_eq!(header.version(), Version::HTTP_11);
+        // assert_eq!(header.uri().host(), None);
+        // assert_eq!(header.uri().path(), "/index/");
+        // assert_eq!(header.uri().scheme(), None);
+        // assert_eq!(header.uri().query(), Some("a=1&b=2&a=3"));
+        //
+        // assert_eq!(header.headers().len(), 15);
+        //
+        // assert_eq!(header.headers().get(http::header::CONNECTION), Some(&HeaderValue::from_str("keep-alive").unwrap()));
+        //
+        // assert_eq!(header.headers().get(http::header::CACHE_CONTROL), Some(&HeaderValue::from_str("max-age=0").unwrap()));
+        //
+        // assert_eq!(
+        //     header.headers().get("sec-ch-ua"),
+        //     Some(&HeaderValue::from_str(r##""#Not_A Brand";v="99", "Microsoft Edge";v="109", "Chromium";v="109""##).unwrap())
+        // );
+        //
+        // assert_eq!(header.headers().get("sec-ch-ua-mobile"), Some(&HeaderValue::from_str("?0").unwrap()));
+        //
+        // assert_eq!(header.headers().get("sec-ch-ua-platform"), Some(&HeaderValue::from_str("\"macOS\"").unwrap()));
+        //
+        // assert_eq!(header.headers().get(http::header::UPGRADE_INSECURE_REQUESTS), Some(&HeaderValue::from_str("1").unwrap()));
+        //
+        // assert_eq!(header.headers().get(http::header::USER_AGENT),
+        //            Some(&HeaderValue::from_str("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36 Edg/109.0.1518.52").unwrap()));
+        //
+        // assert_eq!(header.headers().get("Sec-Fetch-Site"), Some(&HeaderValue::from_str("none").unwrap()));
+        //
+        // assert_eq!(header.headers().get("Sec-Fetch-Mode"), Some(&HeaderValue::from_str("navigate").unwrap()));
+        //
+        // assert_eq!(header.headers().get("Sec-Fetch-User"), Some(&HeaderValue::from_str("?1").unwrap()));
+        //
+        // assert_eq!(header.headers().get("Sec-Fetch-Dest"), Some(&HeaderValue::from_str("document").unwrap()));
+        //
+        // assert_eq!(header.headers().get(http::header::ACCEPT_ENCODING), Some(&HeaderValue::from_str("gzip, deflate, br").unwrap()));
+        //
+        // assert_eq!(
+        //     header.headers().get(http::header::ACCEPT_LANGUAGE),
+        //     Some(&HeaderValue::from_str("zh-CN,zh;q=0.9,en-US;q=0.8,en;q=0.7").unwrap())
+        // );
     }
 }

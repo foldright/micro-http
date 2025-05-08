@@ -1,6 +1,6 @@
 use bencher::{TestCase, TestFile};
 use criterion::{black_box, criterion_group, criterion_main, BatchSize, BenchmarkId, Criterion, Throughput};
-use micro_http::codec::RequestDecoder;
+use micro_http::codec::{PicoHeaderDecoder, RequestDecoder};
 use tokio_util::bytes::BytesMut;
 use tokio_util::codec::Decoder;
 
@@ -18,13 +18,13 @@ fn benchmark_request_decoder(criterion: &mut Criterion) {
     for case in test_cases {
         group.throughput(Throughput::Bytes(case.file().content().len() as u64));
         group.bench_with_input(BenchmarkId::from_parameter(case.name()), &case, |b, case| {
-            let mut request_decoder = RequestDecoder::new();
             b.iter_batched_ref(
-                || BytesMut::from(case.file().content()),
-                |bytes_mut| {
-                    let header = request_decoder.decode(bytes_mut).expect("input should be valide http request header").unwrap();
-                    let body = request_decoder.decode(bytes_mut).expect("input should be valide http request body").unwrap();
-                    black_box((header, body));
+                ||  {
+                    (BytesMut::from(case.file().content()), RequestDecoder::new())
+                },
+                |(bytes_mut, request_decoder)| {
+                    let header = request_decoder.decode(bytes_mut).expect("input should be valid http request header").unwrap();
+                    black_box(header);
                 },
                 BatchSize::SmallInput,
             );
@@ -34,5 +34,27 @@ fn benchmark_request_decoder(criterion: &mut Criterion) {
     group.finish();
 }
 
-criterion_group!(decoder, benchmark_request_decoder);
+
+fn benchmark_pico_request_decoder(criterion: &mut Criterion) {
+    let test_cases = create_test_cases();
+    let mut group = criterion.benchmark_group("pico_request_decoder");
+    for case in test_cases {
+        group.throughput(Throughput::Bytes(case.file().content().len() as u64));
+        group.bench_with_input(BenchmarkId::from_parameter(case.name()), &case, |b, case| {
+            b.iter_batched_ref(
+                ||  {
+                    (BytesMut::from(case.file().content()), PicoHeaderDecoder::new())
+
+                },
+                |(bytes_mut, decoder)| {
+                    let header = decoder.decode(bytes_mut).expect("input should be valid http request header").unwrap();
+                    black_box(header);
+                },
+                BatchSize::SmallInput,
+            );
+        });
+    }
+}
+
+criterion_group!(decoder, benchmark_pico_request_decoder);
 criterion_main!(decoder);

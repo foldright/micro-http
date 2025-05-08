@@ -51,3 +51,4 @@ mod response_encoder;
 
 pub use request_decoder::RequestDecoder;
 pub use response_encoder::ResponseEncoder;
+pub use header::PicoHeaderDecoder;
