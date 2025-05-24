@@ -16,14 +16,9 @@ async fn default_handler() -> impl Responder {
 }
 
 
-#[cfg(feature = "dhat-heap")]
-#[global_allocator]
-static ALLOC: dhat::Alloc = dhat::Alloc;
 
 #[tokio::main]
 async fn main() {
-    #[cfg(feature = "dhat-heap")]
-    let _profiler = dhat::Profiler::new_heap();
     
     // Build router with multiple routes and handlers
     let router = Router::builder()
