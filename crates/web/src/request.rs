@@ -50,7 +50,7 @@ impl<'server, 'req> RequestContext<'server, 'req> {
     }
 
     /// Returns a reference to the path parameters extracted from the request URL
-    pub fn path_params(&self) -> &PathParams {
+    pub fn path_params(&self) -> &PathParams<'server, 'req> {
         self.path_params
     }
 }

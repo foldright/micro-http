@@ -51,7 +51,6 @@ thiserror = "2"
 arc-swap = "1.7.1"
 once_cell = "1.21.3"
 
-higher-kinded-types = "0.1"
 
 matchit = "0.8.6"
 

@@ -17,13 +17,6 @@ Verify installation:
 cargo ws --version
 ```
 
-### 2. Crates.io Authentication
-
-Ensure you're authenticated with crates.io:
-```bash
-cargo login
-```
-
 ## Pre-release Steps
 
 1. **Code Quality Checks**
@@ -164,4 +157,9 @@ cargo ws changed
 # View publishing order
 cargo ws plan
 ```
+
+
+
+## P.S.
+- [Publish all your crates everywhere all at once](https://www.tweag.io/blog/2025-07-10-cargo-package-workspace/)
 

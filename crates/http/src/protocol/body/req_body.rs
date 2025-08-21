@@ -15,7 +15,7 @@ pub(crate) enum ReqBodyRepr {
 }
 
 impl ReqBody {
-    pub(crate) fn create_req_body<S>(body_stream: &mut S, payload_size: PayloadSize) -> (ReqBody, Option<BodySender<S>>)
+    pub(crate) fn create_req_body<S>(body_stream: &mut S, payload_size: PayloadSize) -> (ReqBody, Option<BodySender<'_, S>>)
     where
         S: Stream<Item = Result<Message<(RequestHeader, PayloadSize)>, ParseError>> + Unpin,
     {
