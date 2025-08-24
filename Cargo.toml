@@ -13,38 +13,38 @@ repository = "https://github.com/foldright/micro-http"
 rust-version = "1.85"
 
 [workspace.dependencies]
-http = "1.2.0"
+http = "1.3"
 http-body = "1.0.1"
-http-body-util = "0.1.2"
+http-body-util = "0.1.3"
 faf-http-date = "0.1"
 mime = "0.3.17"
 
-httparse = "1.10.0"
+httparse = "1.10.1"
 
 tracing = "0.1.41"
 tracing-subscriber = "0.3.19"
 
 tokio = { version = "1", features = ["full", "tracing"] }
-tokio-util = { version = "0.7.13", features = ["codec", "io", "tracing"] }
-async-trait = "0.1.86"
+tokio-util = { version = "0.7.16", features = ["codec", "io", "tracing"] }
+async-trait = "0.1.89"
 futures = "0.3.31"
-bytes = "1.10.0"
+bytes = "1.10.1"
 pin-project-lite = "0.2.16"
 
-dynosaur = "0.1"
+dynosaur = "0.3"
 trait-variant = "0.1"
 
 hlist2 = "0.0.15"
 tower-layer = "0.3"
 
-serde = { version = "1.0.217", features = ["derive"] }
+serde = { version = "1.0.219", features = ["derive"] }
 serde_urlencoded = "0.7.1"
-serde_json = "1.0.138"
-serde_qs = "0.13.0"
+serde_json = "1.0.143"
+serde_qs = "0.15"
 
-flate2 = "1.0.35"
-zstd = "0.13.2"
-brotli = "7.0.0"
+flate2 = "1.1.2"
+zstd = "0.13.3"
+brotli = "8.0.2"
 
 thiserror = "2"
 
@@ -55,9 +55,9 @@ once_cell = "1.21.3"
 matchit = "0.8.6"
 
 mockall = "0.13.1"
-criterion = "0.5"
+criterion = "0.7"
 
-codspeed-criterion-compat = { version = "2.6.0", default-features = false }
+codspeed-criterion-compat = { version = "3.0.5", default-features = false }
 
 dhat = "0.3"
 
