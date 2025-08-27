@@ -27,7 +27,7 @@ Here's a simple hello world example:
 
 ```rust
 use micro_web::router::{get, Router};
-use micro_web::{handler_fn, Server};
+use micro_web::Server;
 use micro_web::date::DateServiceDecorator;
 
 /// A simple handler that returns "hello world"
@@ -47,8 +47,8 @@ async fn main() {
     // Create a new router using the builder
     let router = Router::builder()
         // Add a route that matches GET requests to the root path "/"
-        // handler_fn converts our async function into a handler
-        .route("/", get(handler_fn(hello_world)))
+        // converts our async function into a handler
+        .route("/", get(hello_world))
         // Add middleware that will add date headers to responses
         .with_global_decorator(DateServiceDecorator)
         .build();
@@ -60,7 +60,7 @@ async fn main() {
         // Set the address and port to listen on
         .bind("127.0.0.1:3000")
         // Set a handler for requests that don't match any routes
-        .default_handler(handler_fn(default_handler))
+        .default_handler(default_handler)
         // Build the server
         .build()
         .unwrap()
@@ -80,7 +80,7 @@ use micro_web::extract::{Form, Json};
 use micro_web::router::filter::header;
 use micro_web::router::{get, post, Router};
 use micro_web::encoding::encoder::EncodeDecorator;
-use micro_web::{handler_fn, Server};
+use micro_web::Server;
 use serde::Deserialize;
 
 /// User struct for demonstrating data extraction
@@ -164,23 +164,23 @@ async fn main() {
     // Build router with multiple routes and handlers
     let router = Router::builder()
         // Basic GET route
-        .route("/", get(handler_fn(simple_get)))
+        .route("/", get(simple_get))
         // POST route for form data with content-type filter
         .route(
             "/",
-            post(handler_fn(simple_handler_form_data))
+            post(simple_handler_form_data)
                 .with(header(http::header::CONTENT_TYPE, mime::APPLICATION_WWW_FORM_URLENCODED.as_ref())),
         )
         // POST route for JSON data with content-type filter
         .route(
             "/",
-            post(handler_fn(simple_handler_json_data))
+            post(simple_handler_json_data)
                 .with(header(http::header::CONTENT_TYPE, mime::APPLICATION_JSON.as_ref())),
         )
         // Default POST route
-        .route("/", post(handler_fn(simple_handler_post)))
+        .route("/", post(simple_handler_post))
         // Additional GET route
-        .route("/4", get(handler_fn(simple_another_get)))
+        .route("/4", get(simple_another_get))
         // Add response encoding wrapper
         .with_global_decorator(EncodeDecorator)
         .build();
@@ -189,7 +189,7 @@ async fn main() {
     Server::builder()
         .router(router)
         .bind("127.0.0.1:8080")
-        .default_handler(handler_fn(default_handler))
+        .default_handler(default_handler)
         .build()
         .unwrap()
         .start()
@@ -211,7 +211,8 @@ The router provides flexible request routing with support for:
 
 ### Request Handlers
 
-Handlers can be created from async functions using `handler_fn`. The framework supports automatic type conversion for both request data extraction and response generation:
+Handlers can be convert from async functions. 
+The framework supports automatic type conversion for both request data extraction and response generation:
 
 ```rust
 // Simple handler returning a string

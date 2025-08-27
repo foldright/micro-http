@@ -9,7 +9,7 @@
 //! # Examples
 //!
 //! ```no_run
-//! use micro_web::{Server, router::{Router, get}, handler_fn};
+//! use micro_web::{Server, router::{Router, get}};
 //!
 //! async fn hello_world() -> &'static str {
 //!     "Hello, World!"
@@ -18,7 +18,7 @@
 //! #[tokio::main]
 //! async fn main() {
 //!     let router = Router::builder()
-//!         .route("/", get(handler_fn(hello_world)))
+//!         .route("/", get(hello_world))
 //!         .build();
 //!         
 //!     Server::builder()
@@ -33,7 +33,7 @@
 
 use crate::handler::RequestHandler;
 use crate::router::Router;
-use crate::{OptionReqBody, RequestContext, ResponseBody, handler_fn};
+use crate::{OptionReqBody, RequestContext, ResponseBody, handler_fn, FnTrait};
 use http::{Request, Response, StatusCode};
 use micro_http::connection::HttpConnection;
 use micro_http::handler::Handler;
@@ -46,6 +46,8 @@ use thiserror::Error;
 use tokio::net::TcpListener;
 use tracing::{Level, error, info, warn};
 use tracing_subscriber::FmtSubscriber;
+use crate::extract::FromRequest;
+use crate::responder::Responder;
 
 /// Builder for configuring and constructing a [`Server`] instance.
 ///
@@ -74,13 +76,20 @@ impl ServerBuilder {
         self
     }
 
-    pub fn default_handler(mut self, request_handler: impl RequestHandler + 'static) -> Self {
-        self.default_handler = Some(Box::new(request_handler));
+    pub fn default_handler<F, Args>(mut self, f: F) -> Self
+    where
+    for<'r> F: FnTrait<Args> + 'r,
+    for<'r> Args: FromRequest + 'r,
+    for<'r> F: FnTrait<Args::Output<'r>>,
+    for<'r> <F as FnTrait<Args::Output<'r>>>::Output: Responder,
+    {
+        let handler = handler_fn(f);
+        self.default_handler = Some(Box::new(handler));
         self
     }
 
     pub fn build(self) -> Result<Server, ServerBuildError> {
-        let new_builder = if self.default_handler.is_none() { self.default_handler(handler_fn(default_handler)) } else { self };
+        let new_builder = if self.default_handler.is_none() { self.default_handler(default_handler) } else { self };
         let router = new_builder.router.ok_or(ServerBuildError::MissingRouter)?;
         let address = new_builder.address.ok_or(ServerBuildError::MissingAddress)?;
 

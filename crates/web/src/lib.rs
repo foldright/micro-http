@@ -60,7 +60,6 @@
 //! ```no_run
 //! use micro_web::{
 //!     router::{get, Router},
-//!     handler_fn,
 //!     Server,
 //! };
 //!
@@ -73,7 +72,7 @@
 //! async fn main() {
 //!     // Create a router
 //!     let router = Router::builder()
-//!         .route("/", get(handler_fn(hello_world)))
+//!         .route("/", get(hello_world))
 //!         .build();
 //!
 //!     // Start the server

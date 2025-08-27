@@ -1,6 +1,6 @@
 pub mod filter;
 
-use crate::PathParams;
+use crate::{handler_fn, FnTrait, PathParams};
 use crate::handler::RequestHandler;
 
 use crate::handler::handler_decorator::HandlerDecorator;
@@ -10,6 +10,8 @@ use crate::handler::handler_decorator_factory::{
 use filter::{AllFilter, Filter};
 use std::collections::HashMap;
 use tracing::error;
+use crate::extract::FromRequest;
+use crate::responder::Responder;
 
 type RouterFilter = dyn Filter + Send + Sync + 'static;
 type InnerRouter<T> = matchit::Router<T>;
@@ -136,8 +138,9 @@ impl<DF> RouterBuilder<DF> {
     }
 }
 
-macro_rules! method_router_filter {
+macro_rules! inner_method_router_filter {
     ($method:ident, $method_name:ident) => {
+        #[inline]
         pub fn $method<H: RequestHandler + 'static>(handler: H) -> RouterItemBuilder {
             let mut filters = filter::all_filter();
             filters.and(filter::$method_name());
@@ -146,15 +149,40 @@ macro_rules! method_router_filter {
     };
 }
 
-method_router_filter!(get, get_method);
-method_router_filter!(post, post_method);
-method_router_filter!(put, put_method);
-method_router_filter!(delete, delete_method);
-method_router_filter!(head, head_method);
-method_router_filter!(options, options_method);
-method_router_filter!(connect, connect_method);
-method_router_filter!(patch, patch_method);
-method_router_filter!(trace, trace_method);
+macro_rules! method_router_filter {
+    ($method:ident, $inner_method:ident) => {
+        pub fn $method<F, Args>(f: F) -> RouterItemBuilder
+        where
+            for<'r> F: FnTrait<Args> + 'r,
+            for<'r> Args: FromRequest + 'r,
+            for<'r> F: FnTrait<Args::Output<'r>>,
+            for<'r> <F as FnTrait<Args::Output<'r>>>::Output: Responder,
+        {
+            let handler = handler_fn(f);
+            $inner_method(handler)
+        }
+    };
+}
+
+inner_method_router_filter!(inner_get, get_method);
+inner_method_router_filter!(inner_post, post_method);
+inner_method_router_filter!(inner_put, put_method);
+inner_method_router_filter!(inner_delete, delete_method);
+inner_method_router_filter!(inner_head, head_method);
+inner_method_router_filter!(inner_options, options_method);
+inner_method_router_filter!(inner_connect, connect_method);
+inner_method_router_filter!(inner_patch, patch_method);
+inner_method_router_filter!(inner_trace, trace_method);
+
+method_router_filter!(get, inner_get);
+method_router_filter!(post, inner_post);
+method_router_filter!(put, inner_put);
+method_router_filter!(delete, inner_delete);
+method_router_filter!(head, inner_head);
+method_router_filter!(options, inner_options);
+method_router_filter!(connect, inner_connect);
+method_router_filter!(patch, inner_patch);
+method_router_filter!(trace, inner_trace);
 
 pub struct RouterItemBuilder {
     filters: AllFilter,
@@ -177,7 +205,7 @@ impl RouterItemBuilder {
 mod tests {
     use super::filter::header;
     use super::{Router, get, post};
-    use crate::{PathParams, RequestContext, handler_fn};
+    use crate::{PathParams, RequestContext};
     use http::{HeaderValue, Method, Request};
     use micro_http::protocol::RequestHeader;
 
@@ -191,16 +219,16 @@ mod tests {
 
     fn router() -> Router {
         Router::builder()
-            .route("/", get(handler_fn(simple_get_1)))
+            .route("/", get(simple_get_1))
             .route(
                 "/",
-                post(handler_fn(simple_get_1)).with(header(
+                post(simple_get_1).with(header(
                     http::header::CONTENT_TYPE,
                     HeaderValue::from_str(mime::APPLICATION_WWW_FORM_URLENCODED.as_ref()).unwrap(),
                 )),
             )
-            .route("/", post(handler_fn(simple_get_1)))
-            .route("/2", get(handler_fn(simple_get_2)))
+            .route("/", post(simple_get_1))
+            .route("/2", get(simple_get_2))
             .build()
     }
 

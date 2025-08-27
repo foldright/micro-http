@@ -16,8 +16,8 @@ use http::Method;
 use micro_web::encoding::encoder::EncodeDecorator;
 use micro_web::extract::{Form, Json};
 use micro_web::router::filter::header;
-use micro_web::router::{Router, get, post};
-use micro_web::{Server, handler_fn};
+use micro_web::router::{get, post, Router};
+use micro_web::Server;
 use serde::Deserialize;
 
 /// User struct for demonstrating data extraction
@@ -101,23 +101,23 @@ async fn main() {
     // Build router with multiple routes and handlers
     let router = Router::builder()
         // Basic GET route
-        .route("/", get(handler_fn(simple_get)))
+        .route("/", get(simple_get))
         // POST route for form data with content-type filter
         .route(
             "/",
-            post(handler_fn(simple_handler_form_data))
+            post(simple_handler_form_data)
                 .with(header(http::header::CONTENT_TYPE, mime::APPLICATION_WWW_FORM_URLENCODED.as_ref())),
         )
         // POST route for JSON data with content-type filter
-        .route("/", post(handler_fn(simple_handler_json_data)).with(header(http::header::CONTENT_TYPE, mime::APPLICATION_JSON.as_ref())))
+        .route("/", post(simple_handler_json_data).with(header(http::header::CONTENT_TYPE, mime::APPLICATION_JSON.as_ref())))
         // Default POST route
-        .route("/", post(handler_fn(simple_handler_post)))
+        .route("/", post(simple_handler_post))
         // Additional GET route
-        .route("/4", get(handler_fn(simple_another_get)))
+        .route("/4", get(simple_another_get))
         // Add response encoding wrapper
         .with_global_decorator(EncodeDecorator)
         .build();
 
     // Configure and start the server
-    Server::builder().router(router).bind("127.0.0.1:8080").default_handler(handler_fn(default_handler)).build().unwrap().start().await;
+    Server::builder().router(router).bind("127.0.0.1:8080").default_handler(default_handler).build().unwrap().start().await;
 }
