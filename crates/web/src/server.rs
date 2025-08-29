@@ -43,6 +43,7 @@ use std::error::Error;
 use std::net::{SocketAddr, ToSocketAddrs};
 use std::sync::Arc;
 use thiserror::Error;
+use tokio::io::AsyncWrite;
 use tokio::net::TcpListener;
 use tracing::{Level, error, info, warn};
 use tracing_subscriber::FmtSubscriber;
@@ -164,6 +165,7 @@ impl Server {
             let handler = handler.clone();
 
             tokio::spawn(async move {
+                tcp_stream.set_nodelay(true).unwrap();
                 let (reader, writer) = tcp_stream.into_split();
                 let connection = HttpConnection::new(reader, writer);
                 match connection.process(handler).await {
