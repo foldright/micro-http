@@ -10,7 +10,7 @@ homepage = "https://github.com/foldright/micro-http"
 license = "MIT OR Apache-2.0"
 readme = "README.md"
 repository = "https://github.com/foldright/micro-http"
-rust-version = "1.85"
+rust-version = "1.90"
 
 [workspace.dependencies]
 http = "1.3"
