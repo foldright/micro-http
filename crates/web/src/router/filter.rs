@@ -52,7 +52,7 @@ struct FnFilter<F: Fn(&RequestContext) -> bool>(F);
 
 impl<F: Fn(&RequestContext) -> bool + Send + Sync> Filter for FnFilter<F> {
     fn matches(&self, req: &RequestContext) -> bool {
-        (self.0)(req)
+        self.0(req)
     }
 }
 
@@ -77,13 +77,13 @@ where
 
 /// Creates a filter that always returns true.
 #[inline(always)]
-pub fn true_filter() -> TrueFilter {
+pub const fn true_filter() -> TrueFilter {
     TrueFilter
 }
 
 /// Creates a filter that always returns false.
 #[inline(always)]
-pub fn false_filter() -> FalseFilter {
+pub const fn false_filter() -> FalseFilter {
     FalseFilter
 }
 
