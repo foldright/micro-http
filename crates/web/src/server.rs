@@ -43,7 +43,6 @@ use std::error::Error;
 use std::net::{SocketAddr, ToSocketAddrs};
 use std::sync::Arc;
 use thiserror::Error;
-use tokio::io::AsyncWrite;
 use tokio::net::TcpListener;
 use tracing::{Level, error, info, warn};
 use tracing_subscriber::FmtSubscriber;
