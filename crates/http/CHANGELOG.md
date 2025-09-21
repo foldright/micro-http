@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.1](https://github.com/foldright/micro-http/compare/micro-http-v0.2.0...micro-http-v0.2.1) - 2025-09-21
+
+### Other
+
+- update Cargo.toml dependencies
+
 ## [0.2.0](https://github.com/foldright/micro-http/compare/micro-http-v0.1.1...micro-http-v0.2.0) - 2025-09-20
 
 ### Other
