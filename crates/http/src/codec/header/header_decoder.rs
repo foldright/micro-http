@@ -34,7 +34,7 @@
 use std::mem::MaybeUninit;
 
 use bytes::BytesMut;
-use http::{HeaderName, HeaderValue, Request};
+use http::{HeaderName, HeaderValue, Method, Request, Uri};
 use httparse::{Error, Status};
 use tokio_util::codec::Decoder;
 use tracing::trace;
@@ -118,18 +118,25 @@ impl Decoder for HeaderDecoder {
                     _ => return Err(ParseError::InvalidVersion(req.version)),
                 };
 
+                let method: Method =
+                    Method::from_bytes(req.method.ok_or(ParseError::InvalidMethod)?.as_bytes()).map_err(|_| ParseError::InvalidMethod)?;
+
+                // record the uri path byte range
+                let uri_path_index = path_index(src, req.path.ok_or(ParseError::InvalidUri)?);
+
+                // Split header portion from source buffer
+                let header_bytes = src.split_to(body_offset).freeze();
+
+                let uri_path_byte = header_bytes.slice(uri_path_index.0..uri_path_index.1);
+                let uri = Uri::from_maybe_shared(uri_path_byte).map_err(|_| ParseError::InvalidUri)?;
+
                 // Build request header using parsed method, URI and version
-                let mut header_builder = Request::builder()
-                    .method(req.method.ok_or(ParseError::InvalidMethod)?)
-                    .uri(req.path.ok_or(ParseError::InvalidUri)?)
-                    .version(version);
+                let mut header_builder = Request::builder().method(method).uri(uri).version(version);
 
                 // Build headers
                 let headers = header_builder.headers_mut().unwrap();
                 headers.reserve(header_count);
 
-                // Split header portion from source buffer
-                let header_bytes = src.split_to(body_offset).freeze();
                 // Iterate header indices and build each header
                 for index in &header_index[..header_count] {
                     // Safe to unwrap since httparse verified header name is valid ASCII
@@ -156,6 +163,13 @@ impl Decoder for HeaderDecoder {
             }
         }
     }
+}
+
+fn path_index(src: &[u8], path: &str) -> (usize, usize) {
+    let bytes_ptr = src.as_ptr() as usize;
+    let start = path.as_ptr() as usize - bytes_ptr;
+    let end = start + path.len();
+    (start, end)
 }
 
 /// Stores the byte range positions of a header's name and value within the original buffer.
@@ -262,10 +276,10 @@ fn parse_payload(header: &RequestHeader) -> Result<PayloadSize, ParseError> {
 /// Returns true if chunked is the final encoding in the Transfer-Encoding header.
 fn is_chunked(header_value: Option<&HeaderValue>) -> bool {
     const CHUNKED: &[u8] = b"chunked";
-    if let Some(value) = header_value {
-        if let Some(bytes) = value.as_bytes().rsplit(|b| *b == b',').next() {
-            return bytes.trim_ascii() == CHUNKED;
-        }
+    if let Some(value) = header_value
+        && let Some(bytes) = value.as_bytes().rsplit(|b| *b == b',').next()
+    {
+        return bytes.trim_ascii() == CHUNKED;
     }
     false
 }
@@ -325,8 +339,6 @@ mod tests {
         let mut header_decoder = HeaderDecoder;
 
         let result = header_decoder.decode(&mut bytes).unwrap();
-
-        assert!(result.is_some());
 
         assert_eq!(bytes.len(), 3);
         assert_eq!(&bytes[..], &b"123"[..]);
