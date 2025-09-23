@@ -1,6 +1,5 @@
 use std::error::Error;
 use std::fmt::Display;
-use std::io::ErrorKind::ConnectionReset;
 use bytes::Bytes;
 use std::sync::Arc;
 
@@ -70,15 +69,13 @@ where
                     return Err(ParseError::invalid_body("need header while receive body").into());
                 }
 
-                Some(Err(ParseError::Io { source})) if source.kind().eq(&ConnectionReset) => {
-                    info!("connection reset by peer");
+                Some(Err(ParseError::Io { source})) => {
+                    info!("connection io error: {}, remote client: {}", source, );
                     return Ok(());
                 }
 
                 Some(Err(e)) => {
                     error!("can't receive next request, cause {}", e);
-                    let error_response = build_error_response(StatusCode::BAD_REQUEST);
-                    self.do_send_response(error_response).await?;
                     return Err(e.into());
                 }
 
