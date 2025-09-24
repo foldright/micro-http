@@ -34,6 +34,15 @@ impl<T: FromRequest> FromRequest for Result<T, T::Error> {
     }
 }
 
+impl FromRequest for &RequestContext<'_, '_> {
+    type Output<'r> = &'r RequestContext<'r, 'r> ;
+    type Error = Infallible;
+
+    async fn from_request<'r>(req: &'r RequestContext<'_, '_>, _: OptionReqBody) -> Result<&'r RequestContext<'r, 'r>, Infallible> {
+        Ok(req)
+    }
+}
+
 impl FromRequest for () {
     type Output<'r> = ();
     type Error = Infallible;

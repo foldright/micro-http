@@ -120,7 +120,7 @@ use serde::Deserialize;
 
 /// Represented as form data
 ///
-/// when `post` as a `application/x-www-form-urlencoded`, we can using this struct to inject data,
+/// when `post` as a `application/x-www-form-urlencoded`, we can use this struct to extract the form data,
 /// note: the struct must impl [`serde::Deserialize`] and [`Send`]
 ///
 /// # Example
@@ -131,7 +131,7 @@ use serde::Deserialize;
 /// #[derive(Deserialize, Debug)]
 /// struct Params {
 ///     name: String,
-///     zip: String,
+///     value: String,
 /// }
 ///
 /// pub async fn handle(Form(params) : Form<Params>) -> String {
@@ -142,9 +142,9 @@ pub struct Form<T>(pub T)
 where
     T: for<'de> Deserialize<'de> + Send;
 
-/// Represented as json data
+/// Represented as JSON data
 ///
-/// when `post` as a `application/json`, we can using this struct to inject data,
+/// when `post` as a `application/json`, we can use this struct to extract data,
 /// note: the struct must impl [`serde::Deserialize`] and [`Send`]
 ///
 /// # Example
@@ -155,7 +155,7 @@ where
 /// #[derive(Deserialize, Debug)]
 /// struct Params {
 ///     name: String,
-///     zip: String,
+///     value: String,
 /// }
 ///
 /// pub async fn handle(Json(params) : Json<Params>) -> String {
@@ -168,7 +168,7 @@ where
 
 /// Represented as url query data
 ///
-/// when request with url query, we can using this struct to inject data,
+/// when request with url query, we can use this struct to extract query,
 /// note: the struct must impl [`serde::Deserialize`] and [`Send`]
 ///
 /// # Example
@@ -179,7 +179,7 @@ where
 /// #[derive(Deserialize, Debug)]
 /// struct Params {
 ///     name: String,
-///     zip: String,
+///     value: String,
 /// }
 ///
 /// pub async fn handle(Query(params) : Query<Params>) -> String {

@@ -13,6 +13,7 @@ use micro_http::protocol::RequestHeader;
 ///
 /// The lifetime parameters ensure that the request context does not outlive the server
 /// or the request data it references.
+#[derive(Debug)]
 pub struct RequestContext<'server: 'req, 'req> {
     request_header: &'req RequestHeader,
     path_params: &'req PathParams<'server, 'req>,

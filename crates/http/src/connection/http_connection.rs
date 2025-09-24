@@ -70,7 +70,7 @@ where
                 }
 
                 Some(Err(ParseError::Io { source})) => {
-                    info!("connection io error: {}, remote client: {}", source, );
+                    info!("connection io error: {}", source);
                     return Ok(());
                 }
 

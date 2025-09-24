@@ -17,7 +17,7 @@ use micro_web::encoding::encoder::EncodeDecorator;
 use micro_web::extract::{Form, Json};
 use micro_web::router::filter::header;
 use micro_web::router::{get, post, Router};
-use micro_web::Server;
+use micro_web::{RequestContext, Server};
 use serde::Deserialize;
 
 /// User struct for demonstrating data extraction
@@ -86,6 +86,12 @@ async fn simple_another_get(method: &Method, str: Option<String>, str2: Option<S
     format!("receive from method: {}\r\n", method)
 }
 
+
+async fn get_request_context(req_cxt: &RequestContext<'_, '_> ) -> String {
+    println!("receive req context: {:?}", req_cxt);
+    "It works".to_owned()
+}
+
 /// Default handler for unmatched routes
 ///
 /// Example request:
@@ -114,6 +120,7 @@ async fn main() {
         .route("/", post(simple_handler_post))
         // Additional GET route
         .route("/4", get(simple_another_get))
+        .route("/5", get(get_request_context))
         // Add response encoding wrapper
         .with_global_decorator(EncodeDecorator)
         .build();
