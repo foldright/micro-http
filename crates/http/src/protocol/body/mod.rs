@@ -51,6 +51,4 @@
 mod body_channel;
 mod req_body;
 
-//pub use req_body_2::ReqBody2;
 pub use req_body::ReqBody;
-//pub use req_body_2::ReqBodySender;
