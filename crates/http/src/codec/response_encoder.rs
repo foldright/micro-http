@@ -35,6 +35,7 @@ use tracing::error;
 /// The encoder operates in two phases:
 /// 1. Header encoding: Encodes the response headers using [`HeaderEncoder`]
 /// 2. Payload encoding: If present, encodes the response body using [`PayloadEncoder`]
+#[derive(Debug)]
 pub struct ResponseEncoder {
     /// Encoder for HTTP response headers
     header_encoder: HeaderEncoder,

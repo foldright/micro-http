@@ -39,6 +39,7 @@ use tokio_util::codec::Decoder;
 /// The decoder maintains its state through the `payload_decoder` field:
 /// - `None`: Currently parsing headers
 /// - `Some(PayloadDecoder)`: Currently parsing payload
+#[derive(Debug)]
 pub struct RequestDecoder {
     header_decoder: HeaderDecoder,
     payload_decoder: Option<PayloadDecoder>,

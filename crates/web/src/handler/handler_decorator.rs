@@ -36,6 +36,7 @@ impl<In: RequestHandler> HandlerDecorator<In> for IdentityHandlerDecorator {
     }
 }
 
+#[derive(Debug)]
 pub struct HandlerDecoratorComposer<D1, D2> {
     decorator_1: D1,
     decorator_2: D2,

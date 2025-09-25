@@ -8,10 +8,12 @@ use http_body::Frame;
 use http_body_util::StreamBody;
 use std::time::Duration;
 
+#[derive(Debug)]
 pub struct SseStream<S> {
     stream: S,
 }
 
+#[derive(Debug)]
 pub struct SseEmitter<S> {
     sink: S,
 }
@@ -52,11 +54,13 @@ pub fn build_sse_stream_emitter(buffer: usize) -> (SseStream<impl Stream<Item = 
     (SseStream::new(receiver), SseEmitter::new(sender))
 }
 
+#[derive(Debug)]
 pub enum Event {
     Retry(Duration),
     Message(Message),
 }
 
+#[derive(Debug)]
 pub struct Message {
     // https://html.spec.whatwg.org/multipage/server-sent-events.html#concept-event-stream-last-event-id
     pub id: Option<String>,

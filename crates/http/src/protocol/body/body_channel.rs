@@ -2,7 +2,6 @@ use crate::protocol::{Message, ParseError, PayloadItem, PayloadSize, RequestHead
 use bytes::Bytes;
 use futures::{SinkExt, Stream, StreamExt, channel::mpsc};
 use http_body::{Body, Frame, SizeHint};
-use std::future::Future;
 use std::pin::Pin;
 use std::task::{Context, Poll};
 use tracing::error;
@@ -116,6 +115,7 @@ where
     }
 }
 
+#[derive(Debug)]
 pub(crate) struct BodyReceiver {
     signal_sender: mpsc::Sender<BodyRequestSignal>,
     data_receiver: mpsc::Receiver<Result<PayloadItem, ParseError>>,

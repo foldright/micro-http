@@ -1,5 +1,5 @@
 use bytes::Bytes;
-use criterion::{Criterion, black_box, criterion_group, criterion_main};
+use criterion::{Criterion, criterion_group, criterion_main};
 use futures::executor::block_on;
 use http::{Request, Response, StatusCode};
 use micro_http::handler::make_handler;
@@ -15,11 +15,12 @@ use std::{
     sync::Arc,
     task::{Context, Poll},
 };
+use std::hint::black_box;
 use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
 use tokio_util::codec::{Decoder, Encoder};
 
 // Mock IO for testing
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 struct MockIO {
     read_data: Vec<u8>,
     write_data: Vec<u8>,
@@ -59,7 +60,7 @@ impl AsyncWrite for MockIO {
 
 // Test handler
 async fn test_handler(_req: Request<ReqBody>) -> Result<Response<String>, Box<dyn Error + Send + Sync>> {
-    let response = Response::builder().status(StatusCode::OK).body("Hello World!".to_string()).unwrap();
+    let response = Response::builder().status(StatusCode::OK).body("Hello World!".to_string())?;
     Ok(response)
 }
 
@@ -106,7 +107,7 @@ fn bench_response_encoder(c: &mut Criterion) {
             let (header, body) = response.clone().into_parts();
             let payload_size = body.as_bytes().len();
             let message = Message::<_, Bytes>::Header((ResponseHead::from_parts(header, ()), PayloadSize::Length(payload_size as u64)));
-            black_box(encoder.encode(message, &mut bytes).unwrap());
+            encoder.encode(message, &mut bytes).unwrap();
         });
     });
 }
@@ -120,7 +121,7 @@ fn bench_http_connection(c: &mut Criterion) {
             let mock_io = MockIO::new(request.to_vec());
             let (reader, writer) = (mock_io.clone(), mock_io);
             let connection = HttpConnection::new(reader, writer);
-            black_box(block_on(connection.process(handler.clone())).unwrap());
+            block_on(connection.process(handler.clone())).unwrap();
         });
     });
 }

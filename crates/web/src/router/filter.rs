@@ -28,6 +28,8 @@
 //! combined.and(get_filter).and(auth_filter);
 //! ```
 
+use std::any::type_name_of_val;
+use std::fmt::{Debug, Formatter};
 use crate::RequestContext;
 use http::{HeaderName, HeaderValue, Method};
 
@@ -40,7 +42,7 @@ use http::{HeaderName, HeaderValue, Method};
 ///
 /// The `Filter` trait requires `Send + Sync`, ensuring that filters
 /// can be safely used in a multithreaded environment.
-pub trait Filter: Send + Sync {
+pub trait Filter: Send + Sync + Debug {
     /// Check if the request matches this filter's criteria.
     ///
     /// Returns `true` if the request should be allowed, `false` otherwise.
@@ -49,6 +51,14 @@ pub trait Filter: Send + Sync {
 
 /// A filter that wraps a closure.
 struct FnFilter<F: Fn(&RequestContext) -> bool>(F);
+
+impl<F: Fn(&RequestContext) -> bool> Debug for FnFilter<F> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("FnFilter")
+            .field("fn", &type_name_of_val(&self.0))
+            .finish()
+    }
+}
 
 impl<F: Fn(&RequestContext) -> bool + Send + Sync> Filter for FnFilter<F> {
     fn matches(&self, req: &RequestContext) -> bool {
@@ -88,6 +98,7 @@ pub const fn false_filter() -> FalseFilter {
 }
 
 /// A filter that always returns true.
+#[derive(Debug)]
 pub struct TrueFilter;
 impl Filter for TrueFilter {
     #[inline(always)]
@@ -97,6 +108,7 @@ impl Filter for TrueFilter {
 }
 
 /// A filter that always returns false.
+#[derive(Debug)]
 pub struct FalseFilter;
 impl Filter for FalseFilter {
     #[inline(always)]
@@ -114,6 +126,7 @@ pub fn any_filter() -> AnyFilter {
 ///
 /// If any inner filter succeeds, the whole filter succeeds.
 /// An empty filter chain returns true by default.
+#[derive(Debug)]
 pub struct AnyFilter {
     filters: Vec<Box<dyn Filter>>,
 }
@@ -155,6 +168,7 @@ pub fn all_filter() -> AllFilter {
 ///
 /// All inner filters must succeed for the whole filter to succeed.
 /// An empty filter chain returns true by default.
+#[derive(Debug)]
 pub struct AllFilter {
     filters: Vec<Box<dyn Filter>>,
 }
@@ -188,6 +202,7 @@ impl Filter for AllFilter {
 }
 
 /// A filter that matches HTTP methods.
+#[derive(Debug)]
 pub struct MethodFilter(Method);
 
 impl Filter for MethodFilter {
@@ -232,6 +247,7 @@ where
 }
 
 /// A filter that matches HTTP headers.
+#[derive(Debug)]
 pub struct HeaderFilter(HeaderName, HeaderValue);
 
 impl Filter for HeaderFilter {

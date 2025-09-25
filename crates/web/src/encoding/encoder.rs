@@ -246,11 +246,13 @@ where
 }
 
 /// A request handler that encodes the response body.
+#[derive(Debug)]
 pub struct EncodeRequestHandler<H: RequestHandler> {
     handler: H,
 }
 
 /// A wrapper that creates `EncodeRequestHandler`.
+#[derive(Debug)]
 pub struct EncodeDecorator;
 
 impl<H: RequestHandler> HandlerDecorator<H> for EncodeDecorator {
@@ -302,7 +304,7 @@ fn encode(req: &RequestContext, resp: &mut Response<ResponseBody>) {
         return;
     }
 
-    // here using unwrap is safe because we has checked
+    // here using unwrap is safe because we have checked
     let accept_encodings = match possible_encodings.unwrap().to_str() {
         Ok(s) => s,
         Err(_) => {
@@ -325,7 +327,7 @@ fn encode(req: &RequestContext, resp: &mut Response<ResponseBody>) {
 
     match body.size_hint().upper() {
         Some(upper) if upper <= 1024 => {
-            // less then 1k, we needn't compress
+            // less than 1k, we needn't compress
             return;
         }
         _ => (),

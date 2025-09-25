@@ -55,6 +55,7 @@ use crate::responder::Responder;
 /// - Binding address
 /// - Request router
 /// - Default request handler
+#[derive(Debug)]
 pub struct ServerBuilder {
     router: Option<Router>,
     default_handler: Option<Box<dyn RequestHandler>>,
@@ -110,6 +111,7 @@ async fn default_handler() -> (StatusCode, &'static str) {
 /// - Managing connection lifecycle
 /// - Error handling and logging
 ///
+#[derive(Debug)]
 pub struct Server {
     router: Router,
     default_handler: Box<dyn RequestHandler>,

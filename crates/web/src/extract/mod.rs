@@ -138,6 +138,7 @@ use serde::Deserialize;
 ///     format!("received params: {:?}", params)
 /// }
 /// ```
+#[derive(Debug)]
 pub struct Form<T>(pub T)
 where
     T: for<'de> Deserialize<'de> + Send;
@@ -162,6 +163,7 @@ where
 ///     format!("received params: {:?}", params)
 /// }
 /// ```
+#[derive(Debug)]
 pub struct Json<T>(pub T)
 where
     T: for<'de> Deserialize<'de> + Send;
@@ -186,6 +188,7 @@ where
 ///     format!("received params: {:?}", params)
 /// }
 /// ```
+#[derive(Debug)]
 pub struct Query<T>(pub T)
 where
     T: for<'de> Deserialize<'de> + Send;

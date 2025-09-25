@@ -119,6 +119,7 @@ impl Responder for Infallible {
     }
 }
 
+#[derive(Debug)]
 pub struct NotFound;
 
 impl Responder for NotFound {

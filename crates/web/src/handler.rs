@@ -5,6 +5,8 @@
 //! - `FnHandler` for wrapping async functions as handlers
 //! - Helper functions for creating handlers
 
+use std::any::type_name_of_val;
+use std::fmt::{Debug, Formatter};
 use crate::body::ResponseBody;
 use crate::fn_trait::FnTrait;
 
@@ -26,6 +28,12 @@ pub mod handler_decorator_factory;
 #[async_trait]
 pub trait RequestHandler: Send + Sync {
     async fn invoke<'server, 'req>(&self, req: &mut RequestContext<'server, 'req>, req_body: OptionReqBody) -> Response<ResponseBody>;
+}
+
+impl Debug for dyn RequestHandler {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "dyn request_handler: {}", type_name_of_val(self))
+    }
 }
 
 #[async_trait]
@@ -63,6 +71,12 @@ impl RequestHandler for &dyn RequestHandler {
 pub struct FnHandler<F, Args> {
     f: F,
     _phantom: PhantomData<fn(Args)>,
+}
+
+impl<F, Args> Debug for FnHandler<F, Args> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "fn_handler: {}", type_name_of_val(self))
+    }
 }
 
 impl<F, Args> FnHandler<F, Args>

@@ -22,7 +22,7 @@ use http::Response;
 ///
 /// This wrapper creates a `DateResponseHandler` that will add an RFC 7231 compliant
 /// Date header to all HTTP responses.
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct DateServiceDecorator;
 
 /// A request handler that adds the Date header to responses.
@@ -30,6 +30,7 @@ pub struct DateServiceDecorator;
 /// This handler wraps another handler and adds the Date header to its responses.
 /// The Date header is generated using a shared `DateService` instance to avoid
 /// unnecessary system calls.
+#[derive(Debug)]
 pub struct DateResponseHandler<H> {
     handler: H,
     // todo: we need to ensure data_service is singleton

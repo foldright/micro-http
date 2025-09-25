@@ -25,7 +25,6 @@ use crate::protocol::body::ReqBody;
 use http::{Request, Response};
 use http_body::Body;
 use std::error::Error;
-use std::future::Future;
 
 /// A trait for handling HTTP requests
 ///

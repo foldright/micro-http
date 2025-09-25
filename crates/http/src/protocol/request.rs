@@ -4,8 +4,6 @@
 //! It wraps the standard `http::Request` type to provide additional functionality
 //! specific to our HTTP server implementation.
 
-use std::convert::Into;
-
 use http::request::Parts;
 use http::{HeaderMap, Method, Request, Uri, Version};
 
@@ -138,7 +136,7 @@ impl From<U8Wrapper> for Version {
 mod tests {
     use std::mem::MaybeUninit;
 
-    use http::{HeaderValue, Method, Version};
+    use http::HeaderValue;
     use indoc::indoc;
 
     use super::*;

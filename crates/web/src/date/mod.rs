@@ -20,6 +20,7 @@ pub use date_service_decorator::DateServiceDecorator;
 /// This service runs a background task that updates the date string every 700ms,
 /// providing an efficient way to access formatted HTTP date strings without
 /// formatting them on every request.
+#[derive(Debug)]
 pub struct DateService {
     current: Arc<ArcSwap<Bytes>>,
     handle: tokio::task::JoinHandle<()>,

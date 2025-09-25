@@ -17,17 +17,20 @@ type RouterFilter = dyn Filter + Send + Sync + 'static;
 type InnerRouter<T> = matchit::Router<T>;
 
 /// Main router structure that handles HTTP request routing
+#[derive(Debug)]
 pub struct Router {
     inner_router: InnerRouter<Vec<RouterItem>>,
 }
 
 /// A router item containing a filter and handler
+#[derive(Debug)]
 pub struct RouterItem {
     filter: Box<RouterFilter>,
     handler: Box<dyn RequestHandler>,
 }
 
 /// Result of matching a route, containing matched items and path parameters
+#[derive(Debug)]
 pub struct RouteResult<'router, 'req> {
     router_items: &'router [RouterItem],
     params: PathParams<'router, 'req>,
@@ -88,6 +91,7 @@ impl<'router, 'req> RouteResult<'router, 'req> {
     }
 }
 
+#[derive(Debug)]
 pub struct RouterBuilder<DF> {
     data: HashMap<String, Vec<RouterItemBuilder>>,
     decorator_factory: DF,
@@ -184,6 +188,8 @@ method_router_filter!(connect, inner_connect);
 method_router_filter!(patch, inner_patch);
 method_router_filter!(trace, inner_trace);
 
+
+#[derive(Debug)]
 pub struct RouterItemBuilder {
     filters: AllFilter,
     handler: Box<dyn RequestHandler>,

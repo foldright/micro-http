@@ -41,6 +41,7 @@ impl HandlerDecoratorFactory for IdentityHandlerDecoratorFactory {
     }
 }
 
+#[derive(Debug)]
 pub struct HandlerDecoratorFactoryComposer<F1, F2> {
     factory_1: F1,
     factory_2: F2,

@@ -1,5 +1,5 @@
 use std::error::Error;
-use std::fmt::Display;
+use std::fmt::{Debug, Display};
 use bytes::Bytes;
 use std::sync::Arc;
 
@@ -31,15 +31,16 @@ use tracing::{error, info};
 /// * `R`: The async readable stream type
 /// * `W`: The async writable stream type
 ///
-pub struct HttpConnection<R, W> {
+#[derive(Debug)]
+pub struct HttpConnection<R, W> where R: Debug, W: Debug{
     framed_read: FramedRead<R, RequestDecoder>,
     framed_write: FramedWrite<W, ResponseEncoder>,
 }
 
 impl<R, W> HttpConnection<R, W>
 where
-    R: AsyncRead + Unpin,
-    W: AsyncWrite + Unpin,
+    R: AsyncRead + Unpin + Debug,
+    W: AsyncWrite + Unpin + Debug,
 {
     pub fn new(reader: R, writer: W) -> Self {
         Self {

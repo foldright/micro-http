@@ -4,13 +4,12 @@ use http_body::{Frame, SizeHint};
 use http_body_util::combinators::UnsyncBoxBody;
 use micro_http::protocol::body::ReqBody;
 use micro_http::protocol::{HttpError, ParseError};
-use std::future::Future;
 use std::pin::Pin;
 use std::sync::Arc;
 use std::task::{Context, Poll};
 use tokio::sync::Mutex;
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct OptionReqBody {
     inner: Arc<Mutex<Option<ReqBody>>>,
 }
@@ -43,10 +42,12 @@ impl OptionReqBody {
     }
 }
 
+#[derive(Debug)]
 pub struct ResponseBody {
     inner: Kind,
 }
 
+#[derive(Debug)]
 enum Kind {
     Once(Option<Bytes>),
     Stream(UnsyncBoxBody<Bytes, HttpError>),

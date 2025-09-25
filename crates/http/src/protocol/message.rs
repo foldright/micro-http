@@ -5,6 +5,7 @@ use bytes::{Buf, Bytes};
 /// This enum is used to handle both request and response messages in the HTTP protocol.
 /// The generic parameter `T` typically represents the header type (request or response header),
 /// while `Data` represents the type of the payload data (defaults to `Bytes`).
+#[derive(Debug)]
 pub enum Message<T, Data: Buf = Bytes> {
     /// Contains the header information of type `T`
     Header(T),

@@ -29,6 +29,7 @@ const INIT_HEADER_SIZE: usize = 4 * 1024;
 /// This encoder serializes a [`ResponseHead`] and [`PayloadSize`] into raw bytes,
 /// automatically handling Content-Length or Transfer-Encoding headers based on the
 /// payload size.
+#[derive(Debug)]
 pub struct HeaderEncoder;
 
 impl Encoder<(ResponseHead, PayloadSize)> for HeaderEncoder {

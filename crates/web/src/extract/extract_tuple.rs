@@ -20,6 +20,7 @@ macro_rules! impl_from_request_for_fn {
             }
         }
 
+        #[derive(Debug)]
         pub enum $either<$($param,)*> {
             $(
             $param($param),

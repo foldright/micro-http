@@ -36,3 +36,7 @@ tokio-util.workspace = true
 
 [features]
 codspeed = ["codspeed-criterion-compat"]
+
+
+[lints]
+workspace = true

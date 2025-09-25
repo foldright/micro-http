@@ -24,7 +24,7 @@
 //! - Are Send + Sync
 //! - Have 0-12 parameters
 
-use std::future::Future;
+
 /// A trait for abstracting over async functions with varying numbers of parameters.
 ///
 /// This trait allows the web framework to work with different types of handler functions

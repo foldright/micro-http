@@ -6,9 +6,12 @@ use http_body::{Body, Frame, SizeHint};
 use std::pin::Pin;
 use std::task::{Context, Poll};
 
+#[derive(Debug)]
 pub struct ReqBody {
     inner: ReqBodyRepr,
 }
+
+#[derive(Debug)]
 pub(crate) enum ReqBodyRepr {
     Receiver(BodyReceiver),
     NoBody,

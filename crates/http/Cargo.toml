@@ -40,3 +40,6 @@ criterion = { workspace = true, features = ["async_tokio", "html_reports"] }
 [[bench]]
 name = "http_bench"
 harness = false
+
+[lints]
+workspace = true

@@ -53,6 +53,7 @@ const MAX_HEADER_BYTES: usize = 8 * 1024;
 ///
 /// This decoder parses raw bytes into a structured [`RequestHeader`] and determines the
 /// appropriate [`PayloadDecoder`] based on the Content-Length and Transfer-Encoding headers.
+#[derive(Debug)]
 pub struct HeaderDecoder;
 
 impl Decoder for HeaderDecoder {
@@ -287,7 +288,7 @@ fn is_chunked(header_value: Option<&HeaderValue>) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use http::{HeaderMap, Method, Version};
+    use http::{HeaderMap, Version};
     use indoc::indoc;
 
     #[test]
@@ -338,7 +339,7 @@ mod tests {
 
         let mut header_decoder = HeaderDecoder;
 
-        let result = header_decoder.decode(&mut bytes).unwrap();
+        header_decoder.decode(&mut bytes).unwrap();
 
         assert_eq!(bytes.len(), 3);
         assert_eq!(&bytes[..], &b"123"[..]);
