@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.2](https://github.com/foldright/micro-http/compare/micro-http-v0.2.1...micro-http-v0.2.2) - 2025-09-24
+
+### Added
+
+- add RequestContext in from_request
+- disable error when the connection close
+
+### Fixed
+
+- better connection error proccess
+
+### Other
+
+- polishing
+- reduce uri parser memory copy
+
 ## [0.2.1](https://github.com/foldright/micro-http/compare/micro-http-v0.2.0...micro-http-v0.2.1) - 2025-09-21
 
 ### Other

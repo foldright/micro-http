@@ -11,7 +11,7 @@ license = "MIT OR Apache-2.0"
 readme = "README.md"
 repository = "https://github.com/foldright/micro-http"
 rust-version = "1.90"
-version = "0.2.1"
+version = "0.2.2"
 
 [workspace.dependencies]
 http = "1"
@@ -62,8 +62,8 @@ codspeed-criterion-compat = { version = "3.0", default-features = false }
 
 dhat = "0.3"
 
-micro-web = { path = "crates/web", version = "0.2.1" }
-micro-http = { path = "crates/http", version = "0.2.1" }
+micro-web = { path = "crates/web", version = "0.2.2" }
+micro-http = { path = "crates/http", version = "0.2.2" }
 
 [profile.dev.build-override]
 debug = true
