@@ -121,6 +121,7 @@ async fn main() {
         // Additional GET route
         .route("/4", get(simple_another_get))
         .route("/5", get(get_request_context))
+        .route("/6", get(async || { "it works"} ))
         // Add response encoding wrapper
         .with_global_decorator(EncodeDecorator)
         .build();
