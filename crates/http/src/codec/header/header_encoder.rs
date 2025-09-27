@@ -13,7 +13,7 @@
 
 use crate::protocol::{PayloadSize, ResponseHead, SendError};
 
-use bytes::{BufMut, Bytes, BytesMut};
+use bytes::{BufMut, BytesMut};
 
 use http::{HeaderValue, Version, header};
 use std::io;
@@ -74,25 +74,27 @@ impl Encoder<(ResponseHead, PayloadSize)> for HeaderEncoder {
                 }
             },
 
-            PayloadSize::Chunked => match header.headers_mut().get_mut(header::TRANSFER_ENCODING) {
-                Some(value) => *value = unsafe { HeaderValue::from_maybe_shared_unchecked(Bytes::from_static("chunked".as_bytes())) },
-                None => {
-                    header.headers_mut().insert(header::TRANSFER_ENCODING, unsafe {
-                        HeaderValue::from_maybe_shared_unchecked(Bytes::from_static("chunked".as_bytes()))
-                    });
+            PayloadSize::Chunked => {
+                const CHUNKED: HeaderValue = HeaderValue::from_static("chunked");
+
+                match header.headers_mut().get_mut(header::TRANSFER_ENCODING) {
+                    Some(value) => *value = CHUNKED,
+                    None => {
+                        header.headers_mut().insert(header::TRANSFER_ENCODING, CHUNKED);
+                    }
                 }
             },
-            PayloadSize::Empty => match header.headers_mut().get_mut(header::CONTENT_LENGTH) {
-                Some(value) => *value = 0.into(),
-                None => {
-                    const ZERO_VALUE: HeaderValue = HeaderValue::from_static("0");
-                    header.headers_mut().insert(header::CONTENT_LENGTH, ZERO_VALUE);
-                }
+
+            PayloadSize::Empty => if let Some(value) = header.headers_mut().get_mut(header::CONTENT_LENGTH) {
+                *value = 0.into();
+            } else {
+                const ZERO_VALUE: HeaderValue = HeaderValue::from_static("0");
+                header.headers_mut().insert(header::CONTENT_LENGTH, ZERO_VALUE);
             },
         }
 
         // Write all headers
-        for (header_name, header_value) in header.headers().iter() {
+        for (header_name, header_value) in header.headers() {
             dst.put_slice(header_name.as_ref());
             dst.put_slice(b": ");
             dst.put_slice(header_value.as_ref());
@@ -103,7 +105,7 @@ impl Encoder<(ResponseHead, PayloadSize)> for HeaderEncoder {
     }
 }
 
-/// Fast writer implementation for writing to BytesMut.
+/// Fast writer implementation for writing to [`BytesMut`].
 ///
 /// This is an optimization to avoid unnecessary bounds checking when writing
 /// to the bytes buffer, since we've already reserved enough space.

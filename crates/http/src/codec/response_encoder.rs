@@ -30,7 +30,7 @@ use std::io::ErrorKind;
 use tokio_util::codec::Encoder;
 use tracing::error;
 
-/// A encoder for HTTP responses that handles both headers and payload
+/// An encoder for HTTP responses that handles both headers and payload
 ///
 /// The encoder operates in two phases:
 /// 1. Header encoding: Encodes the response headers using [`HeaderEncoder`]
@@ -45,8 +45,9 @@ pub struct ResponseEncoder {
 
 impl ResponseEncoder {
     /// Creates a new `ResponseEncoder` instance
+    #[must_use]
     pub fn new() -> Self {
-        Default::default()
+        ResponseEncoder::default()
     }
 }
 
@@ -88,9 +89,7 @@ impl<D: Buf> Encoder<Message<(ResponseHead, PayloadSize), D>> for ResponseEncode
 
             Message::Payload(payload_item) => {
                 // Get the payload encoder, return error if it doesn't exist
-                let payload_encoder = if let Some(encoder) = &mut self.payload_encoder {
-                    encoder
-                } else {
+                let Some(payload_encoder) = &mut self.payload_encoder else {
                     error!("expect response header but receive payload item");
                     return Err(io::Error::from(ErrorKind::InvalidInput).into());
                 };
