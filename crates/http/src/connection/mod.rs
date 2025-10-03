@@ -23,5 +23,6 @@
 //! - Efficient memory usage through buffering
 
 mod http_connection;
+mod message_writer;
 
 pub use http_connection::HttpConnection;

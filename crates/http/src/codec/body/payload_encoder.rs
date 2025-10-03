@@ -89,6 +89,7 @@ impl PayloadEncoder {
     }
 
     /// Returns whether the encoder has finished sending all data.
+    #[inline]
     pub fn is_finish(&self) -> bool {
         match &self.kind {
             Kind::Length(encoder) => encoder.is_finish(),

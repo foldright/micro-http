@@ -1,21 +1,22 @@
+use bytes::Bytes;
 use std::error::Error;
 use std::fmt::{Debug, Display};
-use bytes::Bytes;
 use std::sync::Arc;
 
-use futures::{SinkExt, StreamExt};
+use futures::StreamExt;
 use http::header::EXPECT;
 use http::{Response, StatusCode};
 use http_body::Body;
 use http_body_util::{BodyExt, Empty};
 use tokio::io::{AsyncRead, AsyncWrite, AsyncWriteExt};
 
-use crate::codec::{RequestDecoder, ResponseEncoder};
+use crate::codec::RequestDecoder;
 use crate::handler::Handler;
 use crate::protocol::body::ReqBody;
 use crate::protocol::{HttpError, Message, ParseError, PayloadItem, PayloadSize, RequestHeader, ResponseHead, SendError};
 
-use tokio_util::codec::{FramedRead, FramedWrite};
+use crate::connection::message_writer::MessageWriter;
+use tokio_util::codec::FramedRead;
 use tracing::{error, info};
 
 /// An HTTP connection that manages request processing and response streaming
@@ -32,9 +33,13 @@ use tracing::{error, info};
 /// * `W`: The async writable stream type
 ///
 #[derive(Debug)]
-pub struct HttpConnection<R, W> where R: Debug, W: Debug{
+pub struct HttpConnection<R, W>
+where
+    R: Debug,
+    W: Debug,
+{
     framed_read: FramedRead<R, RequestDecoder>,
-    framed_write: FramedWrite<W, ResponseEncoder>,
+    message_writer: MessageWriter<W>,
 }
 
 impl<R, W> HttpConnection<R, W>
@@ -45,7 +50,7 @@ where
     pub fn new(reader: R, writer: W) -> Self {
         Self {
             framed_read: FramedRead::with_capacity(reader, RequestDecoder::new(), 8 * 1024),
-            framed_write: FramedWrite::new(writer, ResponseEncoder::new()),
+            message_writer: MessageWriter::with_capacity(writer, 8 * 1024),
         }
     }
 
@@ -70,7 +75,7 @@ where
                     return Err(ParseError::invalid_body("need header while receive body").into());
                 }
 
-                Some(Err(ParseError::Io { source})) => {
+                Some(Err(ParseError::Io { source })) => {
                     info!("connection io error: {}", source);
                     return Ok(());
                 }
@@ -99,7 +104,7 @@ where
             let slice = value.as_bytes();
             // Verify if the value of the "Expect" field is "100-continue".
             if slice.len() >= 4 && &slice[0..4] == b"100-" {
-                let writer = self.framed_write.get_mut();
+                let writer = self.message_writer.get_mut();
                 // Send a "100 Continue" response to the client.
                 let _ = writer.write(b"HTTP/1.1 100 Continue\r\n\r\n").await.map_err(SendError::io)?;
                 writer.flush().await.map_err(SendError::io)?;
@@ -158,14 +163,8 @@ where
         };
 
         let header = Message::<_, T::Data>::Header((ResponseHead::from_parts(header_parts, ()), payload_size));
-        if payload_size.is_not_empty() {
-            self.framed_write.feed(header).await?;
-        } else {
-            // using send instead of feed, because we want to flush the underlying IO
-            // when response only has header, we need to send header,
-            // otherwise, we just feed header to the buffer
-            self.framed_write.send(header).await?;
-        }
+
+        self.message_writer.write(header)?;
 
         loop {
             match body.frame().await {
@@ -173,18 +172,18 @@ where
                     let payload_item =
                         frame.into_data().map(PayloadItem::Chunk).map_err(|_e| SendError::invalid_body("resolve body response error"))?;
 
-                    self.framed_write
-                        .send(Message::Payload(payload_item))
-                        .await
+                    self.message_writer
+                        .write(Message::Payload(payload_item))
                         .map_err(|_e| SendError::invalid_body("can't send response"))?;
                 }
                 Some(Err(e)) => return Err(SendError::invalid_body(format!("resolve response body error: {e}")).into()),
                 None => {
-                    self.framed_write
+                    self.message_writer
                         // using feed instead of send, because we don't want to flush the underlying IO
-                        .feed(Message::Payload(PayloadItem::<T::Data>::Eof))
-                        .await
+                        .write(Message::Payload(PayloadItem::<T::Data>::Eof))
                         .map_err(|e| SendError::invalid_body(format!("can't send eof response: {}", e)))?;
+                    self.message_writer.flush().await?;
+                    self.message_writer.clear_buf();
                     return Ok(());
                 }
             }
