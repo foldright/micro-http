@@ -68,6 +68,11 @@ impl PayloadSize {
     pub fn is_empty(&self) -> bool {
         matches!(self, PayloadSize::Empty)
     }
+
+    #[inline]
+    pub fn is_not_empty(&self) -> bool {
+        !self.is_empty()
+    }
 }
 
 impl<T> Message<T> {
