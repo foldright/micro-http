@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0](https://github.com/foldright/micro-http/compare/micro-web-v0.2.2...micro-web-v0.3.0) - 2025-10-03
+
+### Other
+
+- add async closure example
+- add debug trait for pub items
+
 ## [0.2.2](https://github.com/foldright/micro-http/compare/micro-web-v0.2.1...micro-web-v0.2.2) - 2025-09-24
 
 ### Added
