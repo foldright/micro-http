@@ -169,7 +169,7 @@ impl Server {
                 tcp_stream.set_nodelay(true).unwrap();
                 let (reader, writer) = tcp_stream.into_split();
                 let connection = HttpConnection::new(reader, writer);
-                match connection.process(handler).await {
+                match connection.process(handler.as_ref()).await {
                     Ok(_) => {
                         info!("finished process, connection shutdown");
                     }

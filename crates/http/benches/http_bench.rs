@@ -12,7 +12,6 @@ use std::{
     error::Error,
     io,
     pin::Pin,
-    sync::Arc,
     task::{Context, Poll},
 };
 use std::hint::black_box;
@@ -114,14 +113,14 @@ fn bench_response_encoder(c: &mut Criterion) {
 
 fn bench_http_connection(c: &mut Criterion) {
     let request = REQUEST.as_bytes();
-    let handler = Arc::new(make_handler(test_handler));
+    let handler = make_handler(test_handler);
 
     c.bench_function("process_simple_request", |b| {
         b.iter(|| {
             let mock_io = MockIO::new(request.to_vec());
             let (reader, writer) = (mock_io.clone(), mock_io);
             let connection = HttpConnection::new(reader, writer);
-            block_on(connection.process(handler.clone())).unwrap();
+            block_on(connection.process(&handler)).unwrap();
         });
     });
 }

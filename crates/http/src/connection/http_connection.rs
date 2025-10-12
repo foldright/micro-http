@@ -1,7 +1,6 @@
 use bytes::Bytes;
 use std::error::Error;
 use std::fmt::{Debug, Display};
-use std::sync::Arc;
 
 use futures::StreamExt;
 use http::header::EXPECT;
@@ -54,7 +53,7 @@ where
         }
     }
 
-    pub async fn process<H>(mut self, mut handler: Arc<H>) -> Result<(), HttpError>
+    pub async fn process<H>(mut self, handler: &H) -> Result<(), HttpError>
     where
         H: Handler,
         H::RespBody: Body<Data = Bytes> + Unpin,
@@ -63,7 +62,7 @@ where
         loop {
             match self.framed_read.next().await {
                 Some(Ok(Message::Header((header, payload_size)))) => {
-                    self.do_process(header, payload_size, &mut handler).await?;
+                    self.do_process(header, payload_size, handler).await?;
                 }
 
                 Some(Ok(Message::Payload(PayloadItem::Eof))) => continue,
@@ -93,7 +92,7 @@ where
         }
     }
 
-    async fn do_process<H>(&mut self, header: RequestHeader, payload_size: PayloadSize, handler: &mut Arc<H>) -> Result<(), HttpError>
+    async fn do_process<H>(&mut self, header: RequestHeader, payload_size: PayloadSize, handler: &H) -> Result<(), HttpError>
     where
         H: Handler,
         H::RespBody: Body<Data = Bytes> + Unpin,
