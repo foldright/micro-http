@@ -41,11 +41,11 @@ use micro_http::protocol::RequestHeader;
 use micro_http::protocol::body::ReqBody;
 use std::error::Error;
 use std::net::{SocketAddr, ToSocketAddrs};
-use std::sync::Arc;
 use thiserror::Error;
 use tokio::net::TcpListener;
 use tracing::{Level, error, info, warn};
 use tracing_subscriber::FmtSubscriber;
+use triomphe::Arc;
 use crate::extract::FromRequest;
 use crate::responder::Responder;
 

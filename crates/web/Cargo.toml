@@ -38,6 +38,7 @@ bytes.workspace = true
 
 hlist2.workspace = true
 tower-layer.workspace = true
+triomphe.workspace = true
 
 dhat.workspace = true
 

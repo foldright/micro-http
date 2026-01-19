@@ -5,9 +5,9 @@ use http_body_util::combinators::UnsyncBoxBody;
 use micro_http::protocol::body::ReqBody;
 use micro_http::protocol::{HttpError, ParseError};
 use std::pin::Pin;
-use std::sync::Arc;
 use std::task::{Context, Poll};
 use tokio::sync::Mutex;
+use triomphe::Arc;
 
 #[derive(Debug, Clone)]
 pub struct OptionReqBody {
