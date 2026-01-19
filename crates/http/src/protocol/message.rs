@@ -1,4 +1,5 @@
 use bytes::{Buf, Bytes};
+use http_body::SizeHint;
 
 /// Represents a HTTP message that can either be a header or payload.
 ///
@@ -39,6 +40,16 @@ pub enum PayloadSize {
     Chunked,
     /// Empty payload (no body)
     Empty,
+}
+
+impl From<SizeHint> for PayloadSize {
+    fn from(size_hint: SizeHint) -> Self {
+        match size_hint.exact() {
+            Some(0) => PayloadSize::new_empty(),
+            Some(length) => PayloadSize::new_length(length),
+            None => PayloadSize::new_chunked(),
+        }
+    }
 }
 
 impl PayloadSize {

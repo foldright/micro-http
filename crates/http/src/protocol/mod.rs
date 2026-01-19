@@ -22,7 +22,7 @@
 //!
 //! - **Body Streaming** ([`body`]): Efficient body handling implementation
 //!   - [`ReqBody`]: Consumer side implementing `http_body::Body`
-//!   - [`ReqBodySender`]: Producer side for streaming body chunks
+//!   - [`ReqBodyState`]: Connection-side guard that drains unread body data
 //!
 //! - **Error Handling** ([`error`]): Comprehensive error types
 //!   - [`HttpError`]: Top-level error type

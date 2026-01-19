@@ -37,18 +37,18 @@ where
     R: Debug,
     W: Debug,
 {
-    framed_read: FramedRead<R, RequestDecoder>,
+    framed_read: Option<FramedRead<R, RequestDecoder>>,
     message_writer: MessageWriter<W>,
 }
 
 impl<R, W> HttpConnection<R, W>
 where
-    R: AsyncRead + Unpin + Debug,
+    R: AsyncRead + Unpin + Send + Debug,
     W: AsyncWrite + Unpin + Debug,
 {
     pub fn new(reader: R, writer: W) -> Self {
         Self {
-            framed_read: FramedRead::with_capacity(reader, RequestDecoder::new(), 8 * 1024),
+            framed_read: Some(FramedRead::with_capacity(reader, RequestDecoder::new(), 8 * 1024)),
             message_writer: MessageWriter::with_capacity(writer, 8 * 1024),
         }
     }
@@ -60,7 +60,9 @@ where
         <H::RespBody as Body>::Error: Display,
     {
         loop {
-            match self.framed_read.next().await {
+            let framed_read = self.framed_read.as_mut().expect("framed reader must be available while processing requests");
+
+            match framed_read.next().await {
                 Some(Ok(Message::Header((header, payload_size)))) => {
                     self.do_process(header, payload_size, handler).await?;
                 }
@@ -112,19 +114,14 @@ where
             }
         }
 
-        let (req_body, maybe_body_sender) = ReqBody::create_req_body(&mut self.framed_read, payload_size);
+        let framed_read = self.framed_read.take().expect("framed reader must exist when creating request body");
+        let (req_body, req_body_state) = ReqBody::create_req_body(framed_read, payload_size);
         let request = header.body(req_body);
 
-        let response_result = match maybe_body_sender {
-            None => handler.call(request).await,
-            Some(mut body_sender) => {
-                let (handler_result, body_send_result) = tokio::join!(handler.call(request), body_sender.start());
+        let response_result = handler.call(request).await;
 
-                // check if body sender has error
-                body_send_result?;
-                handler_result
-            }
-        };
+        let framed_read = req_body_state.finish().await?;
+        self.framed_read = Some(framed_read);
 
         self.send_response(response_result).await
     }
@@ -152,15 +149,8 @@ where
     {
         let (header_parts, mut body) = response.into_parts();
 
-        let payload_size = {
-            let size_hint = body.size_hint();
-            match size_hint.exact() {
-                Some(0) => PayloadSize::Empty,
-                Some(length) => PayloadSize::Length(length),
-                None => PayloadSize::Chunked,
-            }
-        };
-
+        let payload_size: PayloadSize = body.size_hint().into();
+        
         let header = Message::<_, T::Data>::Header((ResponseHead::from_parts(header_parts, ()), payload_size));
 
         self.message_writer.write(header)?;

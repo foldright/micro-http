@@ -31,6 +31,7 @@ futures.workspace = true
 trait-variant.workspace = true
 
 thiserror.workspace = true
+triomphe.workspace = true
 
 [dev-dependencies]
 indoc = "2.0.5"

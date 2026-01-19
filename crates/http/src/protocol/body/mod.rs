@@ -13,10 +13,13 @@
 //! The body handling system consists of two main components:
 //!
 //! - [`ReqBody`]: The consumer side that implements `http_body::Body` trait
-//! - [`ReqBodySender`]: The producer side that reads from the raw payload stream
+//! - [`ReqBodyState`]: Connection-side guard that owns the streaming state
 //!
-//! These components communicate through channels to enable concurrent processing while
-//! maintaining backpressure.
+//! The connection hands a [`ReqBody`] to the request handler and keeps the
+//! associated [`ReqBodyState`]. Once the handler finishes, the connection uses
+//! the state to finish draining any unread body data and to reclaim ownership of
+//! the underlying decoder. This design removes the previous channel-based
+//! indirection and lets the handler poll the decoder directly.
 //!
 //! # Design Goals
 //!
@@ -28,9 +31,10 @@
 //!    - Ensure complete body consumption even if handler abandons reading
 //!    - Maintain proper connection state for keep-alive support
 //!
-//! 3. **Concurrent Processing**
-//!    - Allow request handling to proceed while body streams
-//!    - Support cancellation and cleanup in error cases
+//! 3. **Graceful Cancellation**
+//!    - Ensure complete body consumption even if the handler drops the body
+//!      without reading it
+//!    - Support cleanup in error cases without spawning helper tasks
 //!
 //! 4. **Clean Abstractions**
 //!    - Hide channel complexity from consumers
@@ -38,17 +42,8 @@
 //!
 //! # Implementation Details
 //!
-//! The body handling implementation uses:
-//!
-//! - MPSC channel for signaling between consumer and producer
-//! - Oneshot channels for individual chunk transfers
-//! - EOF tracking to ensure complete body consumption
-//! - Automatic cleanup of unread data
-//!
-//! See individual component documentation for more details.
-
-//mod req_body_2;
-mod body_channel;
 mod req_body;
 
 pub use req_body::ReqBody;
+#[allow(unused_imports)]
+pub(crate) use req_body::ReqBodyState;
