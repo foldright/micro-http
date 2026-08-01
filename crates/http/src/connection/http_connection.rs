@@ -128,7 +128,7 @@ where
 
     async fn send_response<T, E>(&mut self, response_result: Result<Response<T>, E>) -> Result<(), HttpError>
     where
-        T: Body + Unpin,
+        T: Body<Data = Bytes> + Unpin,
         T::Error: Display,
         E: Into<Box<dyn Error + Send + Sync>>,
     {
@@ -144,36 +144,69 @@ where
 
     async fn do_send_response<T>(&mut self, response: Response<T>) -> Result<(), HttpError>
     where
-        T: Body + Unpin,
+        T: Body<Data = Bytes> + Unpin,
         T::Error: Display,
     {
         let (header_parts, mut body) = response.into_parts();
-
         let payload_size: PayloadSize = body.size_hint().into();
-        
-        let header = Message::<_, T::Data>::Header((ResponseHead::from_parts(header_parts, ()), payload_size));
-
-        self.message_writer.write(header)?;
-
-        loop {
-            match body.frame().await {
-                Some(Ok(frame)) => {
-                    let payload_item =
-                        frame.into_data().map(PayloadItem::Chunk).map_err(|_e| SendError::invalid_body("resolve body response error"))?;
-
-                    self.message_writer
-                        .write(Message::Payload(payload_item))
-                        .map_err(|_e| SendError::invalid_body("can't send response"))?;
+        let response_head = ResponseHead::from_parts(header_parts, ());
+        match payload_size {
+            PayloadSize::Empty => {
+                self.message_writer.send_head(response_head, payload_size).await?;
+                Ok(())
+            }
+            PayloadSize::Length(_) => {
+                match body.frame().await {
+                    Some(Ok(frame)) => {
+                        let first = frame.into_data().map_err(|_e| SendError::invalid_body("resolve body response error"))?;
+                        self.message_writer.send_head_and_body(response_head, payload_size, first.as_ref()).await?;
+                    }
+                    Some(Err(e)) => return Err(SendError::invalid_body(format!("resolve response body error: {e}")).into()),
+                    None => {
+                        return Err(SendError::invalid_body("response body ended before its declared content-length").into());
+                    }
                 }
-                Some(Err(e)) => return Err(SendError::invalid_body(format!("resolve response body error: {e}")).into()),
-                None => {
-                    self.message_writer
-                        // using feed instead of send, because we don't want to flush the underlying IO
-                        .write(Message::Payload(PayloadItem::<T::Data>::Eof))
-                        .map_err(|e| SendError::invalid_body(format!("can't send eof response: {}", e)))?;
-                    self.message_writer.flush().await?;
-                    self.message_writer.clear_buf();
-                    return Ok(());
+
+                loop {
+                    match body.frame().await {
+                        Some(Ok(frame)) => {
+                            let payload = frame.into_data().map_err(|_e| SendError::invalid_body("resolve body response error"))?;
+                            self.message_writer.send_body(payload.as_ref()).await?;
+                        }
+                        Some(Err(e)) => return Err(SendError::invalid_body(format!("resolve response body error: {e}")).into()),
+                        None => {
+                            self.message_writer.finish_body()?;
+                            return Ok(());
+                        }
+                    }
+                }
+            }
+            PayloadSize::Chunked => {
+                match body.frame().await {
+                    Some(Ok(frame)) => {
+                        let first = frame.into_data().map_err(|_e| SendError::invalid_body("resolve body response error"))?;
+                        self.message_writer.send_head_and_chunk(response_head, first.as_ref()).await?;
+                    }
+                    Some(Err(e)) => return Err(SendError::invalid_body(format!("resolve response body error: {e}")).into()),
+                    None => {
+                        self.message_writer.send_head(response_head, payload_size).await?;
+                        self.message_writer.send_chunk_eof().await?;
+                        return Ok(());
+                    }
+                }
+
+                loop {
+                    match body.frame().await {
+                        Some(Ok(frame)) => {
+                            let payload = frame.into_data().map_err(|_e| SendError::invalid_body("resolve body response error"))?;
+                            self.message_writer.send_chunk(payload.as_ref()).await?;
+                        }
+                        Some(Err(e)) => return Err(SendError::invalid_body(format!("resolve response body error: {e}")).into()),
+                        None => {
+                            self.message_writer.send_chunk_eof().await?;
+                            return Ok(());
+                        }
+                    }
                 }
             }
         }
